@@ -11,7 +11,6 @@ import net.minecraft.block.Block;
 import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -19,25 +18,21 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
-public class BlockCitadel extends Block implements ITileEntityProvider
+public class BlockSiegeCamp extends Block implements ITileEntityProvider
 {
-	public BlockCitadel(Material materialIn) 
+	public BlockSiegeCamp(Material materialIn) 
 	{
 		super(materialIn);
-		this.setCreativeTab(CreativeTabs.COMBAT);
-		this.setBlockUnbreakable();
-		this.setResistance(30000000f);
 	}
-	
+
 	@Override
 	public TileEntity createNewTileEntity(World worldIn, int meta)
 	{
-		return new TileEntityCitadel();
+		return new TileEntitySiegeCamp();
 	}
-	
+
 	@Override
 	public boolean canPlaceBlockAt(World world, BlockPos pos)
 	{
@@ -45,6 +40,8 @@ public class BlockCitadel extends Block implements ITileEntityProvider
 		UUID existingClaim = WarForgeMod.INSTANCE.GetClaim(new DimChunkPos(world.provider.getDimension(), pos));
 		if(!existingClaim.equals(Faction.NULL))
 			return false;
+		
+		// TODO: Verify there is a valid attack place
 		
 		// Can only place on a solid surface
 		if(!world.getBlockState(pos.add(0, -1, 0)).isSideSolid(world, pos.add(0, -1, 0), EnumFacing.UP))
@@ -59,7 +56,7 @@ public class BlockCitadel extends Block implements ITileEntityProvider
 		TileEntity te = world.getTileEntity(pos);
 		if(te != null)
 		{
-			TileEntityCitadel citadel = (TileEntityCitadel)te;
+			TileEntitySiegeCamp citadel = (TileEntitySiegeCamp)te;
 			citadel.OnPlacedBy(placer);
 		}
     }
@@ -70,7 +67,7 @@ public class BlockCitadel extends Block implements ITileEntityProvider
 		if(player.isSneaking())
 			return false;
 		if(!world.isRemote)
-			player.openGui(WarForgeMod.INSTANCE, CommonProxy.GUI_TYPE_CITADEL, world, pos.getX(), pos.getY(), pos.getZ());
+			player.openGui(WarForgeMod.INSTANCE, CommonProxy.GUI_TYPE_SIEGE_CAMP, world, pos.getX(), pos.getY(), pos.getZ());
 		return true;
 	}
 }

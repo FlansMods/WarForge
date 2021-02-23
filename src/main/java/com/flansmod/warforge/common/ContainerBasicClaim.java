@@ -1,5 +1,6 @@
 package com.flansmod.warforge.common;
 
+import com.flansmod.warforge.common.blocks.TileEntityBasicClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
 import com.flansmod.warforge.server.Faction;
 
@@ -11,25 +12,22 @@ import net.minecraft.item.ItemBanner;
 import net.minecraft.item.ItemShield;
 import net.minecraft.item.ItemStack;
 
-public class ContainerCitadel extends Container
+public class ContainerBasicClaim extends Container
 {
-	public TileEntityCitadel citadel;
+	public TileEntityBasicClaim claim;
 	
-	public ContainerCitadel(InventoryPlayer inventory, TileEntityCitadel te)
+	public ContainerBasicClaim(InventoryPlayer inventory, TileEntityBasicClaim te)
 	{
-		citadel = te;
+		claim = te;
 		
 		for(int i = 0; i < 3; i++)
 		{
 			for(int j = 0; j < 3; j++)
 			{
 				int index = i * 3 + j;
-				addSlotToContainer(new Slot(citadel, index, 8 + 18 * i, 32 + 18 * j));
+				addSlotToContainer(new Slot(claim, index, 8 + 18 * i, 32 + 18 * j));
 			}
-		}
-		
-		addSlotToContainer(new Slot(citadel, TileEntityCitadel.BANNER_SLOT_INDEX, 152, 68));
-		
+		}		
 		
 		//Main inventory slots
 		for(int row = 0; row < 3; row++)
@@ -50,9 +48,9 @@ public class ContainerCitadel extends Container
 	@Override
 	public boolean canInteractWith(EntityPlayer player) 
 	{
-		return citadel.GetFactionID().equals(Faction.NULL) || WarForgeMod.INSTANCE.IsPlayerInFaction(player.getUniqueID(), citadel.GetFactionID());
+		return claim.GetFactionID().equals(Faction.NULL) || WarForgeMod.INSTANCE.IsPlayerInFaction(player.getUniqueID(), claim.GetFactionID());
 	}
-
+	
 	@Override
 	public ItemStack transferStackInSlot(EntityPlayer player, int slotID)
 	{
@@ -64,9 +62,9 @@ public class ContainerCitadel extends Container
 			ItemStack slotStack = currentSlot.getStack();
 			stack = slotStack.copy();
 			
-			if(slotID < TileEntityCitadel.NUM_SLOTS)
+			if(slotID < TileEntityBasicClaim.NUM_SLOTS)
 			{
-				if(!mergeItemStack(slotStack, TileEntityCitadel.NUM_SLOTS, inventorySlots.size(), true))
+				if(!mergeItemStack(slotStack, TileEntityBasicClaim.NUM_SLOTS, inventorySlots.size(), true))
 				{
 					return ItemStack.EMPTY;
 				}
@@ -74,17 +72,9 @@ public class ContainerCitadel extends Container
 			else
 			{
 				// Merge into the container
-				if(!mergeItemStack(slotStack, 0, TileEntityCitadel.NUM_YIELD_STACKS, false))
+				if(!mergeItemStack(slotStack, 0, TileEntityBasicClaim.NUM_YIELD_STACKS, false))
 				{
 					return ItemStack.EMPTY;
-				}
-				// But only allow banners and shields in banner slot
-				if(slotStack.getItem() instanceof ItemBanner || slotStack.getItem() instanceof ItemShield)
-				{
-					if(!mergeItemStack(slotStack, TileEntityCitadel.BANNER_SLOT_INDEX, TileEntityCitadel.BANNER_SLOT_INDEX + 1, false))
-					{
-						return ItemStack.EMPTY;
-					}
 				}
 			}
 			

@@ -19,23 +19,25 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
-public class BlockCitadel extends Block implements ITileEntityProvider
+public class BlockBasicClaim extends Block implements ITileEntityProvider
 {
-	public BlockCitadel(Material materialIn) 
+	public int mStrength;
+
+	public BlockBasicClaim(Material materialIn, int strength) 
 	{
 		super(materialIn);
 		this.setCreativeTab(CreativeTabs.COMBAT);
 		this.setBlockUnbreakable();
 		this.setResistance(30000000f);
+		mStrength = strength;
 	}
 	
 	@Override
 	public TileEntity createNewTileEntity(World worldIn, int meta)
 	{
-		return new TileEntityCitadel();
+		return new TileEntityBasicClaim(mStrength);
 	}
 	
 	@Override
@@ -45,32 +47,33 @@ public class BlockCitadel extends Block implements ITileEntityProvider
 		UUID existingClaim = WarForgeMod.INSTANCE.GetClaim(new DimChunkPos(world.provider.getDimension(), pos));
 		if(!existingClaim.equals(Faction.NULL))
 			return false;
-		
+				
 		// Can only place on a solid surface
 		if(!world.getBlockState(pos.add(0, -1, 0)).isSideSolid(world, pos.add(0, -1, 0), EnumFacing.UP))
 			return false;
 		
 		return true;
 	}
-	
+
 	@Override
     public void onBlockPlacedBy(World world, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack)
     {
 		TileEntity te = world.getTileEntity(pos);
 		if(te != null)
 		{
-			TileEntityCitadel citadel = (TileEntityCitadel)te;
+			TileEntityBasicClaim citadel = (TileEntityBasicClaim)te;
 			citadel.OnPlacedBy(placer);
 		}
     }
-
+	
 	@Override
 	public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player, EnumHand hand, EnumFacing side, float par7, float par8, float par9)
 	{
 		if(player.isSneaking())
 			return false;
 		if(!world.isRemote)
-			player.openGui(WarForgeMod.INSTANCE, CommonProxy.GUI_TYPE_CITADEL, world, pos.getX(), pos.getY(), pos.getZ());
+			player.openGui(WarForgeMod.INSTANCE, CommonProxy.GUI_TYPE_BASIC_CLAIM, world, pos.getX(), pos.getY(), pos.getZ());
 		return true;
 	}
+	
 }

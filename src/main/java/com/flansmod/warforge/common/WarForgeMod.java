@@ -2,16 +2,24 @@ package com.flansmod.warforge.common;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.command.CommandHandler;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.event.terraingen.PopulateChunkEvent;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.Mod.Instance;
@@ -19,9 +27,13 @@ import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
+import net.minecraftforge.fml.common.event.FMLServerStartedEvent;
+import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.server.FMLServerHandler;
 
 import java.util.HashMap;
@@ -29,9 +41,17 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.Logger;
 
+import com.flansmod.warforge.common.blocks.BlockBasicClaim;
 import com.flansmod.warforge.common.blocks.BlockCitadel;
+import com.flansmod.warforge.common.blocks.BlockSiegeCamp;
+import com.flansmod.warforge.common.blocks.BlockYieldProvider;
+import com.flansmod.warforge.common.blocks.TileEntityBasicClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
+import com.flansmod.warforge.common.blocks.TileEntitySiegeCamp;
 import com.flansmod.warforge.common.network.PacketHandler;
+import com.flansmod.warforge.common.world.WorldGenBedrockOre;
+import com.flansmod.warforge.common.world.WorldGenDenseOre;
+import com.flansmod.warforge.server.CommandFactions;
 import com.flansmod.warforge.server.Faction;
 import com.flansmod.warforge.server.ServerTickHandler;
 
@@ -54,18 +74,50 @@ public class WarForgeMod
 	
 	public static final PacketHandler packetHandler = new PacketHandler();
 
-	public static Block citadelBlock;
-	public static Item citadelBlockItem;
+	public static Block citadelBlock, basicClaimBlock, reinforcedClaimBlock, siegeCampBlock;
+	public static Item citadelBlockItem, basicClaimBlockItem, reinforcedClaimBlockItem, siegeCampBlockItem;
+	
+	public static Block denseIronOreBlock, denseGoldOreBlock, denseDiamondOreBlock, magmaVentBlock;
+	public static Item denseIronOreItem, denseGoldOreItem, denseDiamondOreItem, magmaVentItem;
+	
+	public static MinecraftServer MC_SERVER = null;
 	
     @EventHandler
     public void preInit(FMLPreInitializationEvent event)
     {
         logger = event.getModLog();
+		//Load config
+		configFile = new Configuration(event.getSuggestedConfigurationFile());
+		syncConfig();
+		
         
         citadelBlock = new BlockCitadel(Material.ROCK).setRegistryName("citadelBlock").setUnlocalizedName("citadelBlock");
         citadelBlockItem = new ItemBlock(citadelBlock).setRegistryName("citadelBlock").setUnlocalizedName("citadelBlock");
+        GameRegistry.registerTileEntity(TileEntityCitadel.class, new ResourceLocation(MODID, "citadel"));
         
-		GameRegistry.registerTileEntity(TileEntityCitadel.class, new ResourceLocation(MODID, "citadel"));
+        // Basic and reinforced claims, they share a tile entity
+        basicClaimBlock = new BlockBasicClaim(Material.ROCK, CLAIM_STRENGTH_BASIC).setRegistryName("basicclaimblock").setUnlocalizedName("basicclaimblock");
+        basicClaimBlockItem = new ItemBlock(basicClaimBlock).setRegistryName("basicclaimblock").setUnlocalizedName("basicclaimblock");
+        reinforcedClaimBlock = new BlockBasicClaim(Material.ROCK, CLAIM_STRENGTH_REINFORCED).setRegistryName("reinforcedclaimblock").setUnlocalizedName("reinforcedclaimblock");
+        reinforcedClaimBlockItem = new ItemBlock(reinforcedClaimBlock).setRegistryName("reinforcedclaimblock").setUnlocalizedName("reinforcedclaimblock");
+        GameRegistry.registerTileEntity(TileEntityBasicClaim.class, new ResourceLocation(MODID, "basicclaim"));
+        
+        // Siege camp
+        siegeCampBlock = new BlockSiegeCamp(Material.ROCK).setRegistryName("siegecampblock").setUnlocalizedName("siegecampblock");
+        siegeCampBlockItem = new ItemBlock(siegeCampBlock).setRegistryName("siegecampblock").setUnlocalizedName("siegecampblock");
+        GameRegistry.registerTileEntity(TileEntitySiegeCamp.class, new ResourceLocation(MODID, "siegecamp"));
+        
+        denseIronOreBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.IRON_INGOT), 1.0f).setRegistryName("denseironore").setUnlocalizedName("denseironore");
+        denseGoldOreBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.GOLD_INGOT), 1.0f).setRegistryName("densegoldore").setUnlocalizedName("densegoldore");
+        denseDiamondOreBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.DIAMOND), 2.0f).setRegistryName("densediamondore").setUnlocalizedName("densediamondore");
+        magmaVentBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.IRON_INGOT), 1.0f).setRegistryName("magmavent").setUnlocalizedName("magmavent");
+        
+        denseIronOreItem = new ItemBlock(denseIronOreBlock).setRegistryName("denseironore").setUnlocalizedName("denseironore");
+        denseGoldOreItem = new ItemBlock(denseGoldOreBlock).setRegistryName("densegoldore").setUnlocalizedName("densegoldore");
+        denseDiamondOreItem = new ItemBlock(denseDiamondOreBlock).setRegistryName("densediamondore").setUnlocalizedName("densediamondore");
+        magmaVentItem = new ItemBlock(magmaVentBlock).setRegistryName("magmavent").setUnlocalizedName("magmavent");
+        
+        
         
         MinecraftForge.EVENT_BUS.register(new ServerTickHandler());
         MinecraftForge.EVENT_BUS.register(this);
@@ -91,6 +143,10 @@ public class WarForgeMod
 	public void registerItems(RegistryEvent.Register<Item> event)
 	{		
 		event.getRegistry().register(citadelBlockItem);
+		event.getRegistry().register(denseIronOreItem);
+		event.getRegistry().register(denseGoldOreItem);
+		event.getRegistry().register(denseDiamondOreItem);
+		event.getRegistry().register(magmaVentItem);
 		logger.info("Registered items");
 	}
 	
@@ -98,6 +154,10 @@ public class WarForgeMod
 	public void registerBlocks(RegistryEvent.Register<Block> event)
 	{
 		event.getRegistry().register(citadelBlock);
+		event.getRegistry().register(denseIronOreBlock);
+		event.getRegistry().register(denseGoldOreBlock);
+		event.getRegistry().register(denseDiamondOreBlock);
+		event.getRegistry().register(magmaVentBlock);
 		logger.info("Registered blocks");
 	}
     
@@ -212,10 +272,13 @@ public class WarForgeMod
     	mFactions.put(proposedID, faction);
     	citadel.SetFaction(proposedID);
     	
+    	faction.AddPlayer(player.getUniqueID());
+    	faction.SetLeader(player.getUniqueID());
+    	
     	return true;
     }
     
-    public boolean RequestRemovePlayerFromFaction(EntityPlayer remover, UUID factionID, UUID toRemove)
+    public boolean RequestRemovePlayerFromFaction(ICommandSender remover, UUID factionID, UUID toRemove)
     {
     	Faction faction = GetFaction(factionID);
     	if(faction == null)
@@ -230,10 +293,17 @@ public class WarForgeMod
     		return false;
     	}
     	
-    	boolean canRemove = remover.getUniqueID() == toRemove // remove self
-    					|| faction.IsPlayerOutrankingOfficerOf(remover.getUniqueID(), toRemove) // remover is an officer and of higher rank
-    					|| IsOp(remover);
-    	
+    	boolean canRemove = IsOp(remover);
+    	if(remover instanceof EntityPlayer)
+    	{
+    		UUID removerID = ((EntityPlayer)remover).getUniqueID();
+    		if(removerID == toRemove) // remove self
+    			canRemove = true;
+    		
+    		if(faction.IsPlayerOutrankingOfficerOf(removerID, toRemove))
+    			canRemove = true;
+    	}
+    	    	
     	if(!canRemove)
     	{
     		remover.sendMessage(new TextComponentString("You don't have permission to remove that player"));
@@ -278,7 +348,7 @@ public class WarForgeMod
     	// TODO: Faction player limit - grows with claims?
     	
     	faction.InvitePlayer(invitee);
-    	FMLServerHandler.instance().getServer().getPlayerList().getPlayerByUUID(invitee).sendMessage(new TextComponentString("You have received an invite to " + faction.mName + ". Type /f accept to join"));
+    	MC_SERVER.getPlayerList().getPlayerByUUID(invitee).sendMessage(new TextComponentString("You have received an invite to " + faction.mName + ". Type /f accept to join"));
     	
     	return true;
     }
@@ -321,11 +391,42 @@ public class WarForgeMod
     
     public boolean RequestDisbandFaction(EntityPlayer factionLeader, UUID factionID)
     {
-    	if(!IsPlayerRoleInFaction(factionLeader.getUniqueID(), factionID, Faction.Role.OFFICER))
+    	if(!IsPlayerRoleInFaction(factionLeader.getUniqueID(), factionID, Faction.Role.LEADER))
     	{
     		factionLeader.sendMessage(new TextComponentString("You are not the leader of this faction"));
     		return false;
     	}
+    	
+    	Faction faction = mFactions.get(factionID);
+    	faction.Disband();
+    	mFactions.remove(factionID);
+    	
+    	return true;
+    }
+    
+    public boolean RequestStartSiege(EntityPlayer factionOfficer, UUID factionID, DimBlockPos targetPos, DimBlockPos siegePos)
+    {
+    	Faction faction = GetFaction(factionID);
+    	if(faction == null)
+    	{
+    		factionOfficer.sendMessage(new TextComponentString("The faction could not be found"));
+    		return false;
+    	}
+    	
+    	if(!faction.IsPlayerRoleInFaction(factionOfficer.getUniqueID(), Faction.Role.OFFICER))
+    	{
+    		factionOfficer.sendMessage(new TextComponentString("You are not an officer of this faction"));
+    		return false;
+    	}
+    	
+    	// TODO: Verify there aren't existing alliances
+    	
+    	TileEntity targetTE = proxy.GetTile(targetPos);
+    	TileEntity siegeTE = proxy.GetTile(siegePos);
+    	
+    	// TODO: 
+    	
+
     	
     	return true;
     }
@@ -336,7 +437,167 @@ public class WarForgeMod
     	
     }
     
+    // World Generation
+	private WorldGenDenseOre ironGenerator, goldGenerator;
+	private WorldGenBedrockOre diamondGenerator, magmaGenerator;
+	
+	@SubscribeEvent
+	public void populateOverworldChunk(PopulateChunkEvent event)
+	{
+		// Overworld generators
+		if(event.getWorld().provider.getDimension() == 0)
+		{
+			if(ironGenerator == null)
+				ironGenerator = new WorldGenDenseOre(denseIronOreBlock.getDefaultState(), Blocks.IRON_ORE.getDefaultState(), 
+						DENSE_IRON_CELL_SIZE, DENSE_IRON_DEPOSIT_RADIUS, DENSE_IRON_OUTER_SHELL_RADIUS, DENSE_IRON_OUTER_SHELL_CHANCE,
+						DENSE_IRON_MIN_INSTANCES_PER_CELL, DENSE_IRON_MAX_INSTANCES_PER_CELL, DENSE_IRON_MIN_HEIGHT, DENSE_IRON_MAX_HEIGHT);
+			if(goldGenerator == null)
+				goldGenerator = new WorldGenDenseOre(denseGoldOreBlock.getDefaultState(), Blocks.GOLD_ORE.getDefaultState(), 
+						DENSE_GOLD_CELL_SIZE, DENSE_GOLD_DEPOSIT_RADIUS, DENSE_GOLD_OUTER_SHELL_RADIUS, DENSE_GOLD_OUTER_SHELL_CHANCE,
+						DENSE_GOLD_MIN_INSTANCES_PER_CELL, DENSE_GOLD_MAX_INSTANCES_PER_CELL, DENSE_GOLD_MIN_HEIGHT, DENSE_GOLD_MAX_HEIGHT);
+			if(diamondGenerator == null)
+				diamondGenerator = new WorldGenBedrockOre(denseDiamondOreBlock.getDefaultState(), Blocks.DIAMOND_ORE.getDefaultState(), 
+						DENSE_DIAMOND_CELL_SIZE, DENSE_DIAMOND_DEPOSIT_RADIUS, DENSE_DIAMOND_OUTER_SHELL_RADIUS, DENSE_DIAMOND_OUTER_SHELL_CHANCE,
+						DENSE_DIAMOND_MIN_INSTANCES_PER_CELL, DENSE_DIAMOND_MAX_INSTANCES_PER_CELL, DENSE_DIAMOND_MIN_HEIGHT, DENSE_DIAMOND_MAX_HEIGHT);
+			if(magmaGenerator == null)
+				magmaGenerator = new WorldGenBedrockOre(magmaVentBlock.getDefaultState(), Blocks.LAVA.getDefaultState(), 
+						MAGMA_VENT_CELL_SIZE, MAGMA_VENT_DEPOSIT_RADIUS, MAGMA_VENT_OUTER_SHELL_RADIUS, MAGMA_VENT_OUTER_SHELL_CHANCE,
+						MAGMA_VENT_MIN_INSTANCES_PER_CELL, MAGMA_VENT_MAX_INSTANCES_PER_CELL, MAGMA_VENT_MIN_HEIGHT, MAGMA_VENT_MAX_HEIGHT);
+		
+			ironGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
+			goldGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
+			diamondGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
+			magmaGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
+		}
+	}
+	
+	// Config
+	public static Configuration configFile;
+	public static int DENSE_IRON_CELL_SIZE = 64;
+	public static int DENSE_IRON_DEPOSIT_RADIUS = 4;
+	public static int DENSE_IRON_MIN_INSTANCES_PER_CELL = 1;
+	public static int DENSE_IRON_MAX_INSTANCES_PER_CELL = 3;
+	public static int DENSE_IRON_MIN_HEIGHT = 28;
+	public static int DENSE_IRON_MAX_HEIGHT = 56;
+	public static int DENSE_IRON_OUTER_SHELL_RADIUS = 8;
+	public static float DENSE_IRON_OUTER_SHELL_CHANCE = 0.1f;
+	
+	public static int DENSE_GOLD_CELL_SIZE = 128;
+	public static int DENSE_GOLD_DEPOSIT_RADIUS = 3;
+	public static int DENSE_GOLD_MIN_INSTANCES_PER_CELL = 1;
+	public static int DENSE_GOLD_MAX_INSTANCES_PER_CELL = 2;
+	public static int DENSE_GOLD_MIN_HEIGHT = 6;
+	public static int DENSE_GOLD_MAX_HEIGHT = 26;
+	public static int DENSE_GOLD_OUTER_SHELL_RADIUS = 6;
+	public static float DENSE_GOLD_OUTER_SHELL_CHANCE = 0.05f;
+	
+	public static int DENSE_DIAMOND_CELL_SIZE = 128;
+	public static int DENSE_DIAMOND_DEPOSIT_RADIUS = 2;
+	public static int DENSE_DIAMOND_MIN_INSTANCES_PER_CELL = 1;
+	public static int DENSE_DIAMOND_MAX_INSTANCES_PER_CELL = 1;
+	public static int DENSE_DIAMOND_MIN_HEIGHT = 1;
+	public static int DENSE_DIAMOND_MAX_HEIGHT = 4;
+	public static int DENSE_DIAMOND_OUTER_SHELL_RADIUS = 5;
+	public static float DENSE_DIAMOND_OUTER_SHELL_CHANCE = 0.025f;
+	
+	public static int MAGMA_VENT_CELL_SIZE = 64;
+	public static int MAGMA_VENT_DEPOSIT_RADIUS = 2;
+	public static int MAGMA_VENT_MIN_INSTANCES_PER_CELL = 1;
+	public static int MAGMA_VENT_MAX_INSTANCES_PER_CELL = 1;
+	public static int MAGMA_VENT_MIN_HEIGHT = 1;
+	public static int MAGMA_VENT_MAX_HEIGHT = 4;
+	public static int MAGMA_VENT_OUTER_SHELL_RADIUS = 0;
+	public static float MAGMA_VENT_OUTER_SHELL_CHANCE = 1.0f;
+	
+	public static int CLAIM_STRENGTH_CITADEL = 15;
+	public static int CLAIM_STRENGTH_REINFORCED = 10;
+	public static int CLAIM_STRENGTH_BASIC = 5;
+	
+	public static int ATTACK_STRENGTH_SIEGE_CAMP = 1;
+	public static float LEECH_PROPORTION_SIEGE_CAMP = 0.25f;
+	
+	public static int SIEGE_SWING_PER_DEFENDER_DEATH = 1;
+	public static int SIEGE_SWING_PER_ATTACKER_DEATH = 1;
+	public static int SIEGE_SWING_PER_DAY_ELAPSED_NO_ATTACKER_LOGINS = 1;
+	public static int SIEGE_SWING_PER_DAY_ELAPSED_NO_DEFENDER_LOGINS = 1;
+	public static float SIEGE_DAY_LENGTH = 24.0f; // In real-world hours
+
+	public static void syncConfig()
+	{
+		// World Generation Settings
+		DENSE_IRON_CELL_SIZE = configFile.getInt("Dense Iron - Cell Size", Configuration.CATEGORY_GENERAL, DENSE_IRON_CELL_SIZE, 8, 4096, "Divide the world into cells of this size and generate 1 or more deposits per cell");
+		DENSE_IRON_DEPOSIT_RADIUS = configFile.getInt("Dense Iron - Deposit Radius", Configuration.CATEGORY_GENERAL, DENSE_IRON_DEPOSIT_RADIUS, 1, 16, "Radius of a deposit");
+		DENSE_IRON_MIN_INSTANCES_PER_CELL = configFile.getInt("Dense Iron - Min Deposits Per Cell", Configuration.CATEGORY_GENERAL, DENSE_IRON_MIN_INSTANCES_PER_CELL, 0, 256, "Minimum number of deposits per cell");
+		DENSE_IRON_MAX_INSTANCES_PER_CELL = configFile.getInt("Dense Iron - Max Deposits Per Cell", Configuration.CATEGORY_GENERAL, DENSE_IRON_MAX_INSTANCES_PER_CELL, 0, 256, "Maximum number of deposits per cell");
+		DENSE_IRON_MIN_HEIGHT = configFile.getInt("Dense Iron - Min Height", Configuration.CATEGORY_GENERAL, DENSE_IRON_MIN_HEIGHT, 0, 256, "Minimum height of deposits");
+		DENSE_IRON_MAX_HEIGHT = configFile.getInt("Dense Iron - Max Height", Configuration.CATEGORY_GENERAL, DENSE_IRON_MAX_HEIGHT, 0, 256, "Maximum height of deposits");
+		DENSE_IRON_OUTER_SHELL_RADIUS = configFile.getInt("Dense Iron - Outer Shell Radius", Configuration.CATEGORY_GENERAL, DENSE_IRON_OUTER_SHELL_RADIUS, 0, 32, "Radius in which to place vanilla ores");
+		DENSE_IRON_OUTER_SHELL_CHANCE = configFile.getFloat("Dense Iron - Outer Shell Chance", Configuration.CATEGORY_GENERAL, DENSE_IRON_OUTER_SHELL_CHANCE, 0f, 1f, "Percent of blocks in outer radius that are vanilla ores");
+		
+		DENSE_GOLD_CELL_SIZE = configFile.getInt("Dense Gold - Cell Size", Configuration.CATEGORY_GENERAL, DENSE_GOLD_CELL_SIZE, 8, 4096, "Divide the world into cells of this size and generate 1 or more deposits per cell");
+		DENSE_GOLD_DEPOSIT_RADIUS = configFile.getInt("Dense Gold - Deposit Radius", Configuration.CATEGORY_GENERAL, DENSE_GOLD_DEPOSIT_RADIUS, 1, 16, "Radius of a deposit");
+		DENSE_GOLD_MIN_INSTANCES_PER_CELL = configFile.getInt("Dense Gold - Min Deposits Per Cell", Configuration.CATEGORY_GENERAL, DENSE_GOLD_MIN_INSTANCES_PER_CELL, 0, 256, "Minimum number of deposits per cell");
+		DENSE_GOLD_MAX_INSTANCES_PER_CELL = configFile.getInt("Dense Gold - Max Deposits Per Cell", Configuration.CATEGORY_GENERAL, DENSE_GOLD_MAX_INSTANCES_PER_CELL, 0, 256, "Maximum number of deposits per cell");
+		DENSE_GOLD_MIN_HEIGHT = configFile.getInt("Dense Gold - Min Height", Configuration.CATEGORY_GENERAL, DENSE_GOLD_MIN_HEIGHT, 0, 256, "Minimum height of deposits");
+		DENSE_GOLD_MAX_HEIGHT = configFile.getInt("Dense Gold - Max Height", Configuration.CATEGORY_GENERAL, DENSE_GOLD_MAX_HEIGHT, 0, 256, "Maximum height of deposits");
+		DENSE_GOLD_OUTER_SHELL_RADIUS = configFile.getInt("Dense Gold - Outer Shell Radius", Configuration.CATEGORY_GENERAL, DENSE_GOLD_OUTER_SHELL_RADIUS, 0, 32, "Radius in which to place vanilla ores");
+		DENSE_GOLD_OUTER_SHELL_CHANCE = configFile.getFloat("Dense Gold - Outer Shell Chance", Configuration.CATEGORY_GENERAL, DENSE_GOLD_OUTER_SHELL_CHANCE, 0f, 1f, "Percent of blocks in outer radius that are vanilla ores");
+
+		DENSE_DIAMOND_CELL_SIZE = configFile.getInt("Dense Diamond - Cell Size", Configuration.CATEGORY_GENERAL, DENSE_DIAMOND_CELL_SIZE, 8, 4096, "Divide the world into cells of this size and generate 1 or more deposits per cell");
+		DENSE_DIAMOND_DEPOSIT_RADIUS = configFile.getInt("Dense Diamond - Deposit Radius", Configuration.CATEGORY_GENERAL, DENSE_DIAMOND_DEPOSIT_RADIUS, 1, 16, "Radius of a deposit");
+		DENSE_DIAMOND_MIN_INSTANCES_PER_CELL = configFile.getInt("Dense Diamond - Min Deposits Per Cell", Configuration.CATEGORY_GENERAL, DENSE_DIAMOND_MIN_INSTANCES_PER_CELL, 0, 256, "Minimum number of deposits per cell");
+		DENSE_DIAMOND_MAX_INSTANCES_PER_CELL = configFile.getInt("Dense Diamond - Max Deposits Per Cell", Configuration.CATEGORY_GENERAL, DENSE_DIAMOND_MAX_INSTANCES_PER_CELL, 0, 256, "Maximum number of deposits per cell");
+		DENSE_DIAMOND_MIN_HEIGHT = configFile.getInt("Dense Diamond - Min Height", Configuration.CATEGORY_GENERAL, DENSE_DIAMOND_MIN_HEIGHT, 0, 256, "Minimum height of deposits");
+		DENSE_DIAMOND_MAX_HEIGHT = configFile.getInt("Dense Diamond - Max Height", Configuration.CATEGORY_GENERAL, DENSE_DIAMOND_MAX_HEIGHT, 0, 256, "Maximum height of deposits");
+		DENSE_DIAMOND_OUTER_SHELL_RADIUS = configFile.getInt("Dense Diamond - Outer Shell Radius", Configuration.CATEGORY_GENERAL, DENSE_DIAMOND_OUTER_SHELL_RADIUS, 0, 32, "Radius in which to place vanilla ores");
+		DENSE_DIAMOND_OUTER_SHELL_CHANCE = configFile.getFloat("Dense Diamond - Outer Shell Chance", Configuration.CATEGORY_GENERAL, DENSE_DIAMOND_OUTER_SHELL_CHANCE, 0f, 1f, "Percent of blocks in outer radius that are vanilla ores");
+		
+		MAGMA_VENT_CELL_SIZE = configFile.getInt("Magma Vent - Cell Size", Configuration.CATEGORY_GENERAL, MAGMA_VENT_CELL_SIZE, 8, 4096, "Divide the world into cells of this size and generate 1 or more deposits per cell");
+		MAGMA_VENT_DEPOSIT_RADIUS = configFile.getInt("Magma Vent - Deposit Radius", Configuration.CATEGORY_GENERAL, MAGMA_VENT_DEPOSIT_RADIUS, 1, 16, "Radius of a deposit");
+		MAGMA_VENT_MIN_INSTANCES_PER_CELL = configFile.getInt("Magma Vent - Min Deposits Per Cell", Configuration.CATEGORY_GENERAL, MAGMA_VENT_MIN_INSTANCES_PER_CELL, 0, 256, "Minimum number of deposits per cell");
+		MAGMA_VENT_MAX_INSTANCES_PER_CELL = configFile.getInt("Magma Vent - Max Deposits Per Cell", Configuration.CATEGORY_GENERAL, MAGMA_VENT_MAX_INSTANCES_PER_CELL, 0, 256, "Maximum number of deposits per cell");
+		MAGMA_VENT_MIN_HEIGHT = configFile.getInt("Magma Vent - Min Height", Configuration.CATEGORY_GENERAL, MAGMA_VENT_MIN_HEIGHT, 0, 256, "Minimum height of deposits");
+		MAGMA_VENT_MAX_HEIGHT = configFile.getInt("Magma Vent - Max Height", Configuration.CATEGORY_GENERAL, MAGMA_VENT_MAX_HEIGHT, 0, 256, "Maximum height of deposits");
+		MAGMA_VENT_OUTER_SHELL_RADIUS = configFile.getInt("Magma Vent - Outer Shell Radius", Configuration.CATEGORY_GENERAL, MAGMA_VENT_OUTER_SHELL_RADIUS, 0, 32, "Radius in which to place vanilla ores");
+		MAGMA_VENT_OUTER_SHELL_CHANCE = configFile.getFloat("Magma Vent - Outer Shell Chance", Configuration.CATEGORY_GENERAL, MAGMA_VENT_OUTER_SHELL_CHANCE, 0f, 1f, "Percent of blocks in outer radius that are vanilla ores");
+
+		// Claim Settings
+		CLAIM_STRENGTH_CITADEL = configFile.getInt("Citadel Claim Strength", Configuration.CATEGORY_GENERAL, CLAIM_STRENGTH_CITADEL, 1, 1024, "The strength of citadel claims");
+		CLAIM_STRENGTH_REINFORCED = configFile.getInt("Reinforced Claim Strength", Configuration.CATEGORY_GENERAL, CLAIM_STRENGTH_REINFORCED, 1, 1024, "The strength of reinforced claims");
+		CLAIM_STRENGTH_BASIC = configFile.getInt("Basic Claim Strength", Configuration.CATEGORY_GENERAL, CLAIM_STRENGTH_BASIC, 1, 1024, "The strength of basic claims");
+		
+		// Siege Camp Settings
+		ATTACK_STRENGTH_SIEGE_CAMP = configFile.getInt("Siege Camp Attack Strength", Configuration.CATEGORY_GENERAL, ATTACK_STRENGTH_SIEGE_CAMP, 1, 1024, "How much attack pressure a siege camp exerts on adjacent enemy claims");
+		LEECH_PROPORTION_SIEGE_CAMP = configFile.getFloat("Siege Camp Leech Proportion", Configuration.CATEGORY_GENERAL, LEECH_PROPORTION_SIEGE_CAMP, 0f, 1f, "What proportion of a claim's yields are leeched when a siege camp is set to leech mode");
+
+		// Siege swing parameters
+		SIEGE_SWING_PER_DEFENDER_DEATH = configFile.getInt("Siege Swing Per Defender Death", Configuration.CATEGORY_GENERAL, SIEGE_SWING_PER_DEFENDER_DEATH, 1, 1024, "How much a siege progress swings when a defender dies in the siege");
+		SIEGE_SWING_PER_ATTACKER_DEATH = configFile.getInt("Siege Swing Per Attacker Death", Configuration.CATEGORY_GENERAL, SIEGE_SWING_PER_ATTACKER_DEATH, 1, 1024, "How much a siege progress swings when an attacker dies in the siege");
+		SIEGE_SWING_PER_DAY_ELAPSED_NO_ATTACKER_LOGINS = configFile.getInt("Siege Swing Per Day Without Attacker Logins", Configuration.CATEGORY_GENERAL, SIEGE_SWING_PER_DAY_ELAPSED_NO_ATTACKER_LOGINS, 1, 1024, "How much a siege progress swings when no attackers have logged on for a day (see below)");
+		SIEGE_SWING_PER_DAY_ELAPSED_NO_DEFENDER_LOGINS = configFile.getInt("Siege Swing Per Day Without Defender Logins", Configuration.CATEGORY_GENERAL, SIEGE_SWING_PER_DAY_ELAPSED_NO_DEFENDER_LOGINS, 1, 1024, "How much a siege progress swings when no defenders have logged on for a day (see below)");
+		SIEGE_DAY_LENGTH = configFile.getFloat("Siege Day Length", Configuration.CATEGORY_GENERAL, SIEGE_DAY_LENGTH, 0.1f, 100000f, "The length of a day for siege login purposes, in real-world hours.");
+
+		
+		if(configFile.hasChanged())
+			configFile.save();
+	}
+	
+	@EventHandler
+	public void ServerAboutToStart(FMLServerAboutToStartEvent event)
+	{
+		MC_SERVER = event.getServer();
+		CommandHandler handler = ((CommandHandler)MC_SERVER.getCommandManager());
+		handler.registerCommand(new CommandFactions());
+	}
+	
+	@EventHandler
+	public void ServerStopped(FMLServerStoppingEvent event)
+	{
+		MC_SERVER = null;
+	}
+    
     // Helpers
+
     public static UUID GetUUID(ICommandSender sender)
     {
     	if(sender instanceof EntityPlayer)
@@ -347,7 +608,7 @@ public class WarForgeMod
     public static boolean IsOp(ICommandSender sender)
     {
     	if(sender instanceof EntityPlayer)
-    		return FMLServerHandler.instance().getServer().getPlayerList().canSendCommands(((EntityPlayer)sender).getGameProfile());
+    		return MC_SERVER.getPlayerList().canSendCommands(((EntityPlayer)sender).getGameProfile());
     	return sender instanceof MinecraftServer;
     }
 }

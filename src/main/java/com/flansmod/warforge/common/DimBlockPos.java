@@ -1,6 +1,8 @@
 package com.flansmod.warforge.common;
 
 import net.minecraft.entity.Entity;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagIntArray;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -8,6 +10,8 @@ import net.minecraft.util.math.Vec3i;
 
 public class DimBlockPos extends BlockPos
 {
+	public static final DimBlockPos ZERO = new DimBlockPos(0, 0, 0, 0);
+	
 	public int mDim;
 	
 	public DimBlockPos(int dim, int x, int y, int z)
@@ -46,6 +50,11 @@ public class DimBlockPos extends BlockPos
     	mDim = dim;
     }
     
+    public BlockPos ToRegularPos()
+    {
+    	return new BlockPos(getX(), getY(), getZ());
+    }
+    
 	@Override
 	public int hashCode()
     {
@@ -73,4 +82,32 @@ public class DimBlockPos extends BlockPos
     {
         return "[" + this.mDim + ": " + this.getX() + ", " + this.getY() + ", " + this.getZ() + "]";
     }
+	
+	public NBTTagIntArray WriteToNBT()
+	{
+		return new NBTTagIntArray(new int[] {mDim, getX(), getY(), getZ()});
+	}
+	
+	public void WriteToNBT(NBTTagCompound tags, String prefix)
+	{
+		tags.setIntArray(prefix, new int[] { mDim, getX(), getY(), getZ() });
+	}
+	
+	public static DimBlockPos ReadFromNBT(NBTTagCompound tags, String prefix)
+	{
+		int[] data = tags.getIntArray(prefix);
+		if(data.length == 4)
+			return new DimBlockPos(data[0], data[1], data[2], data[3]);
+		else
+			return DimBlockPos.ZERO;
+	}
+	
+	public static DimBlockPos ReadFromNBT(NBTTagIntArray tag)
+	{
+		int[] data = tag.getIntArray();
+		if(data.length == 4)
+			return new DimBlockPos(data[0], data[1], data[2], data[3]);
+		else
+			return DimBlockPos.ZERO;
+	}
 }

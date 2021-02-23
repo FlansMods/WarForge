@@ -1,13 +1,19 @@
 package com.flansmod.warforge.server;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
 
 import com.flansmod.warforge.common.DimBlockPos;
+import com.flansmod.warforge.common.WarForgeMod;
+import com.flansmod.warforge.common.network.FactionDisplayInfo;
+import com.flansmod.warforge.common.network.PlayerDisplayInfo;
+import com.mojang.authlib.GameProfile;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagIntArray;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
@@ -50,6 +56,7 @@ public class Faction
 	public UUID mUUID;
 	public String mName;
 	public DimBlockPos mCitadelPos;
+	public ArrayList<DimBlockPos> mClaims;
 	public HashMap<UUID, PlayerData> mMembers;
 	public HashMap<UUID, Float> mPendingInvites;
 	public int mNotoriety;
@@ -58,6 +65,7 @@ public class Faction
 	{
 		mMembers = new HashMap<UUID, PlayerData>();
 		mPendingInvites = new HashMap<UUID, Float>();
+		mClaims = new ArrayList<DimBlockPos>(20);
 	}
 	
 	public void Update()
@@ -71,8 +79,30 @@ public class Faction
 		}
 		
 		// So this could break if players were sending > 1 unique invite per tick, but why would they do that?
-		if(uuidToRemove != NULL)
+		if(!uuidToRemove.equals(NULL))
 			mPendingInvites.remove(uuidToRemove);
+	}
+	
+	public FactionDisplayInfo CreateInfo()
+	{
+		FactionDisplayInfo info = new FactionDisplayInfo();
+		info.mFactionID = mUUID;
+		info.mFactionName = mName;
+		info.mNotoriety = mNotoriety;
+		
+		for(HashMap.Entry<UUID, PlayerData> entry : mMembers.entrySet())
+		{
+			if(entry.getValue().mRole == Role.LEADER)
+				info.mLeaderID = entry.getKey();
+			
+			PlayerDisplayInfo playerInfo = new PlayerDisplayInfo();
+			GameProfile	profile = WarForgeMod.MC_SERVER.getPlayerProfileCache().getProfileByUUID(entry.getKey());
+			playerInfo.mPlayerName = profile == null ? "Unknown Player" : profile.getName();
+			playerInfo.mPlayerUUID = entry.getKey();
+			playerInfo.mRole = entry.getValue().mRole;
+			info.mMembers.add(playerInfo);
+		}
+		return info;
 	}
 	
 	public boolean InvitePlayer(UUID playerID)
@@ -139,6 +169,16 @@ public class Faction
 		return false;
 	}
 	
+	public boolean Disband()
+	{
+		MessageAll(new TextComponentString("The faction was disbanded."));
+		mMembers.clear();
+		mClaims.clear();
+		mPendingInvites.clear();
+		
+		return true;
+	}
+	
 	public boolean IsPlayerInFaction(UUID playerID)
 	{
 		return mMembers.containsKey(playerID);
@@ -177,28 +217,47 @@ public class Faction
 	
 	public void ReadFromNBT(NBTTagCompound tags)
 	{
+		mClaims.clear();
+		mMembers.clear();
+		
 		// Get citadel pos and defining params
 		mUUID = tags.getUniqueId("uuid");
 		mName = tags.getString("name");
-		int dim = tags.getInteger("citadelDim");
-		int x = tags.getInteger("citadelX");
-		int y = tags.getInteger("citadelY");
-		int z = tags.getInteger("citadelZ");
-		mCitadelPos = new DimBlockPos(dim, x, y, z);
-		// TODO: Verify block still exists
+		
+		// Get our claims and citadel
+		mCitadelPos = DimBlockPos.ReadFromNBT(tags, "citadelPos");
+		NBTTagList claimList = tags.getTagList("claims", 11); // IntArray (see NBTBase.class)
+		if(claimList != null)
+		{
+			for(NBTBase base : claimList)
+			{
+				NBTTagIntArray claimInfo = (NBTTagIntArray)base;
+				DimBlockPos pos = DimBlockPos.ReadFromNBT(claimInfo);
+				mClaims.add(pos);
+			}
+		}
+		if(!mClaims.contains(mCitadelPos))
+		{
+			WarForgeMod.logger.error("Citadel was not claimed by the faction. Forcing claim");
+			mClaims.add(mCitadelPos);
+		}
+
 		
 		// Get gameplay params
 		mNotoriety = tags.getInteger("notoriety");
-		
+
 		// Get member data
 		NBTTagList memberList = tags.getTagList("members", 10); // NBTTagCompound (see NBTBase.class)
-		for(NBTBase base : memberList)
+		if(memberList != null)
 		{
-			NBTTagCompound memberTags = (NBTTagCompound)base;
-			UUID uuid = memberTags.getUniqueId("uuid");
-			PlayerData data = new PlayerData();
-			data.ReadFromNBT(memberTags);
-			mMembers.put(uuid, data);
+			for(NBTBase base : memberList)
+			{
+				NBTTagCompound memberTags = (NBTTagCompound)base;
+				UUID uuid = memberTags.getUniqueId("uuid");
+				PlayerData data = new PlayerData();
+				data.ReadFromNBT(memberTags);
+				mMembers.put(uuid, data);
+			}
 		}
 	}
 	
@@ -207,10 +266,15 @@ public class Faction
 		// Set citadel pos and core params
 		tags.setUniqueId("uuid", mUUID);
 		tags.setString("name", mName);
-		tags.setInteger("citadelDim", mCitadelPos.mDim);
-		tags.setInteger("citadelX", mCitadelPos.getX());
-		tags.setInteger("citadelY", mCitadelPos.getY());
-		tags.setInteger("citadelZ", mCitadelPos.getZ());
+		
+		// Set claims
+		NBTTagList claimsList = new NBTTagList();
+		for(DimBlockPos pos : mClaims)
+		{
+			claimsList.appendTag(pos.WriteToNBT());
+		}
+		tags.setTag("claims", claimsList);
+		mCitadelPos.WriteToNBT(tags, "citadelPos");
 		
 		// Set gameplay params
 		tags.setInteger("notoriety", mNotoriety);
@@ -235,6 +299,6 @@ public class Faction
 	
 	private static EntityPlayer GetPlayer(UUID playerID)
 	{
-		return FMLServerHandler.instance().getServer().getPlayerList().getPlayerByUUID(playerID);
+		return WarForgeMod.MC_SERVER.getPlayerList().getPlayerByUUID(playerID);
 	}
 }

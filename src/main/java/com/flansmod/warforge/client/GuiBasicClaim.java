@@ -1,89 +1,58 @@
 package com.flansmod.warforge.client;
 
 import com.flansmod.warforge.common.CommonProxy;
+import com.flansmod.warforge.common.ContainerBasicClaim;
 import com.flansmod.warforge.common.ContainerCitadel;
 import com.flansmod.warforge.common.WarForgeMod;
-import com.flansmod.warforge.common.network.PacketRequestFactionInfo;
 import com.flansmod.warforge.server.Faction;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.inventory.Container;
-import net.minecraft.server.integrated.IntegratedServer;
 import net.minecraft.util.ResourceLocation;
 
-public class GuiCitadel extends GuiContainer
-{	
+public class GuiBasicClaim extends GuiContainer
+{
 	private static final ResourceLocation texture = new ResourceLocation(WarForgeMod.MODID, "gui/citadelmenu.png");
 
 	private static final int BUTTON_INFO = 0;
-	private static final int BUTTON_CREATE = 2;
+	public ContainerBasicClaim claimContainer;
 	
-	public ContainerCitadel citadelContainer;
-	
-	public GuiCitadel(Container container) 
+	public GuiBasicClaim(Container container) 
 	{
 		super(container);
-		citadelContainer = (ContainerCitadel)container;
+		claimContainer = (ContainerBasicClaim)container;
 		
 		ySize = 182;
 	}
-	
+
 	@Override
 	public void initGui()
 	{
 		super.initGui();
 		
-		boolean hasFactionSet = !citadelContainer.citadel.GetFactionID().equals(Faction.NULL);
-
-		//Create button
-		GuiButton createButton = new GuiButton(BUTTON_CREATE, width / 2 - 20, height / 2 - 70, 100, 20, "Create");
-		createButton.enabled = !hasFactionSet;
-		createButton.visible = !hasFactionSet;
-		buttonList.add(createButton);
-		
+		Faction faction = WarForgeMod.INSTANCE.GetFaction(claimContainer.claim.GetFactionID());
+				
 		//Info Button
 		GuiButton infoButton = new GuiButton(BUTTON_INFO, width / 2 - 20, height / 2 - 48, 100, 20, "Info");
-		infoButton.enabled = hasFactionSet;
+		infoButton.enabled = faction != null;
 		buttonList.add(infoButton);
-		
-		//Disband button
-		//GuiButton disbandButton = new GuiButton(BUTTON_DISBAND, width / 2 - 20, height / 2 - 70, 100, 20, "Disband");
-		//disbandButton.enabled = hasFactionSet;
-		//disbandButton.visible = hasFactionSet;
-		//buttonList.add(disbandButton);
 	}
 	
-
 	@Override
 	protected void actionPerformed(GuiButton button)
 	{
 		switch(button.id)
 		{
-			case BUTTON_CREATE:
-			{
-				// Open creation GUI
-				mc.player.openGui(
-						WarForgeMod.INSTANCE, 
-						CommonProxy.GUI_TYPE_CREATE_FACTION, 
-						mc.world, 
-						citadelContainer.citadel.getPos().getX(),
-						citadelContainer.citadel.getPos().getY(),
-						citadelContainer.citadel.getPos().getZ());
-				
-				break;
-			}
 			case BUTTON_INFO:
 			{
-				PacketRequestFactionInfo request = new PacketRequestFactionInfo();
-				request.mFactionIDRequest = citadelContainer.citadel.GetFactionID();
-				WarForgeMod.INSTANCE.packetHandler.sendToServer(request);
+				// Open info GUI
 				break;
 			}
 		}	
 	}
-
+	
 	@Override
 	protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY)
 	{
@@ -99,7 +68,7 @@ public class GuiCitadel extends GuiContainer
 	{
 		super.drawGuiContainerForegroundLayer(x, y);
 		
-		Faction faction = WarForgeMod.INSTANCE.GetFaction(citadelContainer.citadel.GetFactionID());
+		Faction faction = WarForgeMod.INSTANCE.GetFaction(claimContainer.claim.GetFactionID());
 		
 		if(faction == null)
 		{

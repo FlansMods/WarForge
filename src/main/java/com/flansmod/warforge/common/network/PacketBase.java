@@ -1,5 +1,7 @@
 package com.flansmod.warforge.common.network;
 
+import java.util.UUID;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import net.minecraft.entity.player.EntityPlayer;
@@ -48,5 +50,18 @@ public abstract class PacketBase
 	public static String readUTF(ByteBuf data)
 	{
 		return ByteBufUtils.readUTF8String(data);
+	}
+	
+	public static void writeUUID(ByteBuf data, UUID id)
+	{
+		data.writeLong(id.getMostSignificantBits());
+		data.writeLong(id.getLeastSignificantBits());
+	}
+	
+	public static UUID readUUID(ByteBuf data)
+	{
+		long most = data.readLong();
+		long least = data.readLong();
+		return new UUID(most, least);
 	}
 }

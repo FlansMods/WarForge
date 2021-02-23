@@ -1,10 +1,11 @@
-package com.flansmod.warforge.common;
+package com.flansmod.warforge.server;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
-import com.flansmod.warforge.server.Faction;
+import com.flansmod.warforge.common.WarForgeMod;
 
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -51,6 +52,12 @@ public class CommandFactions extends CommandBase
 			return;
 		}
 		
+		Faction faction = null;
+		if(sender instanceof EntityPlayer)
+		{
+			faction = WarForgeMod.INSTANCE.GetFactionOfPlayer(((EntityPlayer)sender).getUniqueID());
+		}
+		
 		// Argument 0 is subcommand
 		switch(args[0].toLowerCase())
 		{
@@ -78,7 +85,7 @@ public class CommandFactions extends CommandBase
 				// First, resolve the op version where we can specify the faction
 				if(args.length >= 3 && WarForgeMod.IsOp(sender))
 				{
-					Faction faction = WarForgeMod.INSTANCE.GetFaction(args[2]);
+					faction = WarForgeMod.INSTANCE.GetFaction(args[2]);
 					if(faction != null)
 						WarForgeMod.INSTANCE.RequestInvitePlayerToFaction(sender, faction.mUUID, invitee.getUniqueID());
 					else 
@@ -105,6 +112,36 @@ public class CommandFactions extends CommandBase
 				{
 					sender.sendMessage(new TextComponentString("The server can't accept a faction invite"));
 				}
+				break;
+			}
+			case "disband":
+			{
+				if(sender instanceof EntityPlayer && faction != null)
+				{
+					WarForgeMod.INSTANCE.RequestDisbandFaction((EntityPlayer)sender, faction.mUUID);
+				}
+				// TODO: Op case
+				break;
+			}
+			case "expel":
+			case "remove":
+			{
+				if(args.length >= 2)
+				{
+					EntityPlayer toRemove = server.getPlayerList().getPlayerByUsername(args[1]);
+					if(toRemove != null)
+					{
+						UUID toRemoveID =  toRemove.getUniqueID();
+						
+						if(faction == null)
+						{
+							faction = WarForgeMod.INSTANCE.GetFactionOfPlayer(toRemoveID);
+						}
+						
+						WarForgeMod.INSTANCE.RequestRemovePlayerFromFaction(sender, faction.mUUID, toRemoveID);
+					}
+				}
+				break;
 			}
 			
 			default:

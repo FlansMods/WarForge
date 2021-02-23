@@ -185,6 +185,8 @@ public class PacketHandler extends MessageToMessageCodec<FMLProxyPacket, PacketB
 		channels = NetworkRegistry.INSTANCE.newChannel("WarForgeMod", this);
 		
 		registerPacket(PacketCreateFaction.class);
+		registerPacket(PacketRequestFactionInfo.class);
+		registerPacket(PacketFactionInfo.class);
 	}
 	
 	/**

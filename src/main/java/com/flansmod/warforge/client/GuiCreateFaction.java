@@ -11,12 +11,13 @@ import com.flansmod.warforge.server.Faction;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.client.FMLClientHandler;
 
 public class GuiCreateFaction extends GuiScreen
 {
-	private static final ResourceLocation texture = new ResourceLocation(WarForgeMod.MODID, "gui/createfaction.png");
+	private static final ResourceLocation texture = new ResourceLocation(WarForgeMod.MODID, "gui/citadelmenu.png");
 
 	private static final int BUTTON_CREATE = 0;
 	private static final int BUTTON_CANCEL = 1;
@@ -25,10 +26,14 @@ public class GuiCreateFaction extends GuiScreen
     protected GuiTextField inputField;
     private GuiButton createButton, cancelButton;
 	private TileEntityCitadel citadel;
+	
+	private int xSize, ySize;
     
     public GuiCreateFaction(TileEntityCitadel tile)
     {
     	citadel = tile;
+    	xSize = 96;
+    	ySize = 56;
     }
     
 	@Override
@@ -44,11 +49,11 @@ public class GuiCreateFaction extends GuiScreen
 		cancelButton = new GuiButton(BUTTON_CANCEL, width / 2 + 2, height / 2 + 2, 40, 20, "Cancel");
 		buttonList.add(cancelButton);
 		
-		inputField = new GuiTextField(TEXT_FIELD_NAME, fontRenderer, width / 2 - 42, height / 2 - 22, 84, 20);
+		inputField = new GuiTextField(TEXT_FIELD_NAME, fontRenderer, width / 2 - 42, height / 2 - 12, 84, 20);
 		inputField.setMaxStringLength(64);
         inputField.setEnableBackgroundDrawing(false);
         inputField.setFocused(true);
-        inputField.setText("Faction Name");
+        inputField.setText("");
         inputField.setCanLoseFocus(false);
 	}
 	
@@ -75,6 +80,27 @@ public class GuiCreateFaction extends GuiScreen
 				break;
 			}
 		}	
+	}
+	
+	@Override
+	public void drawScreen(int mouseX, int mouseY, float partialTicks)
+	{
+		
+		// Draw background
+		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+		mc.renderEngine.bindTexture(texture);
+		int j = (width - xSize) / 2;
+		int k = (height - ySize) / 2;
+		drawTexturedModalRect(j, k, 0, 182, xSize, ySize);
+		
+		// Then draw overlay
+		super.drawScreen(mouseX, mouseY, partialTicks);
+		
+		
+		
+		inputField.drawTextBox();
+		
+		fontRenderer.drawStringWithShadow("Enter Name:",  j + 6, k + 6, 0xffffff);
 	}
 	
 	@Override
