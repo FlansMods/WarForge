@@ -32,7 +32,7 @@ public class GuiBasicClaim extends GuiContainer
 	{
 		super.initGui();
 		
-		Faction faction = WarForgeMod.INSTANCE.GetFaction(claimContainer.claim.GetFactionID());
+		Faction faction = WarForgeMod.INSTANCE.GetFaction(claimContainer.claim.GetFaction());
 				
 		//Info Button
 		GuiButton infoButton = new GuiButton(BUTTON_INFO, width / 2 - 20, height / 2 - 48, 100, 20, "Info");
@@ -47,7 +47,7 @@ public class GuiBasicClaim extends GuiContainer
 		{
 			case BUTTON_INFO:
 			{
-				// Open info GUI
+				ClientProxy.RequestFactionInfo(claimContainer.claim.GetFaction());
 				break;
 			}
 		}	
@@ -68,7 +68,7 @@ public class GuiBasicClaim extends GuiContainer
 	{
 		super.drawGuiContainerForegroundLayer(x, y);
 		
-		Faction faction = WarForgeMod.INSTANCE.GetFaction(claimContainer.claim.GetFactionID());
+		Faction faction = WarForgeMod.INSTANCE.GetFaction(claimContainer.claim.GetFaction());
 		
 		if(faction == null)
 		{

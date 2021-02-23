@@ -1,11 +1,15 @@
 package com.flansmod.warforge.server;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
 
 import com.flansmod.warforge.common.DimBlockPos;
+import com.flansmod.warforge.common.DimChunkPos;
 import com.flansmod.warforge.common.WarForgeMod;
+import com.flansmod.warforge.common.blocks.IClaim;
+import com.flansmod.warforge.common.blocks.TileEntitySiegeCamp;
 import com.flansmod.warforge.common.network.FactionDisplayInfo;
 import com.flansmod.warforge.common.network.PlayerDisplayInfo;
 import com.mojang.authlib.GameProfile;
@@ -59,6 +63,7 @@ public class Faction
 	public ArrayList<DimBlockPos> mClaims;
 	public HashMap<UUID, PlayerData> mMembers;
 	public HashMap<UUID, Float> mPendingInvites;
+	public int mColour = 0xffffff;
 	public int mNotoriety;
 	
 	public Faction()
@@ -89,6 +94,9 @@ public class Faction
 		info.mFactionID = mUUID;
 		info.mFactionName = mName;
 		info.mNotoriety = mNotoriety;
+		
+		info.mNumClaims = mClaims.size();
+		info.mCitadelPos = mCitadelPos;
 		
 		for(HashMap.Entry<UUID, PlayerData> entry : mMembers.entrySet())
 		{
@@ -130,7 +138,7 @@ public class Faction
 			mPendingInvites.remove(playerID);
 		
 		// Let everyone know
-		MessageAll(new TextComponentString(GetPlayerName(playerID) + " joined the faction."));
+		MessageAll(new TextComponentString(GetPlayerName(playerID) + " joined " + mName));
 		
 		return true;
 	}
@@ -155,7 +163,7 @@ public class Faction
 		}
 		
 
-		MessageAll(new TextComponentString(GetPlayerName(playerID) + " was made leader of the faction."));
+		MessageAll(new TextComponentString(GetPlayerName(playerID) + " was made leader of " + mName));
 		return true;
 	}
 	
@@ -171,7 +179,7 @@ public class Faction
 	
 	public boolean Disband()
 	{
-		MessageAll(new TextComponentString("The faction was disbanded."));
+		MessageAll(new TextComponentString(mName + " was disbanded."));
 		mMembers.clear();
 		mClaims.clear();
 		mPendingInvites.clear();
@@ -201,6 +209,21 @@ public class Faction
 				&& playerRole.ordinal() > targetRole.ordinal();
 		}
 		return false;
+	}
+	
+	public void OnClaimPlaced(IClaim claim) 
+	{
+		mClaims.add(claim.GetPos());
+	}
+	
+	public void OnSiegeCreated(TileEntitySiegeCamp campTE, DimChunkPos attackedChunk) 
+	{
+		// TODO
+	}
+	
+	public void OnSiegeReceived(TileEntitySiegeCamp campTE, DimChunkPos attackedChunk) 
+	{
+		// TODO
 	}
 	
 	// Messaging

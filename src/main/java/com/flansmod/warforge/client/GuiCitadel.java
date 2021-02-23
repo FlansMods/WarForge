@@ -35,7 +35,7 @@ public class GuiCitadel extends GuiContainer
 	{
 		super.initGui();
 		
-		boolean hasFactionSet = !citadelContainer.citadel.GetFactionID().equals(Faction.NULL);
+		boolean hasFactionSet = !citadelContainer.citadel.GetFaction().equals(Faction.NULL);
 
 		//Create button
 		GuiButton createButton = new GuiButton(BUTTON_CREATE, width / 2 - 20, height / 2 - 70, 100, 20, "Create");
@@ -76,9 +76,7 @@ public class GuiCitadel extends GuiContainer
 			}
 			case BUTTON_INFO:
 			{
-				PacketRequestFactionInfo request = new PacketRequestFactionInfo();
-				request.mFactionIDRequest = citadelContainer.citadel.GetFactionID();
-				WarForgeMod.INSTANCE.packetHandler.sendToServer(request);
+				ClientProxy.RequestFactionInfo(citadelContainer.citadel.GetFaction());
 				break;
 			}
 		}	
@@ -99,7 +97,7 @@ public class GuiCitadel extends GuiContainer
 	{
 		super.drawGuiContainerForegroundLayer(x, y);
 		
-		Faction faction = WarForgeMod.INSTANCE.GetFaction(citadelContainer.citadel.GetFactionID());
+		Faction faction = WarForgeMod.INSTANCE.GetFaction(citadelContainer.citadel.GetFaction());
 		
 		if(faction == null)
 		{

@@ -2,10 +2,13 @@ package com.flansmod.warforge.common.blocks;
 
 import java.util.UUID;
 
+import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.server.Faction;
 
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemBanner;
 import net.minecraft.item.ItemShield;
@@ -13,15 +16,29 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.play.server.SPacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.Side;
 
-public abstract class TileEntityYieldCollector extends TileEntity implements IInventory
+public abstract class TileEntityYieldCollector extends TileEntity implements IInventory, IClaim
 {
 	public static final int NUM_YIELD_STACKS = 9;
 	public static final int NUM_BASE_SLOTS = NUM_YIELD_STACKS;
 	
 	protected UUID mFactionUUID = Faction.NULL;
+	public int mColour = 0xffffff;
 	
-	public UUID GetFactionID() { return mFactionUUID; }
+	// IClaim
+	@Override
+	public UUID GetFaction() { return mFactionUUID; }
+	@Override
+	public int GetColour() { return mColour; }
+	@Override
+	public TileEntity GetAsTileEntity() { return this; }
+	@Override
+	public DimBlockPos GetPos() { return new DimBlockPos(world.provider.getDimension(), getPos()); }
+	@Override 
+	public boolean CanBeSieged() { return true; }
+	//-----------
 
 	// The yield stacks are where items arrive when your faction is above a deposit
 	protected ItemStack[] mYieldStacks = new ItemStack[NUM_YIELD_STACKS];
@@ -34,10 +51,21 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 			mYieldStacks[i] = ItemStack.EMPTY;
 		}
 	}
-	
-	public void SetFaction(UUID factionID)
+		
+	// Server only set
+	@Override
+	public void OnServerSetFaction(Faction faction)
 	{
-		mFactionUUID = factionID;
+		if(faction == null)
+		{
+			mFactionUUID = Faction.NULL;
+		}
+		else
+		{
+			mFactionUUID = faction.mUUID;
+			mColour = faction.mColour;
+		}
+		
 		world.markBlockRangeForRenderUpdate(pos, pos);
 		world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 		world.scheduleBlockUpdate(pos, this.getBlockType(), 0, 0);
@@ -66,12 +94,24 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 	public void readFromNBT(NBTTagCompound nbt)
 	{
 		super.readFromNBT(nbt);
-		
+	
 		mFactionUUID = nbt.getUniqueId("faction");
-		Faction faction = WarForgeMod.INSTANCE.GetFaction(mFactionUUID);
-		if(faction == null)
+		if(FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER)
 		{
-			WarForgeMod.logger.error("Faction " + mFactionUUID + " could not be found for citadel at " + pos);
+			Faction faction = WarForgeMod.INSTANCE.GetFaction(mFactionUUID);
+			if(!mFactionUUID.equals(Faction.NULL) && faction == null)
+			{
+				WarForgeMod.logger.error("Faction " + mFactionUUID + " could not be found for citadel at " + pos);
+				world.setBlockState(getPos(), Blocks.AIR.getDefaultState());
+			}
+			if(faction != null)
+			{
+				mColour = faction.mColour;
+			}
+		}
+		else
+		{
+			WarForgeMod.logger.error("Loaded TileEntity from NBT on client?");
 		}
 		
 		// Read inventory, or as much as we can find
@@ -96,6 +136,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 		NBTTagCompound tags = packet.getNbtCompound();
 		
 		mFactionUUID = tags.getUniqueId("faction");
+		mColour = tags.getInteger("colour");
 	}
 	
 	@Override
@@ -105,6 +146,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 
 		// Custom partial nbt write method
 		tags.setUniqueId("faction", mFactionUUID);
+		tags.setInteger("colour", mColour);
 		
 		return tags;
 	}

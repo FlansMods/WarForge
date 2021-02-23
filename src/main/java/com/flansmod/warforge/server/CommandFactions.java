@@ -143,6 +143,15 @@ public class CommandFactions extends CommandBase
 				}
 				break;
 			}
+			case "leave":
+			case "exit":
+			{
+				if(sender instanceof EntityPlayer)
+				{
+					WarForgeMod.INSTANCE.RequestRemovePlayerFromFaction(sender, faction.mUUID, ((EntityPlayer) sender).getUniqueID());
+				}
+				break;
+			}
 			
 			default:
 			{

@@ -1,6 +1,7 @@
 package com.flansmod.warforge.common.network;
 
 import com.flansmod.warforge.common.CommonProxy;
+import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.WarForgeMod;
 
 import io.netty.buffer.ByteBuf;
@@ -25,6 +26,13 @@ public class PacketFactionInfo extends PacketBase
 			
 			data.writeInt(mInfo.mNotoriety);
 			
+			data.writeInt(mInfo.mNumClaims);
+			
+			data.writeInt(mInfo.mCitadelPos.mDim);
+			data.writeInt(mInfo.mCitadelPos.getX());
+			data.writeInt(mInfo.mCitadelPos.getY());
+			data.writeInt(mInfo.mCitadelPos.getZ());
+			
 			// Member list
 			data.writeInt(mInfo.mMembers.size());
 			for(int i = 0; i < mInfo.mMembers.size(); i++) 
@@ -45,6 +53,14 @@ public class PacketFactionInfo extends PacketBase
 		mInfo.mFactionID = readUUID(data);
 		mInfo.mFactionName = readUTF(data);
 		mInfo.mNotoriety = data.readInt();
+		
+		mInfo.mNumClaims = data.readInt();
+		
+		int dim =	data.readInt();
+		int x =	data.readInt();
+		int y =	data.readInt();
+		int z =	data.readInt();
+		mInfo.mCitadelPos = new DimBlockPos(dim, x, y, z);
 		
 		// Member list
 		int count = data.readInt();

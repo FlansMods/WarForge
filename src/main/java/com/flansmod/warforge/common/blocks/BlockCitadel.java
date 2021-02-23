@@ -5,6 +5,7 @@ import java.util.UUID;
 import com.flansmod.warforge.common.CommonProxy;
 import com.flansmod.warforge.common.DimChunkPos;
 import com.flansmod.warforge.common.WarForgeMod;
+import com.flansmod.warforge.common.network.PacketFactionInfo;
 import com.flansmod.warforge.server.Faction;
 
 import net.minecraft.block.Block;
@@ -14,13 +15,19 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.BlockRenderLayer;
+import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class BlockCitadel extends Block implements ITileEntityProvider
 {
@@ -32,6 +39,16 @@ public class BlockCitadel extends Block implements ITileEntityProvider
 		this.setResistance(30000000f);
 	}
 	
+	@Override
+    public boolean isOpaqueCube(IBlockState state) { return false; }
+	@Override
+    public boolean isFullCube(IBlockState state) { return false; }
+	@Override
+    public EnumBlockRenderType getRenderType(IBlockState state) { return EnumBlockRenderType.MODEL; }
+    @SideOnly(Side.CLIENT)
+    @Override
+    public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
+    
 	@Override
 	public TileEntity createNewTileEntity(World worldIn, int meta)
 	{
@@ -70,7 +87,36 @@ public class BlockCitadel extends Block implements ITileEntityProvider
 		if(player.isSneaking())
 			return false;
 		if(!world.isRemote)
-			player.openGui(WarForgeMod.INSTANCE, CommonProxy.GUI_TYPE_CITADEL, world, pos.getX(), pos.getY(), pos.getZ());
+		{
+			Faction playerFaction = WarForgeMod.INSTANCE.GetFactionOfPlayer(player.getUniqueID());
+			TileEntityCitadel citadel = (TileEntityCitadel)world.getTileEntity(pos);
+			
+			// If the player has no faction and is the placer, they can open the UI
+			if(playerFaction == null && player.getUniqueID() == citadel.GetPlacer())
+			{
+				player.openGui(WarForgeMod.INSTANCE, CommonProxy.GUI_TYPE_CITADEL, world, pos.getX(), pos.getY(), pos.getZ());
+			}
+			// Any other factionless players, and players who aren't in this faction get an info panel			
+			else if(playerFaction == null || playerFaction.mUUID != citadel.mFactionUUID)
+			{
+				Faction citadelFaction = WarForgeMod.INSTANCE.GetFaction(citadel.mFactionUUID);
+				if(citadelFaction != null)
+				{
+					PacketFactionInfo packet = new PacketFactionInfo();
+					packet.mInfo = citadelFaction.CreateInfo();
+					WarForgeMod.INSTANCE.packetHandler.sendTo(packet, (EntityPlayerMP) player);
+				}
+				else
+				{
+					player.sendMessage(new TextComponentString("This citadel is not home to a faction, and was not placed by you."));
+				}
+			}
+			// So anyone else will be from the target faction
+			else
+			{
+				player.openGui(WarForgeMod.INSTANCE, CommonProxy.GUI_TYPE_CITADEL, world, pos.getX(), pos.getY(), pos.getZ());
+			}
+		}
 		return true;
 	}
 }

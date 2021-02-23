@@ -11,21 +11,39 @@ import net.minecraft.block.Block;
 import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.BlockRenderLayer;
+import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class BlockSiegeCamp extends Block implements ITileEntityProvider
 {
 	public BlockSiegeCamp(Material materialIn) 
 	{
 		super(materialIn);
+		this.setCreativeTab(CreativeTabs.COMBAT);
+		this.setBlockUnbreakable();
+		this.setResistance(30000000f);
 	}
+	
+	@Override
+    public boolean isOpaqueCube(IBlockState state) { return false; }
+	@Override
+    public boolean isFullCube(IBlockState state) { return false; }
+	@Override
+    public EnumBlockRenderType getRenderType(IBlockState state) { return EnumBlockRenderType.MODEL; }
+    @SideOnly(Side.CLIENT)
+    @Override
+    public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
 
 	@Override
 	public TileEntity createNewTileEntity(World worldIn, int meta)
@@ -56,8 +74,8 @@ public class BlockSiegeCamp extends Block implements ITileEntityProvider
 		TileEntity te = world.getTileEntity(pos);
 		if(te != null)
 		{
-			TileEntitySiegeCamp citadel = (TileEntitySiegeCamp)te;
-			citadel.OnPlacedBy(placer);
+			TileEntitySiegeCamp siegeCamp = (TileEntitySiegeCamp)te;
+			WarForgeMod.INSTANCE.OnNonCitadelClaimPlaced(siegeCamp, placer);
 		}
     }
 

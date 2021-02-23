@@ -1,5 +1,6 @@
 package com.flansmod.warforge.common;
 
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 
@@ -48,4 +49,14 @@ public class DimChunkPos extends ChunkPos
     {
         return "[" + this.mDim + ": " + this.x + ", " + this.z + "]";
     }
+	
+	public DimChunkPos Offset(EnumFacing facing, int n)
+	{
+	    return new DimChunkPos(mDim, x + facing.getFrontOffsetX() * n, z + facing.getFrontOffsetZ() * n);
+	}
+
+	public DimChunkPos North() { return Offset(EnumFacing.NORTH, 1); }
+	public DimChunkPos South() { return Offset(EnumFacing.SOUTH, 1); }
+	public DimChunkPos East() { return Offset(EnumFacing.EAST, 1); }
+	public DimChunkPos West() { return Offset(EnumFacing.WEST, 1); }
 }

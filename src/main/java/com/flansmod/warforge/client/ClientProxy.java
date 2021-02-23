@@ -1,10 +1,13 @@
 package com.flansmod.warforge.client;
 
+import java.util.UUID;
+
 import com.flansmod.warforge.common.CommonProxy;
 import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.common.blocks.TileEntityBasicClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
+import com.flansmod.warforge.common.network.PacketRequestFactionInfo;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -27,6 +30,7 @@ public class ClientProxy extends CommonProxy
 	@Override
 	public void PreInit(FMLPreInitializationEvent event)
 	{
+		MinecraftForge.EVENT_BUS.register(this);
 		MinecraftForge.EVENT_BUS.register(new ClientTickHandler());
 	}
 	
@@ -53,7 +57,6 @@ public class ClientProxy extends CommonProxy
 		WarForgeMod.logger.error("Can't get info about a tile entity in a different dimension on client");
 		return null;
 	}
-
 	
 	@SubscribeEvent
 	public void registerModels(ModelRegistryEvent event)
@@ -72,5 +75,12 @@ public class ClientProxy extends CommonProxy
 	private void RegisterModel(Item item)
 	{
 		ModelLoader.setCustomModelResourceLocation(item, 0, new ModelResourceLocation(item.getRegistryName(), "inventory"));
+	}
+	
+	public static void RequestFactionInfo(UUID factionID)
+	{
+		PacketRequestFactionInfo request = new PacketRequestFactionInfo();
+		request.mFactionIDRequest = factionID;
+		WarForgeMod.INSTANCE.packetHandler.sendToServer(request);
 	}
 }

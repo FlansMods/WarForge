@@ -4,7 +4,9 @@ import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagIntArray;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 
@@ -50,9 +52,20 @@ public class DimBlockPos extends BlockPos
     	mDim = dim;
     }
     
+    public DimChunkPos ToChunkPos()
+    {
+    	return new DimChunkPos(mDim, getX() >> 4, getZ() >> 4);
+    }
+    
     public BlockPos ToRegularPos()
     {
     	return new BlockPos(getX(), getY(), getZ());
+    }
+    
+    @Override
+    public BlockPos offset(EnumFacing facing, int n)
+    {
+        return n == 0 ? this : new DimBlockPos(this.mDim, this.getX() + facing.getFrontOffsetX() * n, this.getY() + facing.getFrontOffsetY() * n, this.getZ() + facing.getFrontOffsetZ() * n);
     }
     
 	@Override

@@ -3,6 +3,7 @@ package com.flansmod.warforge.common.blocks;
 import java.util.List;
 import java.util.UUID;
 
+import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.server.Faction;
 
@@ -17,7 +18,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.NonNullList;
 
-public class TileEntityCitadel extends TileEntityYieldCollector implements ISiegeable
+public class TileEntityCitadel extends TileEntityYieldCollector implements IClaim
 {
 	public static final int BANNER_SLOT_INDEX = NUM_BASE_SLOTS;
 	public static final int NUM_SLOTS = NUM_BASE_SLOTS + 1;
@@ -39,11 +40,9 @@ public class TileEntityCitadel extends TileEntityYieldCollector implements ISieg
 		mPlacer = placer.getUniqueID();
 	}
 	
-	// ISiegeable
+	// IClaim
 	@Override
-	public TileEntity GetAsTileEntity() { return this; }
-	@Override
-	public int GetStrengthRequiredToSiege() { return WarForgeMod.DENSE_DIAMOND_CELL_SIZE; } // TODO: Config
+	public int GetStrengthRequiredToSiege() { return WarForgeMod.CLAIM_STRENGTH_CITADEL; }
 	//-----------
 	
 	

@@ -4,6 +4,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.command.CommandHandler;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
@@ -18,7 +19,10 @@ import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock;
 import net.minecraftforge.event.terraingen.PopulateChunkEvent;
+import net.minecraftforge.event.world.BlockEvent;
+import net.minecraftforge.event.world.BlockEvent.EntityPlaceEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
@@ -36,7 +40,10 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.server.FMLServerHandler;
 
+import java.awt.Color;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 import java.util.UUID;
 
 import org.apache.logging.log4j.Logger;
@@ -45,6 +52,7 @@ import com.flansmod.warforge.common.blocks.BlockBasicClaim;
 import com.flansmod.warforge.common.blocks.BlockCitadel;
 import com.flansmod.warforge.common.blocks.BlockSiegeCamp;
 import com.flansmod.warforge.common.blocks.BlockYieldProvider;
+import com.flansmod.warforge.common.blocks.IClaim;
 import com.flansmod.warforge.common.blocks.TileEntityBasicClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
 import com.flansmod.warforge.common.blocks.TileEntitySiegeCamp;
@@ -54,6 +62,9 @@ import com.flansmod.warforge.common.world.WorldGenDenseOre;
 import com.flansmod.warforge.server.CommandFactions;
 import com.flansmod.warforge.server.Faction;
 import com.flansmod.warforge.server.ServerTickHandler;
+import com.flansmod.warforge.server.Siege;
+import com.mojang.authlib.GameProfile;
+import com.flansmod.warforge.server.Faction.Role;
 
 @Mod(modid = WarForgeMod.MODID, name = WarForgeMod.NAME, version = WarForgeMod.VERSION)
 public class WarForgeMod
@@ -65,7 +76,12 @@ public class WarForgeMod
     public static Logger logger;
     
     private HashMap<UUID, Faction> mFactions = new HashMap<UUID, Faction>();
+    // This map contains every single claim, including siege camps.
+    // So if you take one of these and try to look it up in the faction, check their active sieges too
     private HashMap<DimChunkPos, UUID> mClaims = new HashMap<DimChunkPos, UUID>();
+    
+    // This is all the currently active sieges, keyed by the defending position
+    private HashMap<DimChunkPos, Siege> mSieges = new HashMap<DimChunkPos, Siege>();
     
 	@Instance(MODID)
 	public static WarForgeMod INSTANCE;
@@ -81,6 +97,7 @@ public class WarForgeMod
 	public static Item denseIronOreItem, denseGoldOreItem, denseDiamondOreItem, magmaVentItem;
 	
 	public static MinecraftServer MC_SERVER = null;
+	public static Random rand = new Random();
 	
     @EventHandler
     public void preInit(FMLPreInitializationEvent event)
@@ -91,8 +108,8 @@ public class WarForgeMod
 		syncConfig();
 		
         
-        citadelBlock = new BlockCitadel(Material.ROCK).setRegistryName("citadelBlock").setUnlocalizedName("citadelBlock");
-        citadelBlockItem = new ItemBlock(citadelBlock).setRegistryName("citadelBlock").setUnlocalizedName("citadelBlock");
+        citadelBlock = new BlockCitadel(Material.ROCK).setRegistryName("citadelblock").setUnlocalizedName("citadelblock");
+        citadelBlockItem = new ItemBlock(citadelBlock).setRegistryName("citadelblock").setUnlocalizedName("citadelblock");
         GameRegistry.registerTileEntity(TileEntityCitadel.class, new ResourceLocation(MODID, "citadel"));
         
         // Basic and reinforced claims, they share a tile entity
@@ -143,6 +160,9 @@ public class WarForgeMod
 	public void registerItems(RegistryEvent.Register<Item> event)
 	{		
 		event.getRegistry().register(citadelBlockItem);
+		event.getRegistry().register(basicClaimBlockItem);
+		event.getRegistry().register(reinforcedClaimBlockItem);
+		event.getRegistry().register(siegeCampBlockItem);
 		event.getRegistry().register(denseIronOreItem);
 		event.getRegistry().register(denseGoldOreItem);
 		event.getRegistry().register(denseDiamondOreItem);
@@ -154,6 +174,9 @@ public class WarForgeMod
 	public void registerBlocks(RegistryEvent.Register<Block> event)
 	{
 		event.getRegistry().register(citadelBlock);
+		event.getRegistry().register(basicClaimBlock);
+		event.getRegistry().register(reinforcedClaimBlock);
+		event.getRegistry().register(siegeCampBlock);
 		event.getRegistry().register(denseIronOreBlock);
 		event.getRegistry().register(denseGoldOreBlock);
 		event.getRegistry().register(denseDiamondOreBlock);
@@ -207,6 +230,28 @@ public class WarForgeMod
     	return null;
     }
     
+    // This is called for any non-citadel claim. Citadels can be factionless, so this makes no sense
+	public void OnNonCitadelClaimPlaced(IClaim claim, EntityLivingBase placer) 
+	{
+		Faction faction = GetFactionOfPlayer(placer.getUniqueID());
+		
+		if(faction != null)
+		{
+			TileEntity tileEntity = claim.GetAsTileEntity();
+			mClaims.put(claim.GetPos().ToChunkPos(), faction.mUUID);
+			
+			claim.OnServerSetFaction(faction);
+			faction.OnClaimPlaced(claim);
+		}
+		else
+			logger.error("Invalid placer placed a claim at " + claim.GetPos());
+	}
+	    
+    public UUID GetClaim(DimBlockPos pos)
+    {
+    	return GetClaim(pos.ToChunkPos());
+    }
+    
     public UUID GetClaim(DimChunkPos pos)
     {
     	if(mClaims.containsKey(pos))
@@ -232,6 +277,121 @@ public class WarForgeMod
     	}
     }
     
+    @SubscribeEvent
+    public void OnBlockPlaced(RightClickBlock event)
+    {
+    	Item item = event.getItemStack().getItem();
+    	if(item != citadelBlockItem
+    	&& item != basicClaimBlockItem
+    	&& item != reinforcedClaimBlockItem
+    	&& item != siegeCampBlockItem)
+    	{
+    		// We don't care if its not one of ours
+    		return;
+    	}
+    	
+    	Block block = ((ItemBlock)item).getBlock();
+    	BlockPos placementPos = event.getPos().offset(event.getFace());
+    	
+    	// Only players can place these blocks
+    	if(!(event.getEntity() instanceof EntityPlayer))
+    	{
+    		event.setCanceled(true);
+    		return;
+    	}
+    	
+    	EntityPlayer player = (EntityPlayer)event.getEntity();
+    	Faction playerFaction = GetFactionOfPlayer(player.getUniqueID());
+    	// TODO : Op override
+
+    	// All block placements are cancelled if there is already a block from this mod in that chunk
+    	DimChunkPos pos = new DimBlockPos(event.getWorld().provider.getDimension(), placementPos).ToChunkPos();
+    	if(mClaims.containsKey(pos))
+    	{
+    		player.sendMessage(new TextComponentString("This chunk already has a claim"));
+			event.setCanceled(true);
+			return;
+    	}
+    	
+    	// Cancel block placement for a couple of reasons
+    	if(block == citadelBlock)
+    	{
+    		if(playerFaction != null) // Can't place a second citadel
+    		{
+    			player.sendMessage(new TextComponentString("You are already in a faction"));
+    			event.setCanceled(true);
+    			return;
+    		}
+    	}
+    	else if(block == basicClaimBlock
+    		|| block == reinforcedClaimBlock)
+    	{
+    		if(playerFaction == null) // Can't expand your claims if you aren't in a faction
+    		{
+    			player.sendMessage(new TextComponentString("You aren't in a faction. Craft a citadel or join a faction"));
+    			event.setCanceled(true);
+    			return;
+    		}
+    		if(!playerFaction.IsPlayerRoleInFaction(player.getUniqueID(), Role.OFFICER))
+    		{
+    			player.sendMessage(new TextComponentString("You are not an officer of your faction"));
+    			event.setCanceled(true);
+    			return;
+    		}
+    	}
+    	else // Must be siege block
+    	{
+    		if(playerFaction == null) // Can't start sieges if you aren't in a faction
+    		{
+    			player.sendMessage(new TextComponentString("You aren't in a faction. Craft a citadel or join a faction"));
+    			event.setCanceled(true);
+    			return;
+    		}
+    		if(!playerFaction.IsPlayerRoleInFaction(player.getUniqueID(), Role.OFFICER))
+    		{
+    			player.sendMessage(new TextComponentString("You are not an officer of your faction"));
+    			event.setCanceled(true);
+    			return;
+    		}
+
+    		ArrayList<DimChunkPos> validTargets = new ArrayList<DimChunkPos>(4);
+    		int numTargets = GetAdjacentClaims(playerFaction.mUUID, pos, validTargets);
+    		if(numTargets == 0)
+    		{
+    			player.sendMessage(new TextComponentString("There are no adjacent claims to siege"));
+    			event.setCanceled(true);
+    			return;
+    		}
+    		
+    		// TODO: Check for alliances with those claims
+    	}
+    	
+    }
+    
+	public int GetAdjacentClaims(UUID excludingFaction, DimChunkPos pos, ArrayList<DimChunkPos> positions)
+	{
+		positions.clear();
+		DimChunkPos north = pos.North();
+		DimChunkPos east = pos.East();
+		DimChunkPos south = pos.South();
+		DimChunkPos west = pos.West();
+		if(IsClaimed(excludingFaction, north))
+			positions.add(north);
+		if(IsClaimed(excludingFaction, east))
+			positions.add(east);
+		if(IsClaimed(excludingFaction, south))
+			positions.add(south);
+		if(IsClaimed(excludingFaction, west))
+			positions.add(west);
+		return positions.size();
+	}
+	
+	public boolean IsClaimed(UUID excludingFaction, DimChunkPos pos)
+	{
+		UUID factionID = mClaims.get(pos);
+		return factionID != null && !factionID.equals(excludingFaction) && !factionID.equals(Faction.NULL);
+	}
+	
     // ----------------------------------------
     //   Server responses to player requests
     public boolean RequestCreateFaction(TileEntityCitadel citadel, EntityPlayer player, String factionName)
@@ -267,10 +427,11 @@ public class WarForgeMod
     	faction.mUUID = proposedID;
     	faction.mName = factionName;
     	faction.mCitadelPos = new DimBlockPos(citadel);
+		faction.mColour = Color.HSBtoRGB(rand.nextFloat(), rand.nextFloat() * 0.5f + 0.5f, 1.0f);
     	faction.mNotoriety = 0;
     	
     	mFactions.put(proposedID, faction);
-    	citadel.SetFaction(proposedID);
+    	citadel.OnServerSetFaction(faction);
     	
     	faction.AddPlayer(player.getUniqueID());
     	faction.SetLeader(player.getUniqueID());
@@ -294,11 +455,15 @@ public class WarForgeMod
     	}
     	
     	boolean canRemove = IsOp(remover);
+    	boolean removingSelf = false;
     	if(remover instanceof EntityPlayer)
     	{
     		UUID removerID = ((EntityPlayer)remover).getUniqueID();
     		if(removerID == toRemove) // remove self
+    		{
     			canRemove = true;
+    			removingSelf = true;
+    		}
     		
     		if(faction.IsPlayerOutrankingOfficerOf(removerID, toRemove))
     			canRemove = true;
@@ -310,6 +475,15 @@ public class WarForgeMod
     		return false;
     	}
     	
+    	GameProfile userProfile = MC_SERVER.getPlayerProfileCache().getProfileByUUID(toRemove);
+    	if(userProfile != null)
+    	{
+    		if(removingSelf)
+    			faction.MessageAll(new TextComponentString(userProfile.getName() + " left " + faction.mName));
+    		else
+       			faction.MessageAll(new TextComponentString(userProfile.getName() + " was kicked from " + faction.mName));
+    	}
+    	
     	faction.RemovePlayer(toRemove);
     	
     	return true;
@@ -317,7 +491,7 @@ public class WarForgeMod
         
     public boolean RequestInvitePlayerToMyFaction(EntityPlayer factionOfficer, UUID invitee)
     {
-    	Faction myFaction = GetFaction(factionOfficer.getUniqueID());
+    	Faction myFaction = GetFactionOfPlayer(factionOfficer.getUniqueID());
     	if(myFaction != null)
     		return RequestInvitePlayerToFaction(factionOfficer, myFaction.mUUID, invitee);
     	return false;
