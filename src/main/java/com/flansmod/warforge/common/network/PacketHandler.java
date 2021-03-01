@@ -187,6 +187,9 @@ public class PacketHandler extends MessageToMessageCodec<FMLProxyPacket, PacketB
 		registerPacket(PacketCreateFaction.class);
 		registerPacket(PacketRequestFactionInfo.class);
 		registerPacket(PacketFactionInfo.class);
+		registerPacket(PacketSiegeCampInfo.class);
+		registerPacket(PacketSiegeCampProgressUpdate.class);
+		registerPacket(PacketStartSiege.class);
 	}
 	
 	/**

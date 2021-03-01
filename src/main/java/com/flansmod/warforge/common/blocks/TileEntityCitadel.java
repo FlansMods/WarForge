@@ -42,7 +42,11 @@ public class TileEntityCitadel extends TileEntityYieldCollector implements IClai
 	
 	// IClaim
 	@Override
-	public int GetStrengthRequiredToSiege() { return WarForgeMod.CLAIM_STRENGTH_CITADEL; }
+	public int GetDefenceStrength() { return WarForgeMod.CLAIM_STRENGTH_CITADEL; }
+	@Override
+	public int GetSupportStrength() { return WarForgeMod.SUPPORT_STRENGTH_CITADEL; }
+	@Override
+	public int GetAttackStrength() { return 0; }
 	//-----------
 	
 	
@@ -89,7 +93,25 @@ public class TileEntityCitadel extends TileEntityYieldCollector implements IClai
 	public void setInventorySlotContents(int index, ItemStack stack) 
 	{
 		if(index == BANNER_SLOT_INDEX)
+		{
 			mBannerStack = stack;
+			/*
+			if(stack.getItem() instanceof ItemBanner)
+			{
+				int newColour = ItemBanner.getBaseColor(stack).getColorValue();
+				if(!world.isRemote) 
+				{
+					Faction faction = WarForgeMod.INSTANCE.GetFaction(mFactionUUID);
+					if(faction != null)
+					{
+						faction.mColour = newColour;
+						mColour = newColour;
+						markDirty();
+					}
+				}
+			}
+			*/
+		}
 		else 
 			super.setInventorySlotContents(index, stack);
 	}

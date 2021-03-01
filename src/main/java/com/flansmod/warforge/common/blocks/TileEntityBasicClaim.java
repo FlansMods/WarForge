@@ -12,20 +12,16 @@ import net.minecraft.tileentity.TileEntity;
 public class TileEntityBasicClaim extends TileEntityYieldCollector implements IClaim
 {
 	public static final int NUM_SLOTS = NUM_BASE_SLOTS; // No additional slots here
-	public int mStrength = 5;
 	
 	public TileEntityBasicClaim()
 	{
 		
 	}
 	
-	public TileEntityBasicClaim(int strength)
-	{
-		mStrength = strength;
-	}
-	
-	// TODO: Think we might need to store the strength or have two seperate TileEntity registrations
-
 	@Override
-	public int GetStrengthRequiredToSiege() { return mStrength; }
+	public int GetDefenceStrength() { return WarForgeMod.CLAIM_STRENGTH_BASIC; }
+	@Override
+	public int GetSupportStrength() { return WarForgeMod.SUPPORT_STRENGTH_BASIC; }
+	@Override
+	public int GetAttackStrength() { return 0; }
 }

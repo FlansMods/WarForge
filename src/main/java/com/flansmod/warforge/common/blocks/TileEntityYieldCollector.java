@@ -6,6 +6,7 @@ import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.server.Faction;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
@@ -16,6 +17,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.play.server.SPacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.World;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
 
@@ -89,6 +91,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 		
 		return nbt;
 	}
+
 	
 	@Override
 	public void readFromNBT(NBTTagCompound nbt)
@@ -102,7 +105,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 			if(!mFactionUUID.equals(Faction.NULL) && faction == null)
 			{
 				WarForgeMod.logger.error("Faction " + mFactionUUID + " could not be found for citadel at " + pos);
-				world.setBlockState(getPos(), Blocks.AIR.getDefaultState());
+				//world.setBlockState(getPos(), Blocks.AIR.getDefaultState());
 			}
 			if(faction != null)
 			{
@@ -142,13 +145,21 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 	@Override
 	public NBTTagCompound getUpdateTag()
 	{
-		NBTTagCompound tags = new NBTTagCompound();
+		// You have to get parent tags so that x, y, z are added.
+		NBTTagCompound tags = super.getUpdateTag();
 
 		// Custom partial nbt write method
 		tags.setUniqueId("faction", mFactionUUID);
 		tags.setInteger("colour", mColour);
 		
 		return tags;
+	}
+	
+	@Override
+	public void handleUpdateTag(NBTTagCompound tags)
+	{
+		mFactionUUID = tags.getUniqueId("faction");
+		mColour = tags.getInteger("colour");
 	}
 	
 	// ----------------------------------------------------------

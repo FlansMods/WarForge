@@ -80,6 +80,12 @@ public class BlockCitadel extends Block implements ITileEntityProvider
 			citadel.OnPlacedBy(placer);
 		}
     }
+	
+	@Override
+    public boolean eventReceived(IBlockState state, World worldIn, BlockPos pos, int id, int param)
+    {
+        return true;
+    }
 
 	@Override
 	public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player, EnumHand hand, EnumFacing side, float par7, float par8, float par9)

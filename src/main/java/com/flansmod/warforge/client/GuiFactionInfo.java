@@ -335,7 +335,7 @@ public class GuiFactionInfo extends GuiScreen
 				// Second column - numbers
 				int column1X = 120;
 				fontRenderer.drawStringWithShadow("" + info.mNotoriety, j + column1X, k + 152, 0xffffff);
-				fontRenderer.drawStringWithShadow("" + info.mNotoriety, j + column1X, k + 162, 0xffffff);
+				fontRenderer.drawStringWithShadow("" + info.mWealth, j + column1X, k + 162, 0xffffff);
 				fontRenderer.drawStringWithShadow("" + info.mNotoriety, j + column1X, k + 172, 0xffffff);
 				fontRenderer.drawStringWithShadow("" + info.mNotoriety, j + column1X, k + 182, 0xffffff);
 				fontRenderer.drawStringWithShadow("" + info.mMembers.size(), j + column1X, k + 192, 0xffffff);

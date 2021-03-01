@@ -2,26 +2,38 @@ package com.flansmod.warforge.common;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.CommandHandler;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.CompressedStreamTools;
+import net.minecraft.nbt.NBTBase;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.event.entity.EntityEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock;
 import net.minecraftforge.event.terraingen.PopulateChunkEvent;
 import net.minecraftforge.event.world.BlockEvent;
+import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.event.world.BlockEvent.EntityPlaceEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Mod;
@@ -41,6 +53,9 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.server.FMLServerHandler;
 
 import java.awt.Color;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
@@ -55,14 +70,18 @@ import com.flansmod.warforge.common.blocks.BlockYieldProvider;
 import com.flansmod.warforge.common.blocks.IClaim;
 import com.flansmod.warforge.common.blocks.TileEntityBasicClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
+import com.flansmod.warforge.common.blocks.TileEntityReinforcedClaim;
 import com.flansmod.warforge.common.blocks.TileEntitySiegeCamp;
 import com.flansmod.warforge.common.network.PacketHandler;
+import com.flansmod.warforge.common.network.PacketSiegeCampProgressUpdate;
+import com.flansmod.warforge.common.network.SiegeCampProgressInfo;
 import com.flansmod.warforge.common.world.WorldGenBedrockOre;
 import com.flansmod.warforge.common.world.WorldGenDenseOre;
 import com.flansmod.warforge.server.CommandFactions;
 import com.flansmod.warforge.server.Faction;
 import com.flansmod.warforge.server.ServerTickHandler;
 import com.flansmod.warforge.server.Siege;
+import com.google.common.io.Files;
 import com.mojang.authlib.GameProfile;
 import com.flansmod.warforge.server.Faction.Role;
 
@@ -99,6 +118,9 @@ public class WarForgeMod
 	public static MinecraftServer MC_SERVER = null;
 	public static Random rand = new Random();
 	
+	public static long numberOfDaysTicked = 0L;
+	public static long timestampOfFirstDay = 0L;
+	
     @EventHandler
     public void preInit(FMLPreInitializationEvent event)
     {
@@ -107,17 +129,20 @@ public class WarForgeMod
 		configFile = new Configuration(event.getSuggestedConfigurationFile());
 		syncConfig();
 		
+		timestampOfFirstDay = System.currentTimeMillis();
+		numberOfDaysTicked = 0L;
         
         citadelBlock = new BlockCitadel(Material.ROCK).setRegistryName("citadelblock").setUnlocalizedName("citadelblock");
         citadelBlockItem = new ItemBlock(citadelBlock).setRegistryName("citadelblock").setUnlocalizedName("citadelblock");
         GameRegistry.registerTileEntity(TileEntityCitadel.class, new ResourceLocation(MODID, "citadel"));
         
         // Basic and reinforced claims, they share a tile entity
-        basicClaimBlock = new BlockBasicClaim(Material.ROCK, CLAIM_STRENGTH_BASIC).setRegistryName("basicclaimblock").setUnlocalizedName("basicclaimblock");
+        basicClaimBlock = new BlockBasicClaim(Material.ROCK).setRegistryName("basicclaimblock").setUnlocalizedName("basicclaimblock");
         basicClaimBlockItem = new ItemBlock(basicClaimBlock).setRegistryName("basicclaimblock").setUnlocalizedName("basicclaimblock");
-        reinforcedClaimBlock = new BlockBasicClaim(Material.ROCK, CLAIM_STRENGTH_REINFORCED).setRegistryName("reinforcedclaimblock").setUnlocalizedName("reinforcedclaimblock");
-        reinforcedClaimBlockItem = new ItemBlock(reinforcedClaimBlock).setRegistryName("reinforcedclaimblock").setUnlocalizedName("reinforcedclaimblock");
         GameRegistry.registerTileEntity(TileEntityBasicClaim.class, new ResourceLocation(MODID, "basicclaim"));
+        reinforcedClaimBlock = new BlockBasicClaim(Material.ROCK).setRegistryName("reinforcedclaimblock").setUnlocalizedName("reinforcedclaimblock");
+        reinforcedClaimBlockItem = new ItemBlock(reinforcedClaimBlock).setRegistryName("reinforcedclaimblock").setUnlocalizedName("reinforcedclaimblock");
+        GameRegistry.registerTileEntity(TileEntityReinforcedClaim.class, new ResourceLocation(MODID, "reinforcedclaim"));
         
         // Siege camp
         siegeCampBlock = new BlockSiegeCamp(Material.ROCK).setRegistryName("siegecampblock").setUnlocalizedName("siegecampblock");
@@ -154,6 +179,20 @@ public class WarForgeMod
 	{
 		packetHandler.postInitialise();
 		proxy.PostInit(event);
+		
+		VAULT_BLOCKS.clear();
+		for(String blockID : VAULT_BLOCK_IDS)
+		{
+			Block block = Block.getBlockFromName(blockID);
+			if(block != null)
+			{
+				VAULT_BLOCKS.add(block);
+				logger.info("Found block with ID " + blockID + " as a valuable block for the vault");
+			}
+			else
+				logger.error("Could not find block with ID " + blockID + " as a valuable block for the vault");
+				
+		}
 	}
     
     @SubscribeEvent
@@ -233,18 +272,21 @@ public class WarForgeMod
     // This is called for any non-citadel claim. Citadels can be factionless, so this makes no sense
 	public void OnNonCitadelClaimPlaced(IClaim claim, EntityLivingBase placer) 
 	{
-		Faction faction = GetFactionOfPlayer(placer.getUniqueID());
-		
-		if(faction != null)
+		if(!placer.world.isRemote)
 		{
-			TileEntity tileEntity = claim.GetAsTileEntity();
-			mClaims.put(claim.GetPos().ToChunkPos(), faction.mUUID);
+			Faction faction = GetFactionOfPlayer(placer.getUniqueID());
 			
-			claim.OnServerSetFaction(faction);
-			faction.OnClaimPlaced(claim);
+			if(faction != null)
+			{
+				TileEntity tileEntity = claim.GetAsTileEntity();
+				mClaims.put(claim.GetPos().ToChunkPos(), faction.mUUID);
+				
+				claim.OnServerSetFaction(faction);
+				faction.OnClaimPlaced(claim);
+			}
+			else
+				logger.error("Invalid placer placed a claim at " + claim.GetPos());
 		}
-		else
-			logger.error("Invalid placer placed a claim at " + claim.GetPos());
 	}
 	    
     public UUID GetClaim(DimBlockPos pos)
@@ -269,17 +311,163 @@ public class WarForgeMod
     	return null;
     }
     
-    public void Update()
+    public void UpdateServer()
     {
     	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
     	{
     		entry.getValue().Update();
     	}
+    	
+    	long msTime = System.currentTimeMillis();
+    	long dayLength = (long)(
+    			SIEGE_DAY_LENGTH // In hours
+    			* 60f // In minutes
+    			* 60f // In seconds
+    			* 1000f); // In milliseconds
+    	
+    	long dayNumber = (msTime - timestampOfFirstDay) / dayLength;
+    	
+    	if(dayNumber > numberOfDaysTicked)
+    	{
+    		// Time to tick a new day
+    		numberOfDaysTicked = dayNumber;
+    		
+    		MessageAll(new TextComponentString("A new day dawns and supplies dwindle. All sieges are advanced."), true);
+    		
+    		for(HashMap.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
+    		{
+    			kvp.getValue().AdvanceDay();
+    		}
+    		
+    		CheckForCompleteSieges();
+    		
+        	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
+        	{
+        		entry.getValue().AdvanceDay();
+        	}
+    	}
     }
     
-    @SubscribeEvent
-    public void OnBlockPlaced(RightClickBlock event)
+    private void CheckForCompleteSieges()
     {
+    	// Cache in a list so we can remove from the siege HashMap
+    	ArrayList<DimChunkPos> completedSieges = new ArrayList<DimChunkPos>();
+		for(HashMap.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
+		{
+			if(kvp.getValue().IsCompleted())
+				completedSieges.add(kvp.getKey());
+		}
+		
+		// Now process the results
+		for(DimChunkPos chunkPos : completedSieges)
+		{
+			Siege siege = mSieges.get(chunkPos);
+			
+			Faction attackers = WarForgeMod.INSTANCE.GetFaction(siege.mAttackingFaction);
+			Faction defenders = WarForgeMod.INSTANCE.GetFaction(siege.mDefendingFaction);
+			
+			if(attackers == null || defenders == null)
+			{
+				WarForgeMod.logger.error("Invalid factions in completed siege. Nothing will happen.");
+				continue;
+			}
+			
+			DimBlockPos blockPos = defenders.GetSpecificPosForClaim(chunkPos);
+			boolean successful = siege.WasSuccessful();
+			if(successful)
+			{
+				defenders.OnClaimLost(blockPos);
+				attackers.MessageAll(new TextComponentString("Our faction won the siege on " + defenders.mName + " at " + blockPos.ToFancyString()));
+			}
+			else
+			{
+				attackers.MessageAll(new TextComponentString("Our siege on " + defenders.mName + " at " + blockPos.ToFancyString() + " was unsuccessful"));
+				defenders.MessageAll(new TextComponentString(attackers.mName + "'s siege on " + blockPos.ToFancyString() + " was unsuccessful"));
+			}
+			
+			siege.OnCompleted();
+			
+			// Then remove the siege
+			mSieges.remove(chunkPos);
+		}
+    	
+    }
+    
+    public void PlayerDied(LivingDeathEvent event)
+    {
+    	if(event.getEntity().world.isRemote)
+    		return;
+    		
+    	if(event.getEntityLiving() instanceof EntityPlayerMP)
+    	{
+    		Faction faction = GetFactionOfPlayer(event.getEntityLiving().getUniqueID());
+    		
+    		for(HashMap.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
+    		{
+    			// If the player is on the attackers side, send the event
+    			if(kvp.getValue().mAttackingFaction.equals(faction.mUUID))
+    			{
+    				kvp.getValue().OnAttackerDied((EntityPlayerMP)event.getEntityLiving());
+    			}
+    			// If the player is on the defenders side, send the event
+    			if(kvp.getValue().mDefendingFaction.equals(faction.mUUID))
+    			{
+    				kvp.getValue().OnDefenderDied((EntityPlayerMP)event.getEntityLiving());
+    			}
+    		}
+    		
+    		CheckForCompleteSieges();
+    	}
+    }
+    
+    private void BlockPlacedOrRemoved(BlockEvent event, IBlockState state)
+    {
+    	// Check for vault value
+		if(VAULT_BLOCKS.contains(state.getBlock()))
+		{
+			DimChunkPos chunkPos = new DimBlockPos(event.getWorld().provider.getDimension(), event.getPos()).ToChunkPos();
+			UUID factionID = GetClaim(chunkPos);
+			if(!factionID.equals(Faction.NULL)) 
+			{
+				Faction faction = GetFaction(factionID);
+				if(faction != null)
+				{
+					if(faction.mCitadelPos.ToChunkPos().equals(chunkPos))
+					{
+						faction.EvaluateVault();
+					}
+				}
+			}
+		}
+    }
+    
+	@SubscribeEvent
+	public void BlockPlaced(BlockEvent.EntityPlaceEvent event)
+	{
+		if(!event.getWorld().isRemote) 
+		{
+			BlockPlacedOrRemoved(event, event.getPlacedBlock());
+		}
+	}
+	
+	@SubscribeEvent
+	public void BlockRemoved(BlockEvent.BreakEvent event)
+	{
+		if(!event.getWorld().isRemote) 
+		{
+			BlockPlacedOrRemoved(event, event.getState());
+		}
+	}
+    
+    @SubscribeEvent
+    public void PreBlockPlaced(RightClickBlock event)
+    {
+    	if(event.getWorld().isRemote)
+    	{
+    		// This is a server op
+    		return;
+    	}
+    	
     	Item item = event.getItemStack().getItem();
     	if(item != citadelBlockItem
     	&& item != basicClaimBlockItem
@@ -432,6 +620,7 @@ public class WarForgeMod
     	
     	mFactions.put(proposedID, faction);
     	citadel.OnServerSetFaction(faction);
+    	mClaims.put(citadel.GetPos().ToChunkPos(), proposedID);
     	
     	faction.AddPlayer(player.getUniqueID());
     	faction.SetLeader(player.getUniqueID());
@@ -578,16 +767,16 @@ public class WarForgeMod
     	return true;
     }
     
-    public boolean RequestStartSiege(EntityPlayer factionOfficer, UUID factionID, DimBlockPos targetPos, DimBlockPos siegePos)
+    public boolean RequestStartSiege(EntityPlayer factionOfficer, DimBlockPos siegeCampPos, EnumFacing direction)
     {
-    	Faction faction = GetFaction(factionID);
-    	if(faction == null)
+    	Faction attacking = GetFactionOfPlayer(factionOfficer.getUniqueID());
+    	if(attacking == null)
     	{
-    		factionOfficer.sendMessage(new TextComponentString("The faction could not be found"));
+    		factionOfficer.sendMessage(new TextComponentString("You are not in a faction"));
     		return false;
     	}
     	
-    	if(!faction.IsPlayerRoleInFaction(factionOfficer.getUniqueID(), Faction.Role.OFFICER))
+    	if(!attacking.IsPlayerRoleInFaction(factionOfficer.getUniqueID(), Faction.Role.OFFICER))
     	{
     		factionOfficer.sendMessage(new TextComponentString("You are not an officer of this faction"));
     		return false;
@@ -595,14 +784,61 @@ public class WarForgeMod
     	
     	// TODO: Verify there aren't existing alliances
     	
-    	TileEntity targetTE = proxy.GetTile(targetPos);
-    	TileEntity siegeTE = proxy.GetTile(siegePos);
+    	TileEntity siegeTE = proxy.GetTile(siegeCampPos);
+    	DimChunkPos defendingChunk = siegeCampPos.ToChunkPos().Offset(direction, 1);
+    	UUID defendingFactionID = mClaims.get(defendingChunk);
+    	Faction defending = GetFaction(defendingFactionID);
+    	if(defending == null)
+    	{
+    		factionOfficer.sendMessage(new TextComponentString("Could not find a target faction at that poisition"));
+    		return false;
+    	}
+    	
+    	DimBlockPos defendingPos = defending.GetSpecificPosForClaim(defendingChunk);
+    	Siege siege = new Siege();
+    	siege.mAttackingFaction = attacking.mUUID;
+    	siege.mDefendingFaction = defendingFactionID;
+    	siege.mAttackingSiegeCamps.add(siegeCampPos);
+    	siege.mDefendingClaim = defendingPos;
+    	//siege.mAttackSuccessThreshold
+    	//siege.mSupportingClaims
+    	
+    	siege.Start();
+    	
+    	mSieges.put(defendingChunk, siege);
     	
     	// TODO: 
     	
 
     	
     	return true;
+    }
+    
+    public void MessageAll(ITextComponent msg, boolean sendToDiscord) // TODO: optional list of pings
+    {
+    	// TODO: Discord integration
+    	if(MC_SERVER != null)
+    	{
+	    	for(EntityPlayerMP player : MC_SERVER.getPlayerList().getPlayers())
+	    	{
+	    		player.sendMessage(msg);
+	    	}
+    	}
+    }
+    
+    public void SendSiegeInfoToNearby(DimChunkPos siegePos)
+    {
+    	Siege siege = mSieges.get(siegePos);
+    	if(siege != null)
+    	{
+    		SiegeCampProgressInfo info = siege.GetSiegeInfo();
+    		if(info != null)
+    		{
+    			PacketSiegeCampProgressUpdate packet = new PacketSiegeCampProgressUpdate();
+    			packet.mInfo = info;
+    			packetHandler.sendToAllAround(packet, siegePos.x * 16, 128d, siegePos.z * 16, SIEGE_INFO_RADIUS + 128f, siegePos.mDim);
+    		}
+    	}
     }
     
     // Non request 
@@ -686,15 +922,23 @@ public class WarForgeMod
 	public static int CLAIM_STRENGTH_CITADEL = 15;
 	public static int CLAIM_STRENGTH_REINFORCED = 10;
 	public static int CLAIM_STRENGTH_BASIC = 5;
+	public static int SUPPORT_STRENGTH_CITADEL = 3;
+	public static int SUPPORT_STRENGTH_REINFORCED = 2;
+	public static int SUPPORT_STRENGTH_BASIC = 1;
 	
 	public static int ATTACK_STRENGTH_SIEGE_CAMP = 1;
 	public static float LEECH_PROPORTION_SIEGE_CAMP = 0.25f;
 	
 	public static int SIEGE_SWING_PER_DEFENDER_DEATH = 1;
 	public static int SIEGE_SWING_PER_ATTACKER_DEATH = 1;
+	public static int SIEGE_SWING_PER_DAY_ELAPSED_BASE = 1;
 	public static int SIEGE_SWING_PER_DAY_ELAPSED_NO_ATTACKER_LOGINS = 1;
 	public static int SIEGE_SWING_PER_DAY_ELAPSED_NO_DEFENDER_LOGINS = 1;
 	public static float SIEGE_DAY_LENGTH = 24.0f; // In real-world hours
+	public static float SIEGE_INFO_RADIUS = 200f;
+	
+	public static String[] VAULT_BLOCK_IDS = new String[] { "minecraft:gold_block" };
+	public static ArrayList<Block> VAULT_BLOCKS = new ArrayList<Block>();
 
 	public static void syncConfig()
 	{
@@ -739,6 +983,9 @@ public class WarForgeMod
 		CLAIM_STRENGTH_CITADEL = configFile.getInt("Citadel Claim Strength", Configuration.CATEGORY_GENERAL, CLAIM_STRENGTH_CITADEL, 1, 1024, "The strength of citadel claims");
 		CLAIM_STRENGTH_REINFORCED = configFile.getInt("Reinforced Claim Strength", Configuration.CATEGORY_GENERAL, CLAIM_STRENGTH_REINFORCED, 1, 1024, "The strength of reinforced claims");
 		CLAIM_STRENGTH_BASIC = configFile.getInt("Basic Claim Strength", Configuration.CATEGORY_GENERAL, CLAIM_STRENGTH_BASIC, 1, 1024, "The strength of basic claims");
+		SUPPORT_STRENGTH_CITADEL = configFile.getInt("Citadel Support Strength", Configuration.CATEGORY_GENERAL, SUPPORT_STRENGTH_CITADEL, 1, 1024, "The support strength a citadel gives to adjacent claims");
+		SUPPORT_STRENGTH_REINFORCED = configFile.getInt("Reinforced Support Strength", Configuration.CATEGORY_GENERAL, SUPPORT_STRENGTH_REINFORCED, 1, 1024, "The support strength a reinforced claim gives to adjacent claims");
+		SUPPORT_STRENGTH_BASIC = configFile.getInt("Basic Support Strength", Configuration.CATEGORY_GENERAL, SUPPORT_STRENGTH_BASIC, 1, 1024, "The support strength a basic claim gives to adjacent claims");
 		
 		// Siege Camp Settings
 		ATTACK_STRENGTH_SIEGE_CAMP = configFile.getInt("Siege Camp Attack Strength", Configuration.CATEGORY_GENERAL, ATTACK_STRENGTH_SIEGE_CAMP, 1, 1024, "How much attack pressure a siege camp exerts on adjacent enemy claims");
@@ -747,26 +994,144 @@ public class WarForgeMod
 		// Siege swing parameters
 		SIEGE_SWING_PER_DEFENDER_DEATH = configFile.getInt("Siege Swing Per Defender Death", Configuration.CATEGORY_GENERAL, SIEGE_SWING_PER_DEFENDER_DEATH, 1, 1024, "How much a siege progress swings when a defender dies in the siege");
 		SIEGE_SWING_PER_ATTACKER_DEATH = configFile.getInt("Siege Swing Per Attacker Death", Configuration.CATEGORY_GENERAL, SIEGE_SWING_PER_ATTACKER_DEATH, 1, 1024, "How much a siege progress swings when an attacker dies in the siege");
+		SIEGE_SWING_PER_DAY_ELAPSED_BASE = configFile.getInt("Siege Swing Per Day", Configuration.CATEGORY_GENERAL, SIEGE_SWING_PER_DAY_ELAPSED_BASE, 1, 1024, "How much a siege progress swings each day (see below). This happens regardless of logins");
 		SIEGE_SWING_PER_DAY_ELAPSED_NO_ATTACKER_LOGINS = configFile.getInt("Siege Swing Per Day Without Attacker Logins", Configuration.CATEGORY_GENERAL, SIEGE_SWING_PER_DAY_ELAPSED_NO_ATTACKER_LOGINS, 1, 1024, "How much a siege progress swings when no attackers have logged on for a day (see below)");
 		SIEGE_SWING_PER_DAY_ELAPSED_NO_DEFENDER_LOGINS = configFile.getInt("Siege Swing Per Day Without Defender Logins", Configuration.CATEGORY_GENERAL, SIEGE_SWING_PER_DAY_ELAPSED_NO_DEFENDER_LOGINS, 1, 1024, "How much a siege progress swings when no defenders have logged on for a day (see below)");
-		SIEGE_DAY_LENGTH = configFile.getFloat("Siege Day Length", Configuration.CATEGORY_GENERAL, SIEGE_DAY_LENGTH, 0.1f, 100000f, "The length of a day for siege login purposes, in real-world hours.");
-
+		SIEGE_DAY_LENGTH = configFile.getFloat("Siege Day Length", Configuration.CATEGORY_GENERAL, SIEGE_DAY_LENGTH, 0.0001f, 100000f, "The length of a day for siege login purposes, in real-world hours.");
+		SIEGE_INFO_RADIUS = configFile.getFloat("Siege Info Radius", Configuration.CATEGORY_GENERAL, SIEGE_INFO_RADIUS, 1f, 1000f, "The range at which you see siege information. (Capped by the server setting)");
+		
+		// Vault parameters
+		VAULT_BLOCK_IDS = configFile.getStringList("Valuable Blocks", Configuration.CATEGORY_GENERAL, VAULT_BLOCK_IDS, "The block IDs that count towards the value of your citadel's vault");
 		
 		if(configFile.hasChanged())
 			configFile.save();
 	}
 	
+	private void ReadFromNBT(NBTTagCompound tags)
+	{
+		NBTTagList list = tags.getTagList("factions", 10); // Compound Tag
+		
+		mFactions.clear();
+		mClaims.clear();
+		
+		for(NBTBase baseTag : list)
+		{
+			NBTTagCompound factionTags = ((NBTTagCompound)baseTag);
+			UUID uuid = factionTags.getUniqueId("id");
+			Faction faction = new Faction();
+			faction.mUUID = uuid;
+			faction.ReadFromNBT(factionTags);
+			mFactions.put(uuid, faction);
+			
+			// Also populate the DimChunkPos lookup table
+			for(DimBlockPos blockPos : faction.mClaims)
+			{
+				mClaims.put(blockPos.ToChunkPos(), uuid);
+			}
+		}
+		
+		timestampOfFirstDay = tags.getLong("zero-timestamp");
+		numberOfDaysTicked = tags.getLong("num-days-elapsed");
+	}
+	
+	private void WriteToNBT(NBTTagCompound tags)
+	{
+		NBTTagList factionList = new NBTTagList();
+		
+		for(HashMap.Entry<UUID, Faction> kvp : mFactions.entrySet())
+		{
+			NBTTagCompound factionTags = new NBTTagCompound();
+			factionTags.setUniqueId("id", kvp.getKey());
+			kvp.getValue().WriteToNBT(factionTags);
+			factionList.appendTag(factionTags);
+		}
+		
+		tags.setTag("factions", factionList);
+		tags.setLong("zero-timestamp", timestampOfFirstDay);
+		tags.setLong("num-days-elapsed", numberOfDaysTicked);
+	}
+	
+	private static File getFactionsFile()
+	{
+		if(MC_SERVER.isDedicatedServer())
+		{
+			return new File(MC_SERVER.getFolderName() + "/warforgefactions.dat");
+		}
+		return new File("saves/" + MC_SERVER.getFolderName() + "/warforgefactions.dat");
+	}
+	
+	private static File getFactionsFileBackup()
+	{
+		if(MC_SERVER.isDedicatedServer())
+		{
+			return new File(MC_SERVER.getFolderName() + "/warforgefactions.dat.bak");
+		}
+		return new File("saves/" + MC_SERVER.getFolderName() + "/warforgefactions.dat.bak");
+		
+		//return new File(MC_SERVER.getWorld(0).getSaveHandler().getWorldDirectory() + "/warforgefactions.dat.bak");
+	}
+		
 	@EventHandler
 	public void ServerAboutToStart(FMLServerAboutToStartEvent event)
 	{
 		MC_SERVER = event.getServer();
 		CommandHandler handler = ((CommandHandler)MC_SERVER.getCommandManager());
 		handler.registerCommand(new CommandFactions());
+		
+		try
+		{
+			NBTTagCompound tags = CompressedStreamTools.readCompressed(new FileInputStream(getFactionsFile()));
+			ReadFromNBT(tags);
+			logger.info("Successfully loaded warforgefactions.dat");
+		}
+		catch(Exception e)
+		{
+			logger.error("Failed to load warforgefactions.dat");
+			e.printStackTrace();
+		}
+	}
+	
+	private void Save()
+	{
+		try
+		{
+			if(MC_SERVER != null)
+			{
+				NBTTagCompound tags = new NBTTagCompound();
+				WriteToNBT(tags);
+				
+				File factionsFile = getFactionsFile();
+				if(factionsFile.exists())
+					Files.copy(factionsFile, getFactionsFileBackup());
+				else
+				{
+					factionsFile.createNewFile();
+				}
+				
+				CompressedStreamTools.writeCompressed(tags, new FileOutputStream(factionsFile));
+				logger.info("Successfully saved warforgefactions.dat");
+			}
+		}
+		catch(Exception e)
+		{
+			logger.error("Failed to save warforgefactions.dat");
+			e.printStackTrace();
+		}
+	}
+	
+	@SubscribeEvent
+	public void SaveEvent(WorldEvent.Save event)
+	{
+		if(!event.getWorld().isRemote)
+		{
+			Save();
+		}
 	}
 	
 	@EventHandler
 	public void ServerStopped(FMLServerStoppingEvent event)
 	{
+		Save();
 		MC_SERVER = null;
 	}
     

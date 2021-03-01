@@ -9,6 +9,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
+import net.minecraftforge.common.DimensionManager;
 
 public class DimBlockPos extends BlockPos
 {
@@ -95,6 +96,23 @@ public class DimBlockPos extends BlockPos
     {
         return "[" + this.mDim + ": " + this.getX() + ", " + this.getY() + ", " + this.getZ() + "]";
     }
+	
+	public String ToFancyString()
+	{
+		return "[" + getX() + ", " + getY() + ", " + getZ() + "] in " + GetDimensionName();
+	}
+	
+	public String GetDimensionName()
+	{
+		switch(mDim)
+		{
+			case -1: return "The Nether";
+			case 0: return "The Overworld";
+			case 1: return "The End";
+			
+			default: return "Dimension #" + mDim;
+		}
+	}
 	
 	public NBTTagIntArray WriteToNBT()
 	{

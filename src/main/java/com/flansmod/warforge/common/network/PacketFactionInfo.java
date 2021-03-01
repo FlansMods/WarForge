@@ -25,6 +25,7 @@ public class PacketFactionInfo extends PacketBase
 			writeUTF(data, mInfo.mFactionName);
 			
 			data.writeInt(mInfo.mNotoriety);
+			data.writeInt(mInfo.mWealth);
 			
 			data.writeInt(mInfo.mNumClaims);
 			
@@ -53,6 +54,7 @@ public class PacketFactionInfo extends PacketBase
 		mInfo.mFactionID = readUUID(data);
 		mInfo.mFactionName = readUTF(data);
 		mInfo.mNotoriety = data.readInt();
+		mInfo.mWealth = data.readInt();
 		
 		mInfo.mNumClaims = data.readInt();
 		

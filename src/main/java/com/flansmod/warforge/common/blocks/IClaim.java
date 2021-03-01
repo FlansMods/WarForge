@@ -15,7 +15,11 @@ public interface IClaim
 	
 	public boolean CanBeSieged();
 	
-	public int GetStrengthRequiredToSiege();
+	public int GetAttackStrength();
+	
+	public int GetDefenceStrength();
+	
+	public int GetSupportStrength();
 	
 	public void OnServerSetFaction(Faction faction);
 	

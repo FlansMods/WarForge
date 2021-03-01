@@ -31,15 +31,12 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class BlockBasicClaim extends Block implements ITileEntityProvider
 {
-	public int mStrength;
-
-	public BlockBasicClaim(Material materialIn, int strength) 
+	public BlockBasicClaim(Material materialIn) 
 	{
 		super(materialIn);
 		this.setCreativeTab(CreativeTabs.COMBAT);
 		this.setBlockUnbreakable();
 		this.setResistance(30000000f);
-		mStrength = strength;
 	}
 	
 	@Override
@@ -55,7 +52,10 @@ public class BlockBasicClaim extends Block implements ITileEntityProvider
 	@Override
 	public TileEntity createNewTileEntity(World worldIn, int meta)
 	{
-		return new TileEntityBasicClaim(mStrength);
+		if(this == WarForgeMod.basicClaimBlock)
+			return new TileEntityBasicClaim();
+		else
+			return new TileEntityReinforcedClaim();
 	}
 	
 	@Override

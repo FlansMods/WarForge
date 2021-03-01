@@ -1,10 +1,15 @@
 package com.flansmod.warforge.common.blocks;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import com.flansmod.warforge.common.CommonProxy;
+import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.DimChunkPos;
 import com.flansmod.warforge.common.WarForgeMod;
+import com.flansmod.warforge.common.network.PacketSiegeCampInfo;
+import com.flansmod.warforge.common.network.SiegeCampAttackInfo;
 import com.flansmod.warforge.server.Faction;
 
 import net.minecraft.block.Block;
@@ -14,6 +19,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
@@ -78,14 +84,66 @@ public class BlockSiegeCamp extends Block implements ITileEntityProvider
 			WarForgeMod.INSTANCE.OnNonCitadelClaimPlaced(siegeCamp, placer);
 		}
     }
-
+	
+	private List<SiegeCampAttackInfo> CalculatePossibleAttackDirections(World world, BlockPos pos)
+	{
+		List<SiegeCampAttackInfo> list = new ArrayList<SiegeCampAttackInfo>();
+		
+		DimChunkPos siegeCampPos = new DimChunkPos(world.provider.getDimension(), pos);
+		TileEntitySiegeCamp siegeCamp = (TileEntitySiegeCamp)world.getTileEntity(pos);
+		
+		if(siegeCamp != null)
+		{
+			for(TileEntity te : world.loadedTileEntityList)
+			{
+				if(te instanceof IClaim)
+				{
+					IClaim claim = (IClaim)te;
+					if(claim.CanBeSieged() && !claim.GetFaction().equals(siegeCamp.GetFaction()))
+					{
+						DimChunkPos claimPos = claim.GetPos().ToChunkPos();
+						for(EnumFacing facing : EnumFacing.HORIZONTALS)
+						{
+							if(claimPos.equals(siegeCampPos.Offset(facing, 1)))
+							{
+								Faction faction = WarForgeMod.INSTANCE.GetFaction(claim.GetFaction());
+								if(faction != null)
+								{
+									SiegeCampAttackInfo info = new SiegeCampAttackInfo();
+									
+									info.mDirection = facing;
+									info.mFactionUUID = claim.GetFaction();
+									info.mFactionName = faction.mName;
+									info.mFactionColour = faction.mColour;
+									
+									list.add(info);
+								}
+								else
+								{
+									WarForgeMod.logger.error("Could not find faction with UUID " + claim.GetFaction());
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return list;
+	}
+	
 	@Override
 	public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player, EnumHand hand, EnumFacing side, float par7, float par8, float par9)
 	{
 		if(player.isSneaking())
 			return false;
 		if(!world.isRemote)
-			player.openGui(WarForgeMod.INSTANCE, CommonProxy.GUI_TYPE_SIEGE_CAMP, world, pos.getX(), pos.getY(), pos.getZ());
+		{
+			PacketSiegeCampInfo info = new PacketSiegeCampInfo();
+			info.mPossibleAttacks = CalculatePossibleAttackDirections(world, pos);
+			info.mSiegeCampPos = new DimBlockPos(world.provider.getDimension(), pos);
+			WarForgeMod.INSTANCE.packetHandler.sendTo(info, (EntityPlayerMP)player);
+		}
+		//player.openGui(WarForgeMod.INSTANCE, CommonProxy.GUI_TYPE_SIEGE_CAMP, world, pos.getX(), pos.getY(), pos.getZ());
 		return true;
 	}
 }

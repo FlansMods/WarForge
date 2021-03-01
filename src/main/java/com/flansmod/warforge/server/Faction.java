@@ -14,6 +14,7 @@ import com.flansmod.warforge.common.network.FactionDisplayInfo;
 import com.flansmod.warforge.common.network.PlayerDisplayInfo;
 import com.mojang.authlib.GameProfile;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
@@ -22,6 +23,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
+import net.minecraft.world.World;
 import net.minecraftforge.fml.server.FMLServerHandler;
 
 public class Faction 
@@ -63,8 +65,10 @@ public class Faction
 	public ArrayList<DimBlockPos> mClaims;
 	public HashMap<UUID, PlayerData> mMembers;
 	public HashMap<UUID, Float> mPendingInvites;
+	public boolean mHasHadAnyLoginsToday;
 	public int mColour = 0xffffff;
-	public int mNotoriety;
+	public int mNotoriety = 0;
+	public int mWealth = 0;
 	
 	public Faction()
 	{
@@ -88,12 +92,18 @@ public class Faction
 			mPendingInvites.remove(uuidToRemove);
 	}
 	
+	public void AdvanceDay()
+	{
+		mHasHadAnyLoginsToday = false;
+	}
+	
 	public FactionDisplayInfo CreateInfo()
 	{
 		FactionDisplayInfo info = new FactionDisplayInfo();
 		info.mFactionID = mUUID;
 		info.mFactionName = mName;
 		info.mNotoriety = mNotoriety;
+		info.mWealth = mWealth;
 		
 		info.mNumClaims = mClaims.size();
 		info.mCitadelPos = mCitadelPos;
@@ -226,6 +236,16 @@ public class Faction
 		// TODO
 	}
 	
+	public void OnClaimLost(DimBlockPos claimBlockPos) 
+	{
+		// Destroy our claim block
+		WarForgeMod.MC_SERVER.getWorld(claimBlockPos.mDim).setBlockToAir(claimBlockPos);
+		
+		MessageAll(new TextComponentString("Our faction lost a claim at " + claimBlockPos.ToFancyString()));
+		
+		mClaims.remove(claimBlockPos);
+	}
+	
 	// Messaging
 	public void MessageAll(ITextComponent chat)
 	{
@@ -235,6 +255,42 @@ public class Faction
 			if(player != null)
 				player.sendMessage(chat);
 		}
+	}
+	
+	public DimBlockPos GetSpecificPosForClaim(DimChunkPos pos) 
+	{
+		for(DimBlockPos claimPos : mClaims)
+		{
+			if(claimPos.ToChunkPos().equals(pos))
+				return claimPos;
+		}
+		return null;
+	}
+	
+	public void EvaluateVault() 
+	{
+		World world = WarForgeMod.MC_SERVER.getWorld(mCitadelPos.mDim);
+		DimChunkPos chunkPos = mCitadelPos.ToChunkPos();
+		
+		int count = 0;
+		if(world != null)
+		{
+			for(int i = 0; i < 16; i++)
+			{
+				for(int k = 0; k < 16; k++)
+				{
+					for(int j = 0; j < 256; j++)
+					{
+						BlockPos blockPos = chunkPos.getBlock(i, j, k);
+						IBlockState state = world.getBlockState(blockPos);
+						if(WarForgeMod.VAULT_BLOCKS.contains(state.getBlock()))
+							count++;
+					}
+				}
+			}
+		}
+		
+		mWealth = count;
 	}
 	
 	
@@ -268,6 +324,7 @@ public class Faction
 		
 		// Get gameplay params
 		mNotoriety = tags.getInteger("notoriety");
+		mWealth = tags.getInteger("wealth");
 
 		// Get member data
 		NBTTagList memberList = tags.getTagList("members", 10); // NBTTagCompound (see NBTBase.class)
@@ -301,6 +358,7 @@ public class Faction
 		
 		// Set gameplay params
 		tags.setInteger("notoriety", mNotoriety);
+		tags.setInteger("wealth", mWealth);
 		
 		// Add member data
 		NBTTagList memberList = new NBTTagList();

@@ -97,17 +97,17 @@ public class GuiCitadel extends GuiContainer
 	{
 		super.drawGuiContainerForegroundLayer(x, y);
 		
-		Faction faction = WarForgeMod.INSTANCE.GetFaction(citadelContainer.citadel.GetFaction());
+		//Faction faction = WarForgeMod.INSTANCE.GetFaction(citadelContainer.citadel.GetFaction());
 		
-		if(faction == null)
-		{
-			fontRenderer.drawString("Unclaimed Citadel", 6, 6, 0x404040);
+		//if(faction == null)
+		//{
+		//	fontRenderer.drawString("Unclaimed Citadel", 6, 6, 0x404040);
 			
-		}
-		else
-		{
-			fontRenderer.drawString("Citadel of " + faction.mName, 6, 6, 0x404040);
-		}
+		//}
+		//else
+		///{
+		//	fontRenderer.drawString("Citadel of " + faction.mName, 6, 6, 0x404040);
+		//}
 		
 		fontRenderer.drawString("Yields", 6, 20, 0x404040);
 		fontRenderer.drawString("Banner:", 148 - fontRenderer.getStringWidth("Banner:"), 72, 0x404040);

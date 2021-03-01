@@ -11,7 +11,7 @@ public class ServerTickHandler
 	@SubscribeEvent
 	public void OnTick(ServerTickEvent tick)
 	{
-		WarForgeMod.INSTANCE.Update();
+		WarForgeMod.INSTANCE.UpdateServer();
 		WarForgeMod.INSTANCE.packetHandler.handleServerPackets();
 	}
 }

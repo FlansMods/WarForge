@@ -2,6 +2,7 @@ package com.flansmod.warforge.common;
 
 import com.flansmod.warforge.common.blocks.TileEntityBasicClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
+import com.flansmod.warforge.common.network.SiegeCampProgressInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
@@ -68,5 +69,10 @@ public class CommonProxy implements IGuiHandler
 			case GUI_TYPE_FACTION_INFO: return null;
 		}
 		return null;
+	}
+
+	public void UpdateSiegeInfo(SiegeCampProgressInfo mInfo) 
+	{
+		// Do nothing, update on client
 	}
 }
