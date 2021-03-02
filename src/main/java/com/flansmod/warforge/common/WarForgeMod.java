@@ -118,7 +118,8 @@ public class WarForgeMod
 	public static MinecraftServer MC_SERVER = null;
 	public static Random rand = new Random();
 	
-	public static long numberOfDaysTicked = 0L;
+	public static long numberOfSiegeDaysTicked = 0L;
+	public static long numberOfYieldDaysTicked = 0L;
 	public static long timestampOfFirstDay = 0L;
 	
     @EventHandler
@@ -130,7 +131,8 @@ public class WarForgeMod
 		syncConfig();
 		
 		timestampOfFirstDay = System.currentTimeMillis();
-		numberOfDaysTicked = 0L;
+		numberOfSiegeDaysTicked = 0L;
+		numberOfYieldDaysTicked = 0L;
         
         citadelBlock = new BlockCitadel(Material.ROCK).setRegistryName("citadelblock").setUnlocalizedName("citadelblock");
         citadelBlockItem = new ItemBlock(citadelBlock).setRegistryName("citadelblock").setUnlocalizedName("citadelblock");
@@ -149,9 +151,9 @@ public class WarForgeMod
         siegeCampBlockItem = new ItemBlock(siegeCampBlock).setRegistryName("siegecampblock").setUnlocalizedName("siegecampblock");
         GameRegistry.registerTileEntity(TileEntitySiegeCamp.class, new ResourceLocation(MODID, "siegecamp"));
         
-        denseIronOreBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.IRON_INGOT), 1.0f).setRegistryName("denseironore").setUnlocalizedName("denseironore");
-        denseGoldOreBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.GOLD_INGOT), 1.0f).setRegistryName("densegoldore").setUnlocalizedName("densegoldore");
-        denseDiamondOreBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.DIAMOND), 2.0f).setRegistryName("densediamondore").setUnlocalizedName("densediamondore");
+        denseIronOreBlock = new BlockYieldProvider(Material.ROCK, IRON_YIELD_AS_ORE ? new ItemStack(Blocks.IRON_ORE) : new ItemStack(Items.IRON_INGOT), NUM_IRON_PER_DAY_PER_ORE).setRegistryName("denseironore").setUnlocalizedName("denseironore");
+        denseGoldOreBlock = new BlockYieldProvider(Material.ROCK, GOLD_YIELD_AS_ORE ? new ItemStack(Blocks.GOLD_ORE) : new ItemStack(Items.GOLD_INGOT), NUM_GOLD_PER_DAY_PER_ORE).setRegistryName("densegoldore").setUnlocalizedName("densegoldore");
+        denseDiamondOreBlock = new BlockYieldProvider(Material.ROCK, DIAMOND_YIELD_AS_ORE ? new ItemStack(Blocks.DIAMOND_ORE) : new ItemStack(Items.DIAMOND), NUM_DIAMOND_PER_DAY_PER_ORE).setRegistryName("densediamondore").setUnlocalizedName("densediamondore");
         magmaVentBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.IRON_INGOT), 1.0f).setRegistryName("magmavent").setUnlocalizedName("magmavent");
         
         denseIronOreItem = new ItemBlock(denseIronOreBlock).setRegistryName("denseironore").setUnlocalizedName("denseironore");
@@ -311,6 +313,40 @@ public class WarForgeMod
     	return null;
     }
     
+    public long GetSiegeDayLengthMS()
+    {
+    	 return (long)(
+     			SIEGE_DAY_LENGTH // In hours
+     			* 60f // In minutes
+     			* 60f // In seconds
+     			* 1000f); // In milliseconds
+    }
+    
+    public long GetYieldDayLengthMS()
+    {
+    	 return (long)(
+     			YIELD_DAY_LENGTH // In hours
+     			* 60f // In minutes
+     			* 60f // In seconds
+     			* 1000f); // In milliseconds
+    }
+    
+	public long GetMSToNextSiegeAdvance() 
+	{
+		long elapsedMS = System.currentTimeMillis() - timestampOfFirstDay;
+		long todayElapsedMS = elapsedMS % GetSiegeDayLengthMS();
+		
+		return GetSiegeDayLengthMS() - todayElapsedMS;
+	}
+    
+	public long GetMSToNextYield() 
+	{
+		long elapsedMS = System.currentTimeMillis() - timestampOfFirstDay;
+		long todayElapsedMS = elapsedMS % GetYieldDayLengthMS();
+		
+		return GetYieldDayLengthMS() - todayElapsedMS;
+	}
+    
     public void UpdateServer()
     {
     	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
@@ -319,20 +355,16 @@ public class WarForgeMod
     	}
     	
     	long msTime = System.currentTimeMillis();
-    	long dayLength = (long)(
-    			SIEGE_DAY_LENGTH // In hours
-    			* 60f // In minutes
-    			* 60f // In seconds
-    			* 1000f); // In milliseconds
+    	long dayLength = GetSiegeDayLengthMS();
     	
     	long dayNumber = (msTime - timestampOfFirstDay) / dayLength;
     	
-    	if(dayNumber > numberOfDaysTicked)
+    	if(dayNumber > numberOfSiegeDaysTicked)
     	{
     		// Time to tick a new day
-    		numberOfDaysTicked = dayNumber;
+    		numberOfSiegeDaysTicked = dayNumber;
     		
-    		MessageAll(new TextComponentString("A new day dawns and supplies dwindle. All sieges are advanced."), true);
+    		MessageAll(new TextComponentString("Battle takes its toll, all sieges have advanced."), true);
     		
     		for(HashMap.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
     		{
@@ -344,6 +376,22 @@ public class WarForgeMod
         	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
         	{
         		entry.getValue().AdvanceDay();
+        	}
+    	}
+    	
+    	dayLength = GetYieldDayLengthMS();
+    	dayNumber = (msTime - timestampOfFirstDay) / dayLength;
+    	
+    	if(dayNumber > numberOfYieldDaysTicked)
+    	{
+    		// Time to tick a new day
+    		numberOfYieldDaysTicked = dayNumber;
+    		
+    		MessageAll(new TextComponentString("All passive yields have been awarded."), true);
+    		
+        	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
+        	{
+        		entry.getValue().AwardYields();
         	}
     	}
     }
@@ -393,6 +441,7 @@ public class WarForgeMod
     	
     }
     
+    @SubscribeEvent
     public void PlayerDied(LivingDeathEvent event)
     {
     	if(event.getEntity().world.isRemote)
@@ -883,6 +932,8 @@ public class WarForgeMod
 	
 	// Config
 	public static Configuration configFile;
+	
+	// World gen
 	public static int DENSE_IRON_CELL_SIZE = 64;
 	public static int DENSE_IRON_DEPOSIT_RADIUS = 4;
 	public static int DENSE_IRON_MIN_INSTANCES_PER_CELL = 1;
@@ -919,6 +970,9 @@ public class WarForgeMod
 	public static int MAGMA_VENT_OUTER_SHELL_RADIUS = 0;
 	public static float MAGMA_VENT_OUTER_SHELL_CHANCE = 1.0f;
 	
+	public static final int HIGHEST_YIELD_ASSUMPTION = 64;
+	
+	// Claims
 	public static int CLAIM_STRENGTH_CITADEL = 15;
 	public static int CLAIM_STRENGTH_REINFORCED = 10;
 	public static int CLAIM_STRENGTH_BASIC = 5;
@@ -929,6 +983,16 @@ public class WarForgeMod
 	public static int ATTACK_STRENGTH_SIEGE_CAMP = 1;
 	public static float LEECH_PROPORTION_SIEGE_CAMP = 0.25f;
 	
+	// Yields
+	public static float YIELD_DAY_LENGTH = 1.0f; // In real-world hours
+	public static float NUM_IRON_PER_DAY_PER_ORE = 0.05f;
+	public static boolean IRON_YIELD_AS_ORE = true; // Otherwise, give ingots
+	public static float NUM_GOLD_PER_DAY_PER_ORE = 0.05f;
+	public static boolean GOLD_YIELD_AS_ORE = true; // Otherwise, give ingots
+	public static float NUM_DIAMOND_PER_DAY_PER_ORE = 0.05f;
+	public static boolean DIAMOND_YIELD_AS_ORE = false; // Otherwise, give diamonds
+	
+	// Sieges
 	public static int SIEGE_SWING_PER_DEFENDER_DEATH = 1;
 	public static int SIEGE_SWING_PER_ATTACKER_DEATH = 1;
 	public static int SIEGE_SWING_PER_DAY_ELAPSED_BASE = 1;
@@ -1003,6 +1067,16 @@ public class WarForgeMod
 		// Vault parameters
 		VAULT_BLOCK_IDS = configFile.getStringList("Valuable Blocks", Configuration.CATEGORY_GENERAL, VAULT_BLOCK_IDS, "The block IDs that count towards the value of your citadel's vault");
 		
+		// Yield paramters
+		NUM_IRON_PER_DAY_PER_ORE = configFile.getFloat("#Iron Per Day Per Ore", Configuration.CATEGORY_GENERAL, NUM_IRON_PER_DAY_PER_ORE, 0.001f, 1000f, "For each dense iron ore block in a claim, how many resources do players get per yield timer");
+		NUM_GOLD_PER_DAY_PER_ORE = configFile.getFloat("#Gold Per Day Per Ore", Configuration.CATEGORY_GENERAL, NUM_GOLD_PER_DAY_PER_ORE, 0.001f, 1000f, "For each dense gold ore block in a claim, how many resources do players get per yield timer");
+		NUM_DIAMOND_PER_DAY_PER_ORE = configFile.getFloat("#Diamond Per Day Per Ore", Configuration.CATEGORY_GENERAL, NUM_DIAMOND_PER_DAY_PER_ORE, 0.001f, 1000f, "For each dense diamond ore block in a claim, how many resources do players get per yield timer");
+		IRON_YIELD_AS_ORE = configFile.getBoolean("Iron Yield As Ore", Configuration.CATEGORY_GENERAL, IRON_YIELD_AS_ORE, "If true, dense iron ore gives ore blocks. If false, it gives ingots");
+		GOLD_YIELD_AS_ORE = configFile.getBoolean("Gold Yield As Ore", Configuration.CATEGORY_GENERAL, GOLD_YIELD_AS_ORE, "If true, dense gold ore gives ore blocks. If false, it gives ingots");
+		DIAMOND_YIELD_AS_ORE = configFile.getBoolean("Diamond Yield As Ore", Configuration.CATEGORY_GENERAL, DIAMOND_YIELD_AS_ORE, "If true, dense diamond ore gives ore blocks. If false, it gives diamonds");
+		YIELD_DAY_LENGTH = configFile.getFloat("Yield Day Length", Configuration.CATEGORY_GENERAL, YIELD_DAY_LENGTH, 0.0001f, 100000f, "The length of time between yields, in real-world hours.");
+				
+		
 		if(configFile.hasChanged())
 			configFile.save();
 	}
@@ -1024,14 +1098,15 @@ public class WarForgeMod
 			mFactions.put(uuid, faction);
 			
 			// Also populate the DimChunkPos lookup table
-			for(DimBlockPos blockPos : faction.mClaims)
+			for(DimBlockPos blockPos : faction.mClaims.keySet())
 			{
 				mClaims.put(blockPos.ToChunkPos(), uuid);
 			}
 		}
 		
 		timestampOfFirstDay = tags.getLong("zero-timestamp");
-		numberOfDaysTicked = tags.getLong("num-days-elapsed");
+		numberOfSiegeDaysTicked = tags.getLong("num-days-elapsed");
+		numberOfYieldDaysTicked = tags.getLong("num-yields-awarded");
 	}
 	
 	private void WriteToNBT(NBTTagCompound tags)
@@ -1048,7 +1123,8 @@ public class WarForgeMod
 		
 		tags.setTag("factions", factionList);
 		tags.setLong("zero-timestamp", timestampOfFirstDay);
-		tags.setLong("num-days-elapsed", numberOfDaysTicked);
+		tags.setLong("num-days-elapsed", numberOfSiegeDaysTicked);
+		tags.setLong("num-yields-awarded", numberOfYieldDaysTicked);
 	}
 	
 	private static File getFactionsFile()
@@ -1134,7 +1210,7 @@ public class WarForgeMod
 		Save();
 		MC_SERVER = null;
 	}
-    
+	
     // Helpers
 
     public static UUID GetUUID(ICommandSender sender)
@@ -1150,4 +1226,6 @@ public class WarForgeMod
     		return MC_SERVER.getPlayerList().canSendCommands(((EntityPlayer)sender).getGameProfile());
     	return sender instanceof MinecraftServer;
     }
+
+
 }

@@ -135,10 +135,12 @@ public class DimBlockPos extends BlockPos
 	
 	public static DimBlockPos ReadFromNBT(NBTTagIntArray tag)
 	{
-		int[] data = tag.getIntArray();
-		if(data.length == 4)
-			return new DimBlockPos(data[0], data[1], data[2], data[3]);
-		else
-			return DimBlockPos.ZERO;
+		if(tag != null)
+		{
+			int[] data = tag.getIntArray();
+			if(data.length == 4)
+				return new DimBlockPos(data[0], data[1], data[2], data[3]);
+		}
+		return DimBlockPos.ZERO;
 	}
 }

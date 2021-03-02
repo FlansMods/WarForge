@@ -47,6 +47,8 @@ public class TileEntityCitadel extends TileEntityYieldCollector implements IClai
 	public int GetSupportStrength() { return WarForgeMod.SUPPORT_STRENGTH_CITADEL; }
 	@Override
 	public int GetAttackStrength() { return 0; }
+	@Override
+	protected float GetYieldMultiplier() { return 2.0f; }
 	//-----------
 	
 	

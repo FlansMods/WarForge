@@ -9,9 +9,9 @@ import net.minecraft.item.ItemStack;
 public class BlockYieldProvider extends Block
 {
 	public ItemStack mYieldToProvide = ItemStack.EMPTY;
-	public float mMinecraftDaysBetweenYields = 1.0f;
-	
-	public BlockYieldProvider(Material material, ItemStack yieldStack, float interval) 
+	public float mMultiplier = 1.0f;
+	 
+	public BlockYieldProvider(Material material, ItemStack yieldStack, float multiplier) 
 	{
 		super(material);
 		
@@ -21,7 +21,7 @@ public class BlockYieldProvider extends Block
 		this.setHardness(300000000F);
 		
 		mYieldToProvide = yieldStack;
-		mMinecraftDaysBetweenYields = interval;
+		mMultiplier = multiplier;
 	}
 	
 	

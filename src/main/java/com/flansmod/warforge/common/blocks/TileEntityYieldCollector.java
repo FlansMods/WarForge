@@ -1,11 +1,14 @@
 package com.flansmod.warforge.common.blocks;
 
+import java.util.HashMap;
 import java.util.UUID;
 
 import com.flansmod.warforge.common.DimBlockPos;
+import com.flansmod.warforge.common.InventoryHelper;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.server.Faction;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
@@ -17,6 +20,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.play.server.SPacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
@@ -41,6 +47,8 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 	@Override 
 	public boolean CanBeSieged() { return true; }
 	//-----------
+	
+	protected abstract float GetYieldMultiplier();
 
 	// The yield stacks are where items arrive when your faction is above a deposit
 	protected ItemStack[] mYieldStacks = new ItemStack[NUM_YIELD_STACKS];
@@ -72,6 +80,71 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 		world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 		world.scheduleBlockUpdate(pos, this.getBlockType(), 0, 0);
 		markDirty();
+	}
+	
+	public void ProcessYield(int numYields) 
+	{
+		if(world.isRemote)
+			return;
+		
+		HashMap<BlockYieldProvider, Integer> count = new HashMap<BlockYieldProvider, Integer>();
+		
+		ChunkPos chunk = new ChunkPos(getPos());
+		
+		for(int x = chunk.x * 16; x < (chunk.x + 1) * 16; x++)
+		{
+			for(int z = chunk.z * 16; z < (chunk.z + 1) * 16; z++)
+			{
+				for(int y = 0; y < WarForgeMod.HIGHEST_YIELD_ASSUMPTION; y++)
+				{
+					Block block = world.getBlockState(new BlockPos(x, y, z)).getBlock();
+					if(block instanceof BlockYieldProvider)
+					{
+						BlockYieldProvider yieldProv = (BlockYieldProvider)block;
+						if(count.containsKey(yieldProv))
+							count.replace(yieldProv, count.get(yieldProv) + 1);
+						else
+							count.put(yieldProv, 1);
+						
+					}
+				}
+			}
+		}
+		
+		for(HashMap.Entry<BlockYieldProvider, Integer> kvp : count.entrySet())
+		{
+			ItemStack stack = kvp.getKey().mYieldToProvide.copy();
+			stack.setCount(MathHelper.ceil(kvp.getValue() * numYields * kvp.getKey().mMultiplier * GetYieldMultiplier()));
+			if(!InventoryHelper.addItemStackToInventory(this, stack, false))
+			{
+				
+			}
+		}
+		
+		markDirty();
+	}
+	
+	@Override
+	public void onLoad()
+	{
+		if(!world.isRemote)
+		{
+			Faction faction = WarForgeMod.INSTANCE.GetFaction(mFactionUUID);
+			if(faction != null)
+			{
+				int pendingYields = faction.mClaims.get(GetPos());
+				if(pendingYields > 0)
+				{
+					ProcessYield(pendingYields);
+				}
+				faction.mClaims.replace(GetPos(), 0);
+			}
+			else if(!mFactionUUID.equals(Faction.NULL))
+			{
+				WarForgeMod.logger.error("Loaded YieldCollector with invalid faction");
+			}
+		}
+		
 	}
 	
 	@Override

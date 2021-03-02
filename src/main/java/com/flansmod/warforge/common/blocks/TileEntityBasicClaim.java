@@ -24,4 +24,6 @@ public class TileEntityBasicClaim extends TileEntityYieldCollector implements IC
 	public int GetSupportStrength() { return WarForgeMod.SUPPORT_STRENGTH_BASIC; }
 	@Override
 	public int GetAttackStrength() { return 0; }
+	@Override
+	protected float GetYieldMultiplier() { return 1.0f; }
 }

@@ -61,6 +61,21 @@ public class ClientTickHandler
 	public void OnTick(ClientTickEvent tick)
 	{
 		WarForgeMod.INSTANCE.packetHandler.handleClientPackets();
+		ArrayList<DimBlockPos> expired = new ArrayList<DimBlockPos>();
+		for(HashMap.Entry<DimBlockPos, SiegeCampProgressInfo> kvp : ClientProxy.sSiegeInfo.entrySet())
+		{
+			kvp.getValue().ClientTick();
+			if(kvp.getValue().Completed())
+			{
+				expired.add(kvp.getKey());
+			}
+		}
+		
+		for(DimBlockPos pos : expired)
+		{
+			ClientProxy.sSiegeInfo.remove(pos);
+		}
+			
 	}
 	
 	@SubscribeEvent
@@ -165,8 +180,9 @@ public class ClientTickHandler
 					drawTexturedModalRect(j + 239, k + 19, 238, 98, 13, 25);
 					
 					// Draw text
-					mc.fontRenderer.drawStringWithShadow(infoToRender.mDefendingName, j + 6, k + 6, 0xffffff);
-					mc.fontRenderer.drawStringWithShadow(infoToRender.mAttackingName, j + xSize - 6 - mc.fontRenderer.getStringWidth(infoToRender.mAttackingName), k + 6, 0xffffff);
+					mc.fontRenderer.drawStringWithShadow(infoToRender.mDefendingName, j + 6, k + 6, infoToRender.mAttackingColour);
+					mc.fontRenderer.drawStringWithShadow("VS", j + xSize / 2 - mc.fontRenderer.getStringWidth("VS") / 2, k + 6, 0xffffff);
+					mc.fontRenderer.drawStringWithShadow(infoToRender.mAttackingName, j + xSize - 6 - mc.fontRenderer.getStringWidth(infoToRender.mAttackingName), k + 6, infoToRender.mDefendingColour);
 				}
 			}
 			

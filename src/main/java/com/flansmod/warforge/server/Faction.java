@@ -10,6 +10,7 @@ import com.flansmod.warforge.common.DimChunkPos;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.common.blocks.IClaim;
 import com.flansmod.warforge.common.blocks.TileEntitySiegeCamp;
+import com.flansmod.warforge.common.blocks.TileEntityYieldCollector;
 import com.flansmod.warforge.common.network.FactionDisplayInfo;
 import com.flansmod.warforge.common.network.PlayerDisplayInfo;
 import com.mojang.authlib.GameProfile;
@@ -20,6 +21,7 @@ import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagIntArray;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
@@ -62,7 +64,7 @@ public class Faction
 	public UUID mUUID;
 	public String mName;
 	public DimBlockPos mCitadelPos;
-	public ArrayList<DimBlockPos> mClaims;
+	public HashMap<DimBlockPos, Integer> mClaims;
 	public HashMap<UUID, PlayerData> mMembers;
 	public HashMap<UUID, Float> mPendingInvites;
 	public boolean mHasHadAnyLoginsToday;
@@ -74,7 +76,7 @@ public class Faction
 	{
 		mMembers = new HashMap<UUID, PlayerData>();
 		mPendingInvites = new HashMap<UUID, Float>();
-		mClaims = new ArrayList<DimBlockPos>(20);
+		mClaims = new HashMap<DimBlockPos, Integer>();
 	}
 	
 	public void Update()
@@ -223,7 +225,7 @@ public class Faction
 	
 	public void OnClaimPlaced(IClaim claim) 
 	{
-		mClaims.add(claim.GetPos());
+		mClaims.put(claim.GetPos(), 0);
 	}
 	
 	public void OnSiegeCreated(TileEntitySiegeCamp campTE, DimChunkPos attackedChunk) 
@@ -259,7 +261,7 @@ public class Faction
 	
 	public DimBlockPos GetSpecificPosForClaim(DimChunkPos pos) 
 	{
-		for(DimBlockPos claimPos : mClaims)
+		for(DimBlockPos claimPos : mClaims.keySet())
 		{
 			if(claimPos.ToChunkPos().equals(pos))
 				return claimPos;
@@ -292,7 +294,31 @@ public class Faction
 		
 		mWealth = count;
 	}
-	
+
+	public void AwardYields() 
+	{
+		// 
+		for(HashMap.Entry<DimBlockPos, Integer> kvp : mClaims.entrySet())
+		{
+			DimBlockPos pos = kvp.getKey();
+			World world = WarForgeMod.MC_SERVER.getWorld(pos.mDim);
+			
+			// If its loaded, process immediately
+			if(world.isBlockLoaded(pos))
+			{
+				TileEntity te = world.getTileEntity(pos.ToRegularPos());
+				if(te instanceof TileEntityYieldCollector)
+				{
+					((TileEntityYieldCollector)te).ProcessYield(1);
+				}
+			}
+			// Otherwise, cache the number of times it needs to process when it next loads
+			else
+			{
+				kvp.setValue(kvp.getValue() + 1);
+			}
+		}
+	}
 	
 	public void ReadFromNBT(NBTTagCompound tags)
 	{
@@ -305,20 +331,23 @@ public class Faction
 		
 		// Get our claims and citadel
 		mCitadelPos = DimBlockPos.ReadFromNBT(tags, "citadelPos");
-		NBTTagList claimList = tags.getTagList("claims", 11); // IntArray (see NBTBase.class)
+		
+		
+		NBTTagList claimList = tags.getTagList("claims", 10); // CompoundTag (see NBTBase.class)
 		if(claimList != null)
 		{
 			for(NBTBase base : claimList)
 			{
-				NBTTagIntArray claimInfo = (NBTTagIntArray)base;
-				DimBlockPos pos = DimBlockPos.ReadFromNBT(claimInfo);
-				mClaims.add(pos);
+				NBTTagCompound claimInfo = (NBTTagCompound)base;
+				DimBlockPos pos = DimBlockPos.ReadFromNBT((NBTTagIntArray)claimInfo.getTag("pos"));
+				int pendingYields = claimInfo.getInteger("pendingYields");
+				mClaims.put(pos, pendingYields);
 			}
 		}
-		if(!mClaims.contains(mCitadelPos))
+		if(!mClaims.containsKey(mCitadelPos))
 		{
 			WarForgeMod.logger.error("Citadel was not claimed by the faction. Forcing claim");
-			mClaims.add(mCitadelPos);
+			mClaims.put(mCitadelPos, 0);
 		}
 
 		
@@ -349,9 +378,13 @@ public class Faction
 		
 		// Set claims
 		NBTTagList claimsList = new NBTTagList();
-		for(DimBlockPos pos : mClaims)
+		for(HashMap.Entry<DimBlockPos, Integer> kvp : mClaims.entrySet())
 		{
-			claimsList.appendTag(pos.WriteToNBT());
+			NBTTagCompound claimTags = new NBTTagCompound();
+			claimTags.setTag("pos", kvp.getKey().WriteToNBT());
+			claimTags.setInteger("pendingYields", kvp.getValue());
+			
+			claimsList.appendTag(claimTags);
 		}
 		tags.setTag("claims", claimsList);
 		mCitadelPos.WriteToNBT(tags, "citadelPos");

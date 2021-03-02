@@ -32,11 +32,12 @@ public class GuiBasicClaim extends GuiContainer
 	{
 		super.initGui();
 		
-		Faction faction = WarForgeMod.INSTANCE.GetFaction(claimContainer.claim.GetFaction());
+		// TODO
+		//Faction faction = WarForgeMod.INSTANCE.GetFaction(claimContainer.claim.GetFaction());
 				
 		//Info Button
 		GuiButton infoButton = new GuiButton(BUTTON_INFO, width / 2 - 20, height / 2 - 48, 100, 20, "Info");
-		infoButton.enabled = faction != null;
+		//infoButton.enabled = faction != null;
 		buttonList.add(infoButton);
 	}
 	
@@ -68,17 +69,18 @@ public class GuiBasicClaim extends GuiContainer
 	{
 		super.drawGuiContainerForegroundLayer(x, y);
 		
-		Faction faction = WarForgeMod.INSTANCE.GetFaction(claimContainer.claim.GetFaction());
+		// TODO
+		//Faction faction = WarForgeMod.INSTANCE.GetFaction(claimContainer.claim.GetFaction());
 		
-		if(faction == null)
-		{
-			fontRenderer.drawString("Unclaimed Citadel", 6, 6, 0x404040);
+		//if(faction == null)
+		//{
+		//	fontRenderer.drawString("Unclaimed Citadel", 6, 6, 0x404040);
 			
-		}
-		else
-		{
-			fontRenderer.drawString("Citadel of " + faction.mName, 6, 6, 0x404040);
-		}
+		//}
+		//else
+		//{
+		//	fontRenderer.drawString("Citadel of " + faction.mName, 6, 6, 0x404040);
+		//}
 		
 		fontRenderer.drawString("Yields", 6, 20, 0x404040);
 		fontRenderer.drawString("Banner:", 148 - fontRenderer.getStringWidth("Banner:"), 72, 0x404040);

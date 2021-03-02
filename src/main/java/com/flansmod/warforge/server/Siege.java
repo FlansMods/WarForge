@@ -184,7 +184,7 @@ public class Siege
 				DimBlockPos claimBlockPos = attackers.GetSpecificPosForClaim(checkChunk);
 				if(claimBlockPos != null)
 				{
-					TileEntity te = WarForgeMod.MC_SERVER.getWorld(claimBlockPos.mDim).getTileEntity(claimBlockPos);
+					TileEntity te = WarForgeMod.MC_SERVER.getWorld(claimBlockPos.mDim).getTileEntity(claimBlockPos.ToRegularPos());
 					if(te instanceof IClaim)
 					{
 						mBaseProgress += ((IClaim) te).GetAttackStrength();
@@ -197,7 +197,7 @@ public class Siege
 				DimBlockPos claimBlockPos = defenders.GetSpecificPosForClaim(checkChunk);
 				if(claimBlockPos != null)
 				{
-					TileEntity te = WarForgeMod.MC_SERVER.getWorld(claimBlockPos.mDim).getTileEntity(claimBlockPos);
+					TileEntity te = WarForgeMod.MC_SERVER.getWorld(claimBlockPos.mDim).getTileEntity(claimBlockPos.ToRegularPos());
 					if(te instanceof IClaim)
 					{
 						mBaseProgress -= ((IClaim) te).GetSupportStrength();

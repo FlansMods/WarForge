@@ -152,6 +152,26 @@ public class CommandFactions extends CommandBase
 				}
 				break;
 			}
+			case "time":
+			{
+				long day = WarForgeMod.INSTANCE.numberOfSiegeDaysTicked;
+				long ms = WarForgeMod.INSTANCE.GetMSToNextYield();
+				long s = ms / 1000;
+				long m = s / 60;
+				long h = m / 60;
+				long d = h / 24;
+				
+				sender.sendMessage(new TextComponentString("Yields will next be awarded in " + (d) + " days, " + (h % 24) + ":" + (m % 60) + ":" + (s % 60)));
+				
+				ms = WarForgeMod.INSTANCE.GetMSToNextSiegeAdvance();
+				s = ms / 1000;
+				m = s / 60;
+				h = m / 60;
+				d = h / 24;
+				
+				sender.sendMessage(new TextComponentString("Sieges will progress in " + (d) + " days, " + (h % 24) + ":" + (m % 60) + ":" + (s % 60)));
+				break;
+			}
 			
 			default:
 			{

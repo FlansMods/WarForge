@@ -38,7 +38,7 @@ public class GuiSiegeCamp extends GuiScreen
         
 	public GuiSiegeCamp(DimBlockPos siegeCampPos, List<SiegeCampAttackInfo> possibleAttacks)
 	{
-		mSiegeCamp = (TileEntitySiegeCamp)Minecraft.getMinecraft().world.getTileEntity(siegeCampPos);
+		mSiegeCamp = (TileEntitySiegeCamp)Minecraft.getMinecraft().world.getTileEntity(siegeCampPos.ToRegularPos());
 		if(mSiegeCamp == null)
 			Minecraft.getMinecraft().displayGuiScreen(null);
 		mAttackInfo = possibleAttacks;
