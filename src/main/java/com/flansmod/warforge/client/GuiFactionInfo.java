@@ -81,10 +81,12 @@ public class GuiFactionInfo extends GuiScreen
 		// Allies button - publicly available
 		allies = new GuiButton(BUTTON_ALLIES, j + 5, k + 127, 46, 20, "Allies");
 		buttonList.add(allies);
+		allies.enabled = false; // TODO: Not implemented yet
 		
 		// Sieges button - publicly available
 		sieges = new GuiButton(BUTTON_SIEGES, j + 125, k + 127, 46, 20, "Sieges");
 		buttonList.add(sieges);
+		sieges.enabled = false; // TODO: Not implemented yet
 		
 		// Player action buttons
 		promote = new GuiButton(BUTTON_PROMOTE, j + 108, k + 152, 60, 20, "Promote");
@@ -211,7 +213,7 @@ public class GuiFactionInfo extends GuiScreen
 				}
 				else
 				{
-					WarForgeMod.logger.error("Pressed a button with unknown player index");
+					WarForgeMod.sLogger.error("Pressed a button with unknown player index");
 				}
 				break;
 			}
@@ -233,9 +235,9 @@ public class GuiFactionInfo extends GuiScreen
 			lookingAt = info.GetPlayerInfo(playerID);
 			if(lookingAt != null)
 			{
-				promote.enabled = myInfo.mRole == Role.LEADER && lookingAt.mRole == Role.MEMBER;
-				demote.enabled = myInfo.mRole == Role.LEADER && lookingAt.mRole == Role.OFFICER;
-				kick.enabled = lookingAt.mRole.ordinal() < myInfo.mRole.ordinal();
+				promote.enabled = isMyFaction && myInfo.mRole == Role.LEADER && lookingAt.mRole == Role.MEMBER;
+				demote.enabled = isMyFaction && myInfo.mRole == Role.LEADER && lookingAt.mRole == Role.OFFICER;
+				kick.enabled = isMyFaction && lookingAt.mRole.ordinal() < myInfo.mRole.ordinal();
 			}
 		}
 		
@@ -336,32 +338,43 @@ public class GuiFactionInfo extends GuiScreen
 				int column1X = 120;
 				fontRenderer.drawStringWithShadow("" + info.mNotoriety, j + column1X, k + 152, 0xffffff);
 				fontRenderer.drawStringWithShadow("" + info.mWealth, j + column1X, k + 162, 0xffffff);
-				fontRenderer.drawStringWithShadow("" + info.mNotoriety, j + column1X, k + 172, 0xffffff);
-				fontRenderer.drawStringWithShadow("" + info.mNotoriety, j + column1X, k + 182, 0xffffff);
+				fontRenderer.drawStringWithShadow("" + info.mLegacy, j + column1X, k + 172, 0xffffff);
+				fontRenderer.drawStringWithShadow("" + (info.mNotoriety + info.mWealth + info.mLegacy), j + column1X, k + 182, 0xffffff);
 				fontRenderer.drawStringWithShadow("" + info.mMembers.size(), j + column1X, k + 192, 0xffffff);
 				
 				// Third column - server positioning
 				int column2X = 150;
-				fontRenderer.drawStringWithShadow("#" + info.mNotoriety, j + column2X, k + 152, 0xffffff);
-				fontRenderer.drawStringWithShadow("#" + info.mNotoriety, j + column2X, k + 162, 0xffffff);
-				fontRenderer.drawStringWithShadow("#" + info.mNotoriety, j + column2X, k + 172, 0xffffff);
-				fontRenderer.drawStringWithShadow("#" + info.mNotoriety, j + column2X, k + 182, 0xffffff);
+				fontRenderer.drawStringWithShadow("#" + info.mNotorietyRank, j + column2X, k + 152, 0xffffff);
+				fontRenderer.drawStringWithShadow("#" + info.mWealthRank, j + column2X, k + 162, 0xffffff);
+				fontRenderer.drawStringWithShadow("#" + info.mLegacyRank, j + column2X, k + 172, 0xffffff);
+				fontRenderer.drawStringWithShadow("#" + info.mTotalRank, j + column2X, k + 182, 0xffffff);
 				
 				break;
 			}
 			case ALLIES:
 			{
-				
+				// TODO:
 				break;
 			}
 			case PLAYER:
 			{
-				
+				if(lookingAt != null)
+				{
+					fontRenderer.drawStringWithShadow(lookingAt.mPlayerName, j + 8, k + 152, 0xffffff);
+					switch(lookingAt.mRole) 
+					{
+						case GUEST: fontRenderer.drawStringWithShadow("Guest", j + 8, k + 162, 0xffffff); break;
+						case LEADER: fontRenderer.drawStringWithShadow("Leader", j + 8, k + 162, 0xffffff); break;
+						case MEMBER: fontRenderer.drawStringWithShadow("Member", j + 8, k + 162, 0xffffff); break;
+						case OFFICER: fontRenderer.drawStringWithShadow("Officer", j + 8, k + 162, 0xffffff); break;
+						default: fontRenderer.drawStringWithShadow("Unknown", j + 8, k + 162, 0xffffff); break;
+					}
+				}
 				break;
 			}
 			case SIEGES:
 			{
-				
+				// TODO:
 				break;
 			}
 		}
@@ -399,4 +412,10 @@ public class GuiFactionInfo extends GuiScreen
 	        drawModalRectWithCustomSizedTexture(x, y, 16, 16, 16, 16, 128, 128);
 		}
 	}	
+	
+	@Override
+	public boolean doesGuiPauseGame()
+	{
+		return false;
+	}
 }

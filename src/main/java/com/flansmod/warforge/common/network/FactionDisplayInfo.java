@@ -15,8 +15,18 @@ public class FactionDisplayInfo
 	public String mFactionName = "";
 	public UUID mLeaderID = Faction.NULL;
 	public ArrayList<PlayerDisplayInfo> mMembers = new ArrayList<PlayerDisplayInfo>();
+	
+	
 	public int mNotoriety = 0;
 	public int mWealth = 0;
+	public int mLegacy = 0;
+	
+	public int mNotorietyRank = 0;
+	public int mWealthRank = 0;
+	public int mLegacyRank = 0;
+	public int mTotalRank = 0;
+	
+	
 	public int mNumClaims = 0;
 	public int mNumActiveSiegeCamps = 0;
 	public int mNumActiveLeeches = 0;

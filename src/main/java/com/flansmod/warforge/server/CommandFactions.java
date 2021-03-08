@@ -5,13 +5,21 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import javax.annotation.Nullable;
+
 import com.flansmod.warforge.common.WarForgeMod;
+import com.flansmod.warforge.common.network.LeaderboardInfo;
+import com.flansmod.warforge.common.network.PacketFactionInfo;
+import com.flansmod.warforge.common.network.PacketLeaderboardInfo;
+import com.flansmod.warforge.server.Leaderboard.FactionStat;
 
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
 
 public class CommandFactions extends CommandBase
@@ -42,6 +50,35 @@ public class CommandFactions extends CommandBase
     {
         return true;
     }
+	
+	private static final String[] tabCompletions = new String[] { 
+			"invite", "accept", "disband", "expel", "leave", "time", "info", "top", "notoriety", "wealth", "legacy",
+	};
+	
+	@Override
+    public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender, String[] args, @Nullable BlockPos targetPos)
+    {
+        if (args.length == 1)
+        {
+        	return getListOfStringsMatchingLastWord(args, tabCompletions);
+        }
+        
+        if(args.length == 2)
+        {
+        	switch(args[0])
+        	{
+        		case "info": 
+        			return getListOfStringsMatchingLastWord(args, WarForgeMod.INSTANCE.GetFactionNames());
+        		case "invite":
+        		case "expel":
+        			return getListOfStringsMatchingLastWord(args, server.getOnlinePlayerNames());
+        		default: 
+        			return getListOfStringsMatchingLastWord(args, new String[0]);
+        	}
+        }
+        
+        return getListOfStringsMatchingLastWord(args, new String[0]);
+    }
 
 	@Override
 	public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException 
@@ -61,6 +98,22 @@ public class CommandFactions extends CommandBase
 		// Argument 0 is subcommand
 		switch(args[0].toLowerCase())
 		{
+			case "help":
+			{
+				sender.sendMessage(new TextComponentString("/f invite <playerName>"));
+				sender.sendMessage(new TextComponentString("/f accept"));
+				sender.sendMessage(new TextComponentString("/f disband"));
+				sender.sendMessage(new TextComponentString("/f expel <playerName>"));
+				sender.sendMessage(new TextComponentString("/f leave"));
+				sender.sendMessage(new TextComponentString("/f time"));
+				sender.sendMessage(new TextComponentString("/f info <factionName>"));
+				sender.sendMessage(new TextComponentString("/f top"));
+				sender.sendMessage(new TextComponentString("/f wealth"));
+				sender.sendMessage(new TextComponentString("/f legacy"));
+				sender.sendMessage(new TextComponentString("/f notoriety"));
+				break;
+			}
+		
 			case "create":
 			{
 				sender.sendMessage(new TextComponentString("Craft a Citadel to create a faction"));
@@ -170,6 +223,89 @@ public class CommandFactions extends CommandBase
 				d = h / 24;
 				
 				sender.sendMessage(new TextComponentString("Sieges will progress in " + (d) + " days, " + (h % 24) + ":" + (m % 60) + ":" + (s % 60)));
+				break;
+			}
+			
+			// Faction info
+			case "info":
+			{
+				if(sender instanceof EntityPlayerMP)
+				{
+					Faction factionToSend = null;
+					if(args.length >= 2)
+					{
+						factionToSend = WarForgeMod.INSTANCE.GetFaction(args[1]);
+					}
+					if(factionToSend == null)
+					{
+						factionToSend = WarForgeMod.INSTANCE.GetFactionOfPlayer(((EntityPlayerMP)sender).getUniqueID());
+					}
+					if(factionToSend == null)
+					{
+						sender.sendMessage(new TextComponentString("Could not find that faction"));
+					}
+					else
+					{
+						PacketFactionInfo packet = new PacketFactionInfo();
+						packet.mInfo = factionToSend.CreateInfo();
+						WarForgeMod.sPacketHandler.sendTo(packet, (EntityPlayerMP)sender);
+					}
+				}
+				break;
+			}
+			
+			// Leaderboards
+			case "top":
+			{
+				if(sender instanceof EntityPlayerMP)
+				{
+					UUID uuid = ((EntityPlayerMP)sender).getUniqueID();
+					PacketLeaderboardInfo packet = new PacketLeaderboardInfo();
+					packet.mInfo = WarForgeMod.sLeaderboard.CreateInfo(0, FactionStat.TOTAL, uuid);
+					WarForgeMod.sPacketHandler.sendTo(packet, (EntityPlayerMP)sender);
+				}
+				break;
+			}
+			case "wealth":
+			case "wealthtop":
+			case "bal":
+			case "baltop":
+			{
+				if(sender instanceof EntityPlayerMP)
+				{
+					UUID uuid = ((EntityPlayerMP)sender).getUniqueID();
+					PacketLeaderboardInfo packet = new PacketLeaderboardInfo();
+					packet.mInfo = WarForgeMod.sLeaderboard.CreateInfo(0, FactionStat.WEALTH, uuid);
+					WarForgeMod.sPacketHandler.sendTo(packet, (EntityPlayerMP)sender);
+				}
+				break;
+			}
+			case "notoriety":
+			case "notorietytop":
+			case "pvp":
+			case "pvptop":
+			{
+				if(sender instanceof EntityPlayerMP)
+				{
+					UUID uuid = ((EntityPlayerMP)sender).getUniqueID();
+					PacketLeaderboardInfo packet = new PacketLeaderboardInfo();
+					packet.mInfo = WarForgeMod.sLeaderboard.CreateInfo(0, FactionStat.NOTORIETY, uuid);
+					WarForgeMod.sPacketHandler.sendTo(packet, (EntityPlayerMP)sender);
+				}
+				break;
+			}
+			case "legacy":
+			case "legacytop":
+			case "playtime":
+			case "playtimetop":
+			{
+				if(sender instanceof EntityPlayerMP)
+				{
+					UUID uuid = ((EntityPlayerMP)sender).getUniqueID();
+					PacketLeaderboardInfo packet = new PacketLeaderboardInfo();
+					packet.mInfo = WarForgeMod.sLeaderboard.CreateInfo(0, FactionStat.LEGACY, uuid);
+					WarForgeMod.sPacketHandler.sendTo(packet, (EntityPlayerMP)sender);
+				}
 				break;
 			}
 			

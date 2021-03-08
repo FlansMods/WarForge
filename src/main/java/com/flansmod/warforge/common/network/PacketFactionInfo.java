@@ -21,11 +21,18 @@ public class PacketFactionInfo extends PacketBase
 	{
 		if(mInfo != null)
 		{
+			data.writeBoolean(true);
 			writeUUID(data, mInfo.mFactionID);
 			writeUTF(data, mInfo.mFactionName);
 			
 			data.writeInt(mInfo.mNotoriety);
 			data.writeInt(mInfo.mWealth);
+			data.writeInt(mInfo.mLegacy);
+			
+			data.writeInt(mInfo.mNotorietyRank);
+			data.writeInt(mInfo.mWealthRank);
+			data.writeInt(mInfo.mLegacyRank);
+			data.writeInt(mInfo.mTotalRank);
 			
 			data.writeInt(mInfo.mNumClaims);
 			
@@ -43,43 +50,61 @@ public class PacketFactionInfo extends PacketBase
 			}
 			writeUUID(data, mInfo.mLeaderID);
 		}
+		else
+		{
+			data.writeBoolean(false);
+		}
 		
 	}
 
 	@Override
 	public void decodeInto(ChannelHandlerContext ctx, ByteBuf data) 
 	{
-		mInfo = new FactionDisplayInfo();
+		boolean hasInfo = data.readBoolean();
 		
-		mInfo.mFactionID = readUUID(data);
-		mInfo.mFactionName = readUTF(data);
-		mInfo.mNotoriety = data.readInt();
-		mInfo.mWealth = data.readInt();
-		
-		mInfo.mNumClaims = data.readInt();
-		
-		int dim =	data.readInt();
-		int x =	data.readInt();
-		int y =	data.readInt();
-		int z =	data.readInt();
-		mInfo.mCitadelPos = new DimBlockPos(dim, x, y, z);
-		
-		// Member list
-		int count = data.readInt();
-		for(int i = 0; i < count; i++)
+		if(hasInfo)
 		{
-			PlayerDisplayInfo playerInfo = new PlayerDisplayInfo();
-			playerInfo.mPlayerUUID = readUUID(data);
-			playerInfo.mPlayerName = readUTF(data);
-			mInfo.mMembers.add(playerInfo);
+			mInfo = new FactionDisplayInfo();
+			
+			mInfo.mFactionID = readUUID(data);
+			mInfo.mFactionName = readUTF(data);
+			
+			mInfo.mNotoriety = data.readInt();
+			mInfo.mWealth = data.readInt();
+			mInfo.mLegacy = data.readInt();
+			
+			mInfo.mNotorietyRank = data.readInt();
+			mInfo.mWealthRank = data.readInt();
+			mInfo.mLegacyRank = data.readInt();
+			mInfo.mTotalRank = data.readInt();
+			
+			mInfo.mNumClaims = data.readInt();
+			
+			int dim =	data.readInt();
+			int x =	data.readInt();
+			int y =	data.readInt();
+			int z =	data.readInt();
+			mInfo.mCitadelPos = new DimBlockPos(dim, x, y, z);
+			
+			// Member list
+			int count = data.readInt();
+			for(int i = 0; i < count; i++)
+			{
+				PlayerDisplayInfo playerInfo = new PlayerDisplayInfo();
+				playerInfo.mPlayerUUID = readUUID(data);
+				playerInfo.mPlayerName = readUTF(data);
+				mInfo.mMembers.add(playerInfo);
+			}
+			mInfo.mLeaderID = readUUID(data);
 		}
-		mInfo.mLeaderID = readUUID(data);
+		else
+			mInfo = null;
 	}
 
 	@Override
 	public void handleServerSide(EntityPlayerMP playerEntity) 
 	{
-		WarForgeMod.INSTANCE.logger.error("Received FactionInfo on server");
+		WarForgeMod.sLogger.error("Received FactionInfo on server");
 	}
 
 	@Override

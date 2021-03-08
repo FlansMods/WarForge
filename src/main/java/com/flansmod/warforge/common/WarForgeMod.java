@@ -1,6 +1,7 @@
 package com.flansmod.warforge.common;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockEnderChest;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.CommandHandler;
@@ -10,6 +11,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
+import net.minecraft.inventory.ContainerChest;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
@@ -30,6 +32,7 @@ import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.entity.EntityEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.player.PlayerContainerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock;
 import net.minecraftforge.event.terraingen.PopulateChunkEvent;
 import net.minecraftforge.event.world.BlockEvent;
@@ -84,6 +87,7 @@ import com.flansmod.warforge.server.Siege;
 import com.google.common.io.Files;
 import com.mojang.authlib.GameProfile;
 import com.flansmod.warforge.server.Faction.Role;
+import com.flansmod.warforge.server.Leaderboard;
 
 @Mod(modid = WarForgeMod.MODID, name = WarForgeMod.NAME, version = WarForgeMod.VERSION)
 public class WarForgeMod
@@ -91,8 +95,6 @@ public class WarForgeMod
     public static final String MODID = "warforge";
     public static final String NAME = "WarForge Factions";
     public static final String VERSION = "1.0";
-
-    public static Logger logger;
     
     private HashMap<UUID, Faction> mFactions = new HashMap<UUID, Faction>();
     // This map contains every single claim, including siege camps.
@@ -107,7 +109,9 @@ public class WarForgeMod
 	@SidedProxy(clientSide = "com.flansmod.warforge.client.ClientProxy", serverSide = "com.flansmod.warforge.common.CommonProxy")
 	public static CommonProxy proxy;
 	
-	public static final PacketHandler packetHandler = new PacketHandler();
+	public static Logger sLogger;
+	public static final PacketHandler sPacketHandler = new PacketHandler();
+	public static final Leaderboard sLeaderboard = new Leaderboard();
 
 	public static Block citadelBlock, basicClaimBlock, reinforcedClaimBlock, siegeCampBlock;
 	public static Item citadelBlockItem, basicClaimBlockItem, reinforcedClaimBlockItem, siegeCampBlockItem;
@@ -125,7 +129,7 @@ public class WarForgeMod
     @EventHandler
     public void preInit(FMLPreInitializationEvent event)
     {
-        logger = event.getModLog();
+        sLogger = event.getModLog();
 		//Load config
 		configFile = new Configuration(event.getSuggestedConfigurationFile());
 		syncConfig();
@@ -154,7 +158,7 @@ public class WarForgeMod
         denseIronOreBlock = new BlockYieldProvider(Material.ROCK, IRON_YIELD_AS_ORE ? new ItemStack(Blocks.IRON_ORE) : new ItemStack(Items.IRON_INGOT), NUM_IRON_PER_DAY_PER_ORE).setRegistryName("denseironore").setUnlocalizedName("denseironore");
         denseGoldOreBlock = new BlockYieldProvider(Material.ROCK, GOLD_YIELD_AS_ORE ? new ItemStack(Blocks.GOLD_ORE) : new ItemStack(Items.GOLD_INGOT), NUM_GOLD_PER_DAY_PER_ORE).setRegistryName("densegoldore").setUnlocalizedName("densegoldore");
         denseDiamondOreBlock = new BlockYieldProvider(Material.ROCK, DIAMOND_YIELD_AS_ORE ? new ItemStack(Blocks.DIAMOND_ORE) : new ItemStack(Items.DIAMOND), NUM_DIAMOND_PER_DAY_PER_ORE).setRegistryName("densediamondore").setUnlocalizedName("densediamondore");
-        magmaVentBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.IRON_INGOT), 1.0f).setRegistryName("magmavent").setUnlocalizedName("magmavent");
+        magmaVentBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.LAVA_BUCKET), 0.01f).setRegistryName("magmavent").setUnlocalizedName("magmavent");
         
         denseIronOreItem = new ItemBlock(denseIronOreBlock).setRegistryName("denseironore").setUnlocalizedName("denseironore");
         denseGoldOreItem = new ItemBlock(denseGoldOreBlock).setRegistryName("densegoldore").setUnlocalizedName("densegoldore");
@@ -172,14 +176,14 @@ public class WarForgeMod
     public void init(FMLInitializationEvent event)
     {
 		NetworkRegistry.INSTANCE.registerGuiHandler(this, proxy);
-		packetHandler.initialise();
+		sPacketHandler.initialise();
 		proxy.Init(event);
     }
     
 	@EventHandler
 	public void postInit(FMLPostInitializationEvent event)
 	{
-		packetHandler.postInitialise();
+		sPacketHandler.postInitialise();
 		proxy.PostInit(event);
 		
 		VAULT_BLOCKS.clear();
@@ -189,10 +193,10 @@ public class WarForgeMod
 			if(block != null)
 			{
 				VAULT_BLOCKS.add(block);
-				logger.info("Found block with ID " + blockID + " as a valuable block for the vault");
+				sLogger.info("Found block with ID " + blockID + " as a valuable block for the vault");
 			}
 			else
-				logger.error("Could not find block with ID " + blockID + " as a valuable block for the vault");
+				sLogger.error("Could not find block with ID " + blockID + " as a valuable block for the vault");
 				
 		}
 	}
@@ -208,7 +212,7 @@ public class WarForgeMod
 		event.getRegistry().register(denseGoldOreItem);
 		event.getRegistry().register(denseDiamondOreItem);
 		event.getRegistry().register(magmaVentItem);
-		logger.info("Registered items");
+		sLogger.info("Registered items");
 	}
 	
 	@SubscribeEvent
@@ -222,7 +226,7 @@ public class WarForgeMod
 		event.getRegistry().register(denseGoldOreBlock);
 		event.getRegistry().register(denseDiamondOreBlock);
 		event.getRegistry().register(magmaVentBlock);
-		logger.info("Registered blocks");
+		sLogger.info("Registered blocks");
 	}
     
     public boolean IsPlayerInFaction(UUID playerID, UUID factionID)
@@ -247,7 +251,7 @@ public class WarForgeMod
     	if(mFactions.containsKey(factionID))
     		return mFactions.get(factionID);
     	
-    	logger.error("Could not find a faction with UUID " + factionID);
+    	sLogger.error("Could not find a faction with UUID " + factionID);
     	return null;
     }
     
@@ -271,6 +275,18 @@ public class WarForgeMod
     	return null;
     }
     
+	public String[] GetFactionNames() 
+	{
+		String[] names = new String[mFactions.size()];
+		int i = 0;
+    	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
+    	{
+    		names[i] = entry.getValue().mName;
+    		i++;
+    	}
+    	return names;
+	}
+    
     // This is called for any non-citadel claim. Citadels can be factionless, so this makes no sense
 	public void OnNonCitadelClaimPlaced(IClaim claim, EntityLivingBase placer) 
 	{
@@ -287,7 +303,7 @@ public class WarForgeMod
 				faction.OnClaimPlaced(claim);
 			}
 			else
-				logger.error("Invalid placer placed a claim at " + claim.GetPos());
+				sLogger.error("Invalid placer placed a claim at " + claim.GetPos());
 		}
 	}
 	    
@@ -416,7 +432,7 @@ public class WarForgeMod
 			
 			if(attackers == null || defenders == null)
 			{
-				WarForgeMod.logger.error("Invalid factions in completed siege. Nothing will happen.");
+				WarForgeMod.sLogger.error("Invalid factions in completed siege. Nothing will happen.");
 				continue;
 			}
 			
@@ -425,6 +441,7 @@ public class WarForgeMod
 			if(successful)
 			{
 				defenders.OnClaimLost(blockPos);
+				mClaims.remove(blockPos.ToChunkPos());
 				attackers.MessageAll(new TextComponentString("Our faction won the siege on " + defenders.mName + " at " + blockPos.ToFancyString()));
 			}
 			else
@@ -666,10 +683,13 @@ public class WarForgeMod
     	faction.mCitadelPos = new DimBlockPos(citadel);
 		faction.mColour = Color.HSBtoRGB(rand.nextFloat(), rand.nextFloat() * 0.5f + 0.5f, 1.0f);
     	faction.mNotoriety = 0;
+    	faction.mLegacy = 0;
+    	faction.mWealth = 0;
     	
     	mFactions.put(proposedID, faction);
     	citadel.OnServerSetFaction(faction);
     	mClaims.put(citadel.GetPos().ToChunkPos(), proposedID);
+    	sLeaderboard.RegisterFaction(faction);
     	
     	faction.AddPlayer(player.getUniqueID());
     	faction.SetLeader(player.getUniqueID());
@@ -812,6 +832,7 @@ public class WarForgeMod
     	Faction faction = mFactions.get(factionID);
     	faction.Disband();
     	mFactions.remove(factionID);
+    	sLeaderboard.UnregisterFaction(faction);
     	
     	return true;
     }
@@ -885,7 +906,7 @@ public class WarForgeMod
     		{
     			PacketSiegeCampProgressUpdate packet = new PacketSiegeCampProgressUpdate();
     			packet.mInfo = info;
-    			packetHandler.sendToAllAround(packet, siegePos.x * 16, 128d, siegePos.z * 16, SIEGE_INFO_RADIUS + 128f, siegePos.mDim);
+    			sPacketHandler.sendToAllAround(packet, siegePos.x * 16, 128d, siegePos.z * 16, SIEGE_INFO_RADIUS + 128f, siegePos.mDim);
     		}
     	}
     }
@@ -1096,6 +1117,7 @@ public class WarForgeMod
 			faction.mUUID = uuid;
 			faction.ReadFromNBT(factionTags);
 			mFactions.put(uuid, faction);
+			sLeaderboard.RegisterFaction(faction);
 			
 			// Also populate the DimChunkPos lookup table
 			for(DimBlockPos blockPos : faction.mClaims.keySet())
@@ -1158,11 +1180,11 @@ public class WarForgeMod
 		{
 			NBTTagCompound tags = CompressedStreamTools.readCompressed(new FileInputStream(getFactionsFile()));
 			ReadFromNBT(tags);
-			logger.info("Successfully loaded warforgefactions.dat");
+			sLogger.info("Successfully loaded warforgefactions.dat");
 		}
 		catch(Exception e)
 		{
-			logger.error("Failed to load warforgefactions.dat");
+			sLogger.error("Failed to load warforgefactions.dat");
 			e.printStackTrace();
 		}
 	}
@@ -1185,12 +1207,12 @@ public class WarForgeMod
 				}
 				
 				CompressedStreamTools.writeCompressed(tags, new FileOutputStream(factionsFile));
-				logger.info("Successfully saved warforgefactions.dat");
+				sLogger.info("Successfully saved warforgefactions.dat");
 			}
 		}
 		catch(Exception e)
 		{
-			logger.error("Failed to save warforgefactions.dat");
+			sLogger.error("Failed to save warforgefactions.dat");
 			e.printStackTrace();
 		}
 	}
@@ -1226,6 +1248,5 @@ public class WarForgeMod
     		return MC_SERVER.getPlayerList().canSendCommands(((EntityPlayer)sender).getGameProfile());
     	return sender instanceof MinecraftServer;
     }
-
 
 }

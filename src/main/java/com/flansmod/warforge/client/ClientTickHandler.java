@@ -49,7 +49,7 @@ public class ClientTickHandler
 {
 	private Tessellator tess;
 	private static final ResourceLocation texture = new ResourceLocation(WarForgeMod.MODID, "world/borders.png");
-	private static final ResourceLocation siegeprogress = new ResourceLocation(WarForgeMod.MODID, "gui/siegeprogress.png");
+	private static final ResourceLocation siegeprogress = new ResourceLocation(WarForgeMod.MODID, "gui/siegeprogressslim.png");
 	private final ModelBanner bannerModel = new ModelBanner();
 	
 	public ClientTickHandler()
@@ -60,7 +60,7 @@ public class ClientTickHandler
 	@SubscribeEvent
 	public void OnTick(ClientTickEvent tick)
 	{
-		WarForgeMod.INSTANCE.packetHandler.handleClientPackets();
+		WarForgeMod.INSTANCE.sPacketHandler.handleClientPackets();
 		ArrayList<DimBlockPos> expired = new ArrayList<DimBlockPos>();
 		for(HashMap.Entry<DimBlockPos, SiegeCampProgressInfo> kvp : ClientProxy.sSiegeInfo.entrySet())
 		{
@@ -117,21 +117,22 @@ public class ClientTickHandler
 					
 					// Render background, bars etc
 					int xSize = 256;
-					int ySize = 49;
+					int ySize = 30;
 					// Anchor point = top middle of screen
 					int j = event.getResolution().getScaledWidth() / 2 - xSize / 2;
 					int k = 0;
+					
 					
 					float scroll = mc.getFrameTimer().getIndex() +  + event.getPartialTicks();
 					scroll *= 0.25f;
 					scroll = scroll % 10;
 
 					mc.renderEngine.bindTexture(siegeprogress);
-					
+					GlStateManager.color(1f, 1f, 1f, 1f);
 					drawTexturedModalRect(j, k, 0, 0, xSize, ySize);
 					
 					float siegeLength = infoToRender.mCompletionPoint + 5;
-					float barLengthPx = 228;
+					float barLengthPx = 224;
 					float notchDistance = barLengthPx / siegeLength;
 					
 					// Draw filled bar
@@ -153,36 +154,39 @@ public class ClientTickHandler
 					if(isIncreasing)
 					{
 						GlStateManager.color(attackR, attackG, attackB, 1.0F);
-						drawTexturedModalRect(j + 17 + firstPx, k + 24, 17 + (10 - scroll), 51, lastPx - firstPx, 18);
+						drawTexturedModalRect(j + 16 + firstPx, k + 17, 16 + (10 - scroll), 44, lastPx - firstPx, 8);
 					}
 					else 
 					{
 						GlStateManager.color(defendR, defendG, defendB, 1.0F);
-						drawTexturedModalRect(j + 17 + firstPx, k + 24, 17 + scroll, 72, lastPx - firstPx, 18);
+						drawTexturedModalRect(j + 16 + firstPx, k + 17, 16 + scroll, 54, lastPx - firstPx, 8);
 					}
 					
-					GlStateManager.color(1f, 1f, 1f, 1f);
+					
 					
 					// Draw shield at -5 (successful defence)
-					drawTexturedModalRect(j + 6, k + 23, 4, 102, 15, 20);
+					GlStateManager.color(defendR, defendG, defendB, 1.0F);
+					drawTexturedModalRect(j + 4, k + 16, 4, 31, 10, 11);
 					
+					// Draw sword at +CompletionPoint (successful attack)
+					GlStateManager.color(attackR, attackG, attackB, 1.0F);
+					drawTexturedModalRect(j + 241, k + 15, 241, 31, 12, 11);
+					
+					GlStateManager.color(1f, 1f, 1f, 1f);
 					// Draw notches at each integer interval
 					for(int i = -4; i < infoToRender.mCompletionPoint; i++)
 					{
-						int x = (int)((i + 5) * notchDistance + 17);
+						int x = (int)((i + 5) * notchDistance + 16);
 						if(i == 0)
-							drawTexturedModalRect(j + x - 2, k + 24, 6, 50, 5, 18);
+							drawTexturedModalRect(j + x - 2, k + 17, 6, 43, 5, 8);
 						else 
-							drawTexturedModalRect(j + x - 2, k + 24, 1, 50, 4, 18);
+							drawTexturedModalRect(j + x - 2, k + 17, 1, 43, 4, 8);
 					}
 					
-					// Draw sword at +CompletionPoint (successful attack)
-					drawTexturedModalRect(j + 239, k + 19, 238, 98, 13, 25);
-					
 					// Draw text
-					mc.fontRenderer.drawStringWithShadow(infoToRender.mDefendingName, j + 6, k + 6, infoToRender.mAttackingColour);
+					mc.fontRenderer.drawStringWithShadow(infoToRender.mDefendingName, j + 6, k + 6, infoToRender.mDefendingColour);
 					mc.fontRenderer.drawStringWithShadow("VS", j + xSize / 2 - mc.fontRenderer.getStringWidth("VS") / 2, k + 6, 0xffffff);
-					mc.fontRenderer.drawStringWithShadow(infoToRender.mAttackingName, j + xSize - 6 - mc.fontRenderer.getStringWidth(infoToRender.mAttackingName), k + 6, infoToRender.mDefendingColour);
+					mc.fontRenderer.drawStringWithShadow(infoToRender.mAttackingName, j + xSize - 6 - mc.fontRenderer.getStringWidth(infoToRender.mAttackingName), k + 6, infoToRender.mAttackingColour);
 				}
 			}
 			
@@ -464,7 +468,7 @@ public class ClientTickHandler
 	
 	private void VertexAt(DimChunkPos chunkPos, World world, int x, int z, double groundLevelBlend)
 	{
-		int maxHeight = world.getHeight(chunkPos.x * 16 + x, chunkPos.z * 16 + z) + 16;
+		int maxHeight = world.getHeight(chunkPos.x * 16 + x, chunkPos.z * 16 + z) + 8;
 
 		double height = 256 + (maxHeight - 256) * groundLevelBlend;
 		

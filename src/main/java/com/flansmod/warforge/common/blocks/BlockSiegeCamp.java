@@ -120,7 +120,7 @@ public class BlockSiegeCamp extends Block implements ITileEntityProvider
 								}
 								else
 								{
-									WarForgeMod.logger.error("Could not find faction with UUID " + claim.GetFaction());
+									WarForgeMod.sLogger.error("Could not find faction with UUID " + claim.GetFaction());
 								}
 							}
 						}
@@ -141,7 +141,7 @@ public class BlockSiegeCamp extends Block implements ITileEntityProvider
 			PacketSiegeCampInfo info = new PacketSiegeCampInfo();
 			info.mPossibleAttacks = CalculatePossibleAttackDirections(world, pos);
 			info.mSiegeCampPos = new DimBlockPos(world.provider.getDimension(), pos);
-			WarForgeMod.INSTANCE.packetHandler.sendTo(info, (EntityPlayerMP)player);
+			WarForgeMod.INSTANCE.sPacketHandler.sendTo(info, (EntityPlayerMP)player);
 		}
 		//player.openGui(WarForgeMod.INSTANCE, CommonProxy.GUI_TYPE_SIEGE_CAMP, world, pos.getX(), pos.getY(), pos.getZ());
 		return true;

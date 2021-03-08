@@ -13,6 +13,7 @@ import com.flansmod.warforge.common.blocks.TileEntitySiegeCamp;
 import com.flansmod.warforge.common.blocks.TileEntityYieldCollector;
 import com.flansmod.warforge.common.network.FactionDisplayInfo;
 import com.flansmod.warforge.common.network.PlayerDisplayInfo;
+import com.flansmod.warforge.server.Leaderboard.FactionStat;
 import com.mojang.authlib.GameProfile;
 
 import net.minecraft.block.state.IBlockState;
@@ -71,6 +72,7 @@ public class Faction
 	public int mColour = 0xffffff;
 	public int mNotoriety = 0;
 	public int mWealth = 0;
+	public int mLegacy = 0;
 	
 	public Faction()
 	{
@@ -92,10 +94,24 @@ public class Faction
 		// So this could break if players were sending > 1 unique invite per tick, but why would they do that?
 		if(!uuidToRemove.equals(NULL))
 			mPendingInvites.remove(uuidToRemove);
+		
+		if(!mHasHadAnyLoginsToday)
+		{
+			for(HashMap.Entry<UUID, PlayerData> kvp : mMembers.entrySet())
+			{
+				if(WarForgeMod.MC_SERVER.getPlayerList().getPlayerByUUID(kvp.getKey()) != null)
+					mHasHadAnyLoginsToday = true;
+			}
+		}
 	}
 	
 	public void AdvanceDay()
 	{
+		if(mHasHadAnyLoginsToday)
+		{
+			mLegacy++;
+		}
+		
 		mHasHadAnyLoginsToday = false;
 	}
 	
@@ -106,6 +122,12 @@ public class Faction
 		info.mFactionName = mName;
 		info.mNotoriety = mNotoriety;
 		info.mWealth = mWealth;
+		info.mLegacy = mLegacy;
+		
+		info.mLegacyRank = WarForgeMod.sLeaderboard.GetOneIndexedRankOf(this, FactionStat.LEGACY);
+		info.mNotorietyRank = WarForgeMod.sLeaderboard.GetOneIndexedRankOf(this, FactionStat.NOTORIETY);
+		info.mWealthRank = WarForgeMod.sLeaderboard.GetOneIndexedRankOf(this, FactionStat.WEALTH);
+		info.mTotalRank = WarForgeMod.sLeaderboard.GetOneIndexedRankOf(this, FactionStat.TOTAL);
 		
 		info.mNumClaims = mClaims.size();
 		info.mCitadelPos = mCitadelPos;
@@ -346,7 +368,7 @@ public class Faction
 		}
 		if(!mClaims.containsKey(mCitadelPos))
 		{
-			WarForgeMod.logger.error("Citadel was not claimed by the faction. Forcing claim");
+			WarForgeMod.sLogger.error("Citadel was not claimed by the faction. Forcing claim");
 			mClaims.put(mCitadelPos, 0);
 		}
 
@@ -354,6 +376,7 @@ public class Faction
 		// Get gameplay params
 		mNotoriety = tags.getInteger("notoriety");
 		mWealth = tags.getInteger("wealth");
+		mLegacy = tags.getInteger("legacy");
 
 		// Get member data
 		NBTTagList memberList = tags.getTagList("members", 10); // NBTTagCompound (see NBTBase.class)
@@ -392,6 +415,7 @@ public class Faction
 		// Set gameplay params
 		tags.setInteger("notoriety", mNotoriety);
 		tags.setInteger("wealth", mWealth);
+		tags.setInteger("legacy", mLegacy);
 		
 		// Add member data
 		NBTTagList memberList = new NBTTagList();

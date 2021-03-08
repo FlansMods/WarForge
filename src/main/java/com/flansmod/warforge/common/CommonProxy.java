@@ -23,6 +23,7 @@ public class CommonProxy implements IGuiHandler
 	public static final int GUI_TYPE_BASIC_CLAIM = 2;
 	public static final int GUI_TYPE_SIEGE_CAMP = 3;
 	public static final int GUI_TYPE_FACTION_INFO = 4;
+	public static final int GUI_TYPE_LEADERBOARD = 5;
 	
 	public void PreInit(FMLPreInitializationEvent event)
 	{
@@ -49,7 +50,7 @@ public class CommonProxy implements IGuiHandler
 		if(FMLCommonHandler.instance().getSide() == Side.SERVER)
 			return WarForgeMod.MC_SERVER.getWorld(pos.mDim).getTileEntity(pos.ToRegularPos());
 		
-		WarForgeMod.logger.error("GetTile failed");
+		WarForgeMod.sLogger.error("GetTile failed");
 		return null;
 	}
 
@@ -67,6 +68,7 @@ public class CommonProxy implements IGuiHandler
 			case GUI_TYPE_BASIC_CLAIM: return new ContainerBasicClaim(player.inventory, (TileEntityBasicClaim)world.getTileEntity(pos));
 			case GUI_TYPE_SIEGE_CAMP: return null;
 			case GUI_TYPE_FACTION_INFO: return null;
+			case GUI_TYPE_LEADERBOARD: return null;
 		}
 		return null;
 	}

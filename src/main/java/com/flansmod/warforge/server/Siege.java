@@ -88,7 +88,7 @@ public class Siege
 		
 		if(attackers == null || defenders == null)
 		{
-			WarForgeMod.logger.error("Invalid factions in siege. Can't display info");
+			WarForgeMod.sLogger.error("Invalid factions in siege. Can't display info");
 			return null;
 		}
 		
@@ -112,7 +112,7 @@ public class Siege
 		
 		if(attackers == null || defenders == null)
 		{
-			WarForgeMod.logger.error("Invalid factions in siege. Cannot start");
+			WarForgeMod.sLogger.error("Invalid factions in siege. Cannot start");
 			return false;
 		}
 		
@@ -129,7 +129,7 @@ public class Siege
 		
 		if(attackers == null || defenders == null)
 		{
-			WarForgeMod.logger.error("Invalid factions in siege.");
+			WarForgeMod.sLogger.error("Invalid factions in siege.");
 			return;
 		}
 		
@@ -168,7 +168,7 @@ public class Siege
 		
 		if(attackers == null || defenders == null || WarForgeMod.MC_SERVER == null)
 		{
-			WarForgeMod.logger.error("Invalid factions in siege.");
+			WarForgeMod.sLogger.error("Invalid factions in siege.");
 			return;
 		}
 		

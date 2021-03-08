@@ -11,12 +11,15 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.play.server.SPacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.Side;
 
 public class TileEntitySiegeCamp extends TileEntity implements IClaim
 {
 	private UUID mPlacer = Faction.NULL;
 	private UUID mFactionUUID = Faction.NULL;
 	private int mColour = 0xffffff;
+	private String mFactionName = "";
 	private BlockPos mSiegeTarget = null;
 	
 	public TileEntitySiegeCamp()
@@ -46,6 +49,8 @@ public class TileEntitySiegeCamp extends TileEntity implements IClaim
 	public boolean CanBeSieged() { return false; }
 	@Override
 	public int GetColour() { return mColour; }
+	@Override
+	public String GetDisplayName() { return mFactionName; }
 
 	@Override
 	public NBTTagCompound writeToNBT(NBTTagCompound nbt)
@@ -53,6 +58,14 @@ public class TileEntitySiegeCamp extends TileEntity implements IClaim
 		super.writeToNBT(nbt);
 		
 		nbt.setUniqueId("placer", mPlacer);
+		nbt.setUniqueId("faction", mFactionUUID);
+		nbt.setBoolean("started", mSiegeTarget != null);
+		if(mSiegeTarget != null)
+		{
+			nbt.setInteger("attackX", mSiegeTarget.getX());
+			nbt.setInteger("attackY", mSiegeTarget.getY());
+			nbt.setInteger("attackZ", mSiegeTarget.getZ());
+		}
 		
 		return nbt;
 	}
@@ -63,6 +76,36 @@ public class TileEntitySiegeCamp extends TileEntity implements IClaim
 		super.readFromNBT(nbt);
 		
 		mPlacer = nbt.getUniqueId("placer");
+		mFactionUUID = nbt.getUniqueId("faction");
+		
+		boolean started = nbt.getBoolean("started");
+		if(started)
+		{
+			mSiegeTarget = new BlockPos(
+					nbt.getInteger("attackX"),
+					nbt.getInteger("attackY"),
+					nbt.getInteger("attackZ"));
+		}
+		else mSiegeTarget = null;
+		
+		if(FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER)
+		{
+			Faction faction = WarForgeMod.INSTANCE.GetFaction(mFactionUUID);
+			if(!mFactionUUID.equals(Faction.NULL) && faction == null)
+			{
+				WarForgeMod.sLogger.error("Faction " + mFactionUUID + " could not be found for citadel at " + pos);
+				//world.setBlockState(getPos(), Blocks.AIR.getDefaultState());
+			}
+			if(faction != null)
+			{
+				mColour = faction.mColour;
+				mFactionName = faction.mName;
+			}
+		}
+		else
+		{
+			WarForgeMod.sLogger.error("Loaded TileEntity from NBT on client?");
+		}
 	}
 	
 	@Override
@@ -78,6 +121,7 @@ public class TileEntitySiegeCamp extends TileEntity implements IClaim
 		
 		mFactionUUID = tags.getUniqueId("faction");
 		mColour = tags.getInteger("colour");
+		mFactionName = tags.getString("name");
 	}
 	
 	@Override
@@ -89,6 +133,7 @@ public class TileEntitySiegeCamp extends TileEntity implements IClaim
 		// Custom partial nbt write method
 		tags.setUniqueId("faction", mFactionUUID);
 		tags.setInteger("colour", mColour);
+		tags.setString("name", mFactionName);
 		
 		return tags;
 	}
@@ -98,6 +143,7 @@ public class TileEntitySiegeCamp extends TileEntity implements IClaim
 	{
 		mFactionUUID = tags.getUniqueId("faction");
 		mColour = tags.getInteger("colour");
+		mFactionName = tags.getString("name");
 	}
 
 	@Override
@@ -107,10 +153,11 @@ public class TileEntitySiegeCamp extends TileEntity implements IClaim
 		{
 			mFactionUUID = faction.mUUID;
 			mColour = faction.mColour;
+			mFactionName = faction.mName;
 		}
 		else
 		{
-			WarForgeMod.logger.error("Siege camp placed by player with no faction");
+			WarForgeMod.sLogger.error("Siege camp placed by player with no faction");
 		}
 	}
 

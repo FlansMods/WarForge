@@ -68,7 +68,7 @@ public class GuiCreateFaction extends GuiScreen
 				PacketCreateFaction packet = new PacketCreateFaction();
 				packet.mCitadelPos = new DimBlockPos(citadel.getWorld().provider.getDimension(), citadel.getPos());
 				packet.mFactionName = inputField.getText();
-				WarForgeMod.INSTANCE.packetHandler.sendToServer(packet);
+				WarForgeMod.INSTANCE.sPacketHandler.sendToServer(packet);
 				mc.displayGuiScreen(null);
 				
 				break;
@@ -126,4 +126,10 @@ public class GuiCreateFaction extends GuiScreen
             actionPerformed(createButton);
         }
     }
+	
+	@Override
+	public boolean doesGuiPauseGame()
+	{
+		return false;
+	}
 }

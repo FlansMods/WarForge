@@ -46,7 +46,7 @@ public class PacketStartSiege extends PacketBase
 	@Override
 	public void handleClientSide(EntityPlayer clientPlayer)
 	{
-		WarForgeMod.logger.error("Received start siege packet client side");
+		WarForgeMod.sLogger.error("Received start siege packet client side");
 	}
 
 }

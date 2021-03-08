@@ -34,6 +34,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 	
 	protected UUID mFactionUUID = Faction.NULL;
 	public int mColour = 0xffffff;
+	public String mFactionName = "";
 	
 	// IClaim
 	@Override
@@ -46,6 +47,8 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 	public DimBlockPos GetPos() { return new DimBlockPos(world.provider.getDimension(), getPos()); }
 	@Override 
 	public boolean CanBeSieged() { return true; }
+	@Override
+	public String GetDisplayName() { return mFactionName; }
 	//-----------
 	
 	protected abstract float GetYieldMultiplier();
@@ -74,6 +77,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 		{
 			mFactionUUID = faction.mUUID;
 			mColour = faction.mColour;
+			mFactionName = faction.mName;
 		}
 		
 		world.markBlockRangeForRenderUpdate(pos, pos);
@@ -141,7 +145,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 			}
 			else if(!mFactionUUID.equals(Faction.NULL))
 			{
-				WarForgeMod.logger.error("Loaded YieldCollector with invalid faction");
+				WarForgeMod.sLogger.error("Loaded YieldCollector with invalid faction");
 			}
 		}
 		
@@ -177,17 +181,18 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 			Faction faction = WarForgeMod.INSTANCE.GetFaction(mFactionUUID);
 			if(!mFactionUUID.equals(Faction.NULL) && faction == null)
 			{
-				WarForgeMod.logger.error("Faction " + mFactionUUID + " could not be found for citadel at " + pos);
+				WarForgeMod.sLogger.error("Faction " + mFactionUUID + " could not be found for citadel at " + pos);
 				//world.setBlockState(getPos(), Blocks.AIR.getDefaultState());
 			}
 			if(faction != null)
 			{
 				mColour = faction.mColour;
+				mFactionName = faction.mName;
 			}
 		}
 		else
 		{
-			WarForgeMod.logger.error("Loaded TileEntity from NBT on client?");
+			WarForgeMod.sLogger.error("Loaded TileEntity from NBT on client?");
 		}
 		
 		// Read inventory, or as much as we can find
@@ -213,6 +218,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 		
 		mFactionUUID = tags.getUniqueId("faction");
 		mColour = tags.getInteger("colour");
+		mFactionName = tags.getString("name");
 	}
 	
 	@Override
@@ -224,6 +230,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 		// Custom partial nbt write method
 		tags.setUniqueId("faction", mFactionUUID);
 		tags.setInteger("colour", mColour);
+		tags.setString("name", mFactionName);
 		
 		return tags;
 	}
@@ -233,12 +240,13 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 	{
 		mFactionUUID = tags.getUniqueId("faction");
 		mColour = tags.getInteger("colour");
+		mFactionName = tags.getString("name");
 	}
 	
 	// ----------------------------------------------------------
 	// The GIGANTIC amount of IInventory methods...
 	@Override
-	public String getName() { return "citadel_" + mFactionUUID.toString(); } // TODO: Proper display name?
+	public String getName() { return mFactionName; }
 	@Override
 	public boolean hasCustomName() { return false; }
 	@Override

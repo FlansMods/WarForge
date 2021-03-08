@@ -49,6 +49,15 @@ public class TileEntityCitadel extends TileEntityYieldCollector implements IClai
 	public int GetAttackStrength() { return 0; }
 	@Override
 	protected float GetYieldMultiplier() { return 2.0f; }
+	@Override
+	public String GetDisplayName() 
+	{ 
+		if(mFactionName == null || mFactionName.isEmpty())
+		{
+			return "Unclaimed Citadel";
+		}
+		return "Citadel of " + mFactionName; 
+	}
 	//-----------
 	
 	

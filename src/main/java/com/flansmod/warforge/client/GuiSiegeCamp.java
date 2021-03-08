@@ -103,7 +103,7 @@ public class GuiSiegeCamp extends GuiScreen
 			case BUTTON_WEST: siegePacket.mDirection = EnumFacing.WEST; break;
 		}	
 		
-		WarForgeMod.INSTANCE.packetHandler.sendToServer(siegePacket);
+		WarForgeMod.INSTANCE.sPacketHandler.sendToServer(siegePacket);
 		mc.displayGuiScreen(null);
 	}
 
@@ -134,5 +134,11 @@ public class GuiSiegeCamp extends GuiScreen
 		super.drawScreen(mouseX, mouseY, partialTicks);
 		
 		//fontRenderer.drawStringWithShadow("Enter Name:",  j + 6, k + 6, 0xffffff);
+	}
+	
+	@Override
+	public boolean doesGuiPauseGame()
+	{
+		return false;
 	}
 }

@@ -57,17 +57,17 @@ public class PacketHandler extends MessageToMessageCodec<FMLProxyPacket, PacketB
 	{
 		if(packets.size() > 256)
 		{
-			WarForgeMod.logger.warn("Packet limit exceeded in Flan's Mod packet handler by packet " + cl.getCanonicalName() + ".");
+			WarForgeMod.sLogger.warn("Packet limit exceeded in Flan's Mod packet handler by packet " + cl.getCanonicalName() + ".");
 			return false;
 		}
 		if(packets.contains(cl))
 		{
-			WarForgeMod.logger.warn("Tried to register " + cl.getCanonicalName() + " packet class twice.");
+			WarForgeMod.sLogger.warn("Tried to register " + cl.getCanonicalName() + " packet class twice.");
 			return false;
 		}
 		if(modInitialised)
 		{
-			WarForgeMod.logger.warn("Tried to register packet " + cl.getCanonicalName() + " after mod initialisation.");
+			WarForgeMod.sLogger.warn("Tried to register packet " + cl.getCanonicalName() + " after mod initialisation.");
 			return false;
 		}
 		
@@ -102,8 +102,8 @@ public class PacketHandler extends MessageToMessageCodec<FMLProxyPacket, PacketB
 		}
 		catch(Exception e)
 		{
-			WarForgeMod.logger.error("ERROR encoding packet");
-			WarForgeMod.logger.throwing(e);
+			WarForgeMod.sLogger.error("ERROR encoding packet");
+			WarForgeMod.sLogger.throwing(e);
 		}
 	}
 	
@@ -148,8 +148,8 @@ public class PacketHandler extends MessageToMessageCodec<FMLProxyPacket, PacketB
 		}
 		catch(Exception e)
 		{
-			WarForgeMod.logger.error("ERROR decoding packet");
-			WarForgeMod.logger.throwing(e);
+			WarForgeMod.sLogger.error("ERROR decoding packet");
+			WarForgeMod.sLogger.throwing(e);
 		}
 	}
 	
@@ -190,6 +190,8 @@ public class PacketHandler extends MessageToMessageCodec<FMLProxyPacket, PacketB
 		registerPacket(PacketSiegeCampInfo.class);
 		registerPacket(PacketSiegeCampProgressUpdate.class);
 		registerPacket(PacketStartSiege.class);
+		registerPacket(PacketLeaderboardInfo.class);
+		registerPacket(PacketRequestLeaderboardInfo.class);
 	}
 	
 	/**

@@ -59,6 +59,7 @@ public class ClientProxy extends CommonProxy
 			case GUI_TYPE_BASIC_CLAIM: return new GuiBasicClaim(getServerGuiElement(ID, player, world, x, y, z));
 			case GUI_TYPE_FACTION_INFO: return new GuiFactionInfo();
 			//case GUI_TYPE_SIEGE_CAMP: return new GuiSiegeCamp();
+			case GUI_TYPE_LEADERBOARD: return new GuiLeaderboard();
 		}
 		return null;
 	}
@@ -69,7 +70,7 @@ public class ClientProxy extends CommonProxy
 		if(Minecraft.getMinecraft().world.provider.getDimension() == pos.mDim)	
 			return Minecraft.getMinecraft().world.getTileEntity(pos.ToRegularPos());
 		
-		WarForgeMod.logger.error("Can't get info about a tile entity in a different dimension on client");
+		WarForgeMod.sLogger.error("Can't get info about a tile entity in a different dimension on client");
 		return null;
 	}
 	
@@ -106,6 +107,6 @@ public class ClientProxy extends CommonProxy
 	{
 		PacketRequestFactionInfo request = new PacketRequestFactionInfo();
 		request.mFactionIDRequest = factionID;
-		WarForgeMod.INSTANCE.packetHandler.sendToServer(request);
+		WarForgeMod.INSTANCE.sPacketHandler.sendToServer(request);
 	}
 }

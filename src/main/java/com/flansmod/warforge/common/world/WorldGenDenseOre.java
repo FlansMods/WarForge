@@ -5,6 +5,7 @@ import java.util.Random;
 import com.flansmod.warforge.common.ModuloHelper;
 import com.flansmod.warforge.common.WarForgeMod;
 
+import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
@@ -80,8 +81,6 @@ public class WorldGenDenseOre extends WorldGenerator
 			int minY = Math.min(depositPosA.getY(), depositPosB.getY()) - mDepositRadius;
 			int maxY = Math.max(depositPosA.getY(), depositPosB.getY()) + mDepositRadius;
 			
-			
-			
 			for(int i = 8; i < 24; i++)
 			{
 				for(int k = 8; k < 24; k++)
@@ -91,6 +90,12 @@ public class WorldGenDenseOre extends WorldGenerator
 					{
 						BlockPos p = new BlockPos(cornerPos.getX() + i, j, cornerPos.getZ() + k);
 						BlockPos delta = depositPosA.subtract(p);
+						
+						if(world.getBlockState(p).getBlock() == Blocks.WATER
+						|| world.getBlockState(p).getBlock() == Blocks.FLOWING_WATER)
+						{
+							continue;
+						}
 						
 						double distToLineSq = delta.crossProduct(depositPosDelta).distanceSq(Vec3i.NULL_VECTOR) / depositPosDelta.distanceSq(Vec3i.NULL_VECTOR);
 						double radius = mDepositRadius + rand.nextGaussian();

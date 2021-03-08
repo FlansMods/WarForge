@@ -45,7 +45,7 @@ public class PacketCreateFaction extends PacketBase
 	{
 		if(playerEntity.dimension != mCitadelPos.mDim)
 		{
-			WarForgeMod.logger.error("Player requested creating a faction in the wrong dim");
+			WarForgeMod.sLogger.error("Player requested creating a faction in the wrong dim");
 		}
 		else
 		{
@@ -60,7 +60,7 @@ public class PacketCreateFaction extends PacketBase
 	@Override
 	public void handleClientSide(EntityPlayer clientPlayer) 
 	{
-		WarForgeMod.logger.error("Recieved create faction message on client");
+		WarForgeMod.sLogger.error("Recieved create faction message on client");
 	}
 	
 }

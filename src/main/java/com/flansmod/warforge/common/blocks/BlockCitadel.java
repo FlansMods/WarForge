@@ -110,7 +110,7 @@ public class BlockCitadel extends Block implements ITileEntityProvider
 				{
 					PacketFactionInfo packet = new PacketFactionInfo();
 					packet.mInfo = citadelFaction.CreateInfo();
-					WarForgeMod.INSTANCE.packetHandler.sendTo(packet, (EntityPlayerMP) player);
+					WarForgeMod.INSTANCE.sPacketHandler.sendTo(packet, (EntityPlayerMP) player);
 				}
 				else
 				{

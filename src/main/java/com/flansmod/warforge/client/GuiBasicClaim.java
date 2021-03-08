@@ -62,6 +62,8 @@ public class GuiBasicClaim extends GuiContainer
 		int j = (width - xSize) / 2;
 		int k = (height - ySize) / 2;
 		drawTexturedModalRect(j, k, 0, 0, xSize, ySize);
+		// Paste over the banner slot as we are reusing the citadel screen
+		drawTexturedModalRect(j + 151, k + 67, 133, 67, 18, 18);
 	}
 
 	@Override
@@ -69,24 +71,10 @@ public class GuiBasicClaim extends GuiContainer
 	{
 		super.drawGuiContainerForegroundLayer(x, y);
 		
-		// TODO
-		//Faction faction = WarForgeMod.INSTANCE.GetFaction(claimContainer.claim.GetFaction());
-		
-		//if(faction == null)
-		//{
-		//	fontRenderer.drawString("Unclaimed Citadel", 6, 6, 0x404040);
-			
-		//}
-		//else
-		//{
-		//	fontRenderer.drawString("Citadel of " + faction.mName, 6, 6, 0x404040);
-		//}
-		
-		fontRenderer.drawString("Yields", 6, 20, 0x404040);
-		fontRenderer.drawString("Banner:", 148 - fontRenderer.getStringWidth("Banner:"), 72, 0x404040);
-		
-		fontRenderer.drawString("Inventory", 8, (ySize - 96) + 2, 0x404040);
+		fontRenderer.drawString(claimContainer.claim.GetDisplayName(), 6, 6, 0x404040);
 
+		fontRenderer.drawString("Yields", 6, 20, 0x404040);
+		fontRenderer.drawString("Inventory", 8, (ySize - 96) + 2, 0x404040);
 	}
 	
 	@Override
