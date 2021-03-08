@@ -83,12 +83,12 @@ public class Siege
 	
 	public SiegeCampProgressInfo GetSiegeInfo()
 	{
-		Faction attackers = WarForgeMod.INSTANCE.GetFaction(mAttackingFaction);
-		Faction defenders = WarForgeMod.INSTANCE.GetFaction(mDefendingFaction);
+		Faction attackers = WarForgeMod.FACTIONS.GetFaction(mAttackingFaction);
+		Faction defenders = WarForgeMod.FACTIONS.GetFaction(mDefendingFaction);
 		
 		if(attackers == null || defenders == null)
 		{
-			WarForgeMod.sLogger.error("Invalid factions in siege. Can't display info");
+			WarForgeMod.LOGGER.error("Invalid factions in siege. Can't display info");
 			return null;
 		}
 		
@@ -107,29 +107,29 @@ public class Siege
 	
 	public boolean Start() 
 	{
-		Faction attackers = WarForgeMod.INSTANCE.GetFaction(mAttackingFaction);
-		Faction defenders = WarForgeMod.INSTANCE.GetFaction(mDefendingFaction);
+		Faction attackers = WarForgeMod.FACTIONS.GetFaction(mAttackingFaction);
+		Faction defenders = WarForgeMod.FACTIONS.GetFaction(mDefendingFaction);
 		
 		if(attackers == null || defenders == null)
 		{
-			WarForgeMod.sLogger.error("Invalid factions in siege. Cannot start");
+			WarForgeMod.LOGGER.error("Invalid factions in siege. Cannot start");
 			return false;
 		}
 		
 		CalculateBasePower();
 		WarForgeMod.INSTANCE.MessageAll(new TextComponentString(attackers.mName + " started a siege against " + defenders.mName + " at " + mDefendingClaim.ToFancyString()), true);
-		WarForgeMod.INSTANCE.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
+		WarForgeMod.FACTIONS.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
 		return true;
 	}
 	
 	public void AdvanceDay()
 	{
-		Faction attackers = WarForgeMod.INSTANCE.GetFaction(mAttackingFaction);
-		Faction defenders = WarForgeMod.INSTANCE.GetFaction(mDefendingFaction);
+		Faction attackers = WarForgeMod.FACTIONS.GetFaction(mAttackingFaction);
+		Faction defenders = WarForgeMod.FACTIONS.GetFaction(mDefendingFaction);
 		
 		if(attackers == null || defenders == null)
 		{
-			WarForgeMod.sLogger.error("Invalid factions in siege.");
+			WarForgeMod.LOGGER.error("Invalid factions in siege.");
 			return;
 		}
 		
@@ -158,17 +158,17 @@ public class Siege
 			attackers.MessageAll(new TextComponentString("Your siege on " + defenders.mName + " at " + mDefendingClaim.ToFancyString() + " did not shift today. The progress is at " + GetAttackProgress() + "/" + mAttackSuccessThreshold));
 		}
 		
-		WarForgeMod.INSTANCE.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
+		WarForgeMod.FACTIONS.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
 	}
 	
 	private void CalculateBasePower()
 	{
-		Faction attackers = WarForgeMod.INSTANCE.GetFaction(mAttackingFaction);
-		Faction defenders = WarForgeMod.INSTANCE.GetFaction(mDefendingFaction);
+		Faction attackers = WarForgeMod.FACTIONS.GetFaction(mAttackingFaction);
+		Faction defenders = WarForgeMod.FACTIONS.GetFaction(mDefendingFaction);
 		
 		if(attackers == null || defenders == null || WarForgeMod.MC_SERVER == null)
 		{
-			WarForgeMod.sLogger.error("Invalid factions in siege.");
+			WarForgeMod.LOGGER.error("Invalid factions in siege.");
 			return;
 		}
 		
@@ -177,7 +177,7 @@ public class Siege
 		for(EnumFacing direction : EnumFacing.HORIZONTALS)
 		{
 			DimChunkPos checkChunk = defendingChunk.Offset(direction, 1);
-			UUID factionInChunk = WarForgeMod.INSTANCE.GetClaim(checkChunk);
+			UUID factionInChunk = WarForgeMod.FACTIONS.GetClaim(checkChunk);
 			// Sum up all additional attack claims
 			if(factionInChunk.equals(mAttackingFaction))
 			{
@@ -229,7 +229,7 @@ public class Siege
 			mAttackProgress -= WarForgeMod.SIEGE_SWING_PER_ATTACKER_DEATH;
 			attacker.sendMessage(new TextComponentString("Your death has shifted the siege progress by " + WarForgeMod.SIEGE_SWING_PER_ATTACKER_DEATH));
 			
-			WarForgeMod.INSTANCE.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
+			WarForgeMod.FACTIONS.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
 		}
 	}
 	// These events will fire from all over. Do the in-range checks in here
@@ -244,7 +244,7 @@ public class Siege
 			mAttackProgress += WarForgeMod.SIEGE_SWING_PER_DEFENDER_DEATH;
 			defender.sendMessage(new TextComponentString("Your death has shifted the siege progress by " + WarForgeMod.SIEGE_SWING_PER_DEFENDER_DEATH));
 			
-			WarForgeMod.INSTANCE.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
+			WarForgeMod.FACTIONS.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
 		}
 	}
 	

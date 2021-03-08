@@ -104,7 +104,7 @@ public class PacketFactionInfo extends PacketBase
 	@Override
 	public void handleServerSide(EntityPlayerMP playerEntity) 
 	{
-		WarForgeMod.sLogger.error("Received FactionInfo on server");
+		WarForgeMod.LOGGER.error("Received FactionInfo on server");
 	}
 
 	@Override

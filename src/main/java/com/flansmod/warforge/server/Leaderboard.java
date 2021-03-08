@@ -60,7 +60,7 @@ public class Leaderboard
 			case LEGACY: return legacySorter;
 			case TOTAL: return totalSorter;
 		}
-		WarForgeMod.sLogger.error("Unknown sort type");
+		WarForgeMod.LOGGER.error("Unknown sort type");
 		return totalSorter;
 	}
 	
@@ -126,7 +126,7 @@ public class Leaderboard
 		info.stat = stat;
 		if(playerAsking != null && playerAsking != Faction.NULL)
 		{
-			Faction faction = WarForgeMod.INSTANCE.GetFactionOfPlayer(playerAsking);
+			Faction faction = WarForgeMod.FACTIONS.GetFactionOfPlayer(playerAsking);
 			if(faction != null)
 				info.mMyFaction = faction.CreateInfo();
 		}

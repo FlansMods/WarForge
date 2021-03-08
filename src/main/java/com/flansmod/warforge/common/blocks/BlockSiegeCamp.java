@@ -61,7 +61,7 @@ public class BlockSiegeCamp extends Block implements ITileEntityProvider
 	public boolean canPlaceBlockAt(World world, BlockPos pos)
 	{
 		// Can't claim a chunk claimed by another faction
-		UUID existingClaim = WarForgeMod.INSTANCE.GetClaim(new DimChunkPos(world.provider.getDimension(), pos));
+		UUID existingClaim = WarForgeMod.FACTIONS.GetClaim(new DimChunkPos(world.provider.getDimension(), pos));
 		if(!existingClaim.equals(Faction.NULL))
 			return false;
 		
@@ -81,7 +81,7 @@ public class BlockSiegeCamp extends Block implements ITileEntityProvider
 		if(te != null)
 		{
 			TileEntitySiegeCamp siegeCamp = (TileEntitySiegeCamp)te;
-			WarForgeMod.INSTANCE.OnNonCitadelClaimPlaced(siegeCamp, placer);
+			WarForgeMod.FACTIONS.OnNonCitadelClaimPlaced(siegeCamp, placer);
 		}
     }
 	
@@ -106,7 +106,7 @@ public class BlockSiegeCamp extends Block implements ITileEntityProvider
 						{
 							if(claimPos.equals(siegeCampPos.Offset(facing, 1)))
 							{
-								Faction faction = WarForgeMod.INSTANCE.GetFaction(claim.GetFaction());
+								Faction faction = WarForgeMod.FACTIONS.GetFaction(claim.GetFaction());
 								if(faction != null)
 								{
 									SiegeCampAttackInfo info = new SiegeCampAttackInfo();
@@ -120,7 +120,7 @@ public class BlockSiegeCamp extends Block implements ITileEntityProvider
 								}
 								else
 								{
-									WarForgeMod.sLogger.error("Could not find faction with UUID " + claim.GetFaction());
+									WarForgeMod.LOGGER.error("Could not find faction with UUID " + claim.GetFaction());
 								}
 							}
 						}
@@ -141,7 +141,7 @@ public class BlockSiegeCamp extends Block implements ITileEntityProvider
 			PacketSiegeCampInfo info = new PacketSiegeCampInfo();
 			info.mPossibleAttacks = CalculatePossibleAttackDirections(world, pos);
 			info.mSiegeCampPos = new DimBlockPos(world.provider.getDimension(), pos);
-			WarForgeMod.INSTANCE.sPacketHandler.sendTo(info, (EntityPlayerMP)player);
+			WarForgeMod.INSTANCE.NETWORK.sendTo(info, (EntityPlayerMP)player);
 		}
 		//player.openGui(WarForgeMod.INSTANCE, CommonProxy.GUI_TYPE_SIEGE_CAMP, world, pos.getX(), pos.getY(), pos.getZ());
 		return true;

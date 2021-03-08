@@ -70,22 +70,22 @@ public class ClientProxy extends CommonProxy
 		if(Minecraft.getMinecraft().world.provider.getDimension() == pos.mDim)	
 			return Minecraft.getMinecraft().world.getTileEntity(pos.ToRegularPos());
 		
-		WarForgeMod.sLogger.error("Can't get info about a tile entity in a different dimension on client");
+		WarForgeMod.LOGGER.error("Can't get info about a tile entity in a different dimension on client");
 		return null;
 	}
 	
 	@SubscribeEvent
 	public void registerModels(ModelRegistryEvent event)
 	{		
-		RegisterModel(WarForgeMod.citadelBlockItem);
-		RegisterModel(WarForgeMod.basicClaimBlockItem);
-		RegisterModel(WarForgeMod.reinforcedClaimBlockItem);
-		RegisterModel(WarForgeMod.siegeCampBlockItem);
+		RegisterModel(WarForgeMod.CONTENT.citadelBlockItem);
+		RegisterModel(WarForgeMod.CONTENT.basicClaimBlockItem);
+		RegisterModel(WarForgeMod.CONTENT.reinforcedClaimBlockItem);
+		RegisterModel(WarForgeMod.CONTENT.siegeCampBlockItem);
 		
-		RegisterModel(WarForgeMod.denseIronOreItem);
-		RegisterModel(WarForgeMod.denseGoldOreItem);
-		RegisterModel(WarForgeMod.denseDiamondOreItem);
-		RegisterModel(WarForgeMod.magmaVentItem);
+		RegisterModel(WarForgeMod.CONTENT.denseIronOreItem);
+		RegisterModel(WarForgeMod.CONTENT.denseGoldOreItem);
+		RegisterModel(WarForgeMod.CONTENT.denseDiamondOreItem);
+		RegisterModel(WarForgeMod.CONTENT.magmaVentItem);
 	}
 	
 	private void RegisterModel(Item item)
@@ -107,6 +107,6 @@ public class ClientProxy extends CommonProxy
 	{
 		PacketRequestFactionInfo request = new PacketRequestFactionInfo();
 		request.mFactionIDRequest = factionID;
-		WarForgeMod.INSTANCE.sPacketHandler.sendToServer(request);
+		WarForgeMod.INSTANCE.NETWORK.sendToServer(request);
 	}
 }

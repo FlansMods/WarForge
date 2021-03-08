@@ -103,7 +103,7 @@ public class GuiSiegeCamp extends GuiScreen
 			case BUTTON_WEST: siegePacket.mDirection = EnumFacing.WEST; break;
 		}	
 		
-		WarForgeMod.INSTANCE.sPacketHandler.sendToServer(siegePacket);
+		WarForgeMod.INSTANCE.NETWORK.sendToServer(siegePacket);
 		mc.displayGuiScreen(null);
 	}
 

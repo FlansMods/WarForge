@@ -59,7 +59,7 @@ public class BlockCitadel extends Block implements ITileEntityProvider
 	public boolean canPlaceBlockAt(World world, BlockPos pos)
 	{
 		// Can't claim a chunk claimed by another faction
-		UUID existingClaim = WarForgeMod.INSTANCE.GetClaim(new DimChunkPos(world.provider.getDimension(), pos));
+		UUID existingClaim = WarForgeMod.FACTIONS.GetClaim(new DimChunkPos(world.provider.getDimension(), pos));
 		if(!existingClaim.equals(Faction.NULL))
 			return false;
 		
@@ -94,7 +94,7 @@ public class BlockCitadel extends Block implements ITileEntityProvider
 			return false;
 		if(!world.isRemote)
 		{
-			Faction playerFaction = WarForgeMod.INSTANCE.GetFactionOfPlayer(player.getUniqueID());
+			Faction playerFaction = WarForgeMod.FACTIONS.GetFactionOfPlayer(player.getUniqueID());
 			TileEntityCitadel citadel = (TileEntityCitadel)world.getTileEntity(pos);
 			
 			// If the player has no faction and is the placer, they can open the UI
@@ -105,12 +105,12 @@ public class BlockCitadel extends Block implements ITileEntityProvider
 			// Any other factionless players, and players who aren't in this faction get an info panel			
 			else if(playerFaction == null || playerFaction.mUUID != citadel.mFactionUUID)
 			{
-				Faction citadelFaction = WarForgeMod.INSTANCE.GetFaction(citadel.mFactionUUID);
+				Faction citadelFaction = WarForgeMod.FACTIONS.GetFaction(citadel.mFactionUUID);
 				if(citadelFaction != null)
 				{
 					PacketFactionInfo packet = new PacketFactionInfo();
 					packet.mInfo = citadelFaction.CreateInfo();
-					WarForgeMod.INSTANCE.sPacketHandler.sendTo(packet, (EntityPlayerMP) player);
+					WarForgeMod.INSTANCE.NETWORK.sendTo(packet, (EntityPlayerMP) player);
 				}
 				else
 				{

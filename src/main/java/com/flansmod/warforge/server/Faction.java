@@ -124,10 +124,10 @@ public class Faction
 		info.mWealth = mWealth;
 		info.mLegacy = mLegacy;
 		
-		info.mLegacyRank = WarForgeMod.sLeaderboard.GetOneIndexedRankOf(this, FactionStat.LEGACY);
-		info.mNotorietyRank = WarForgeMod.sLeaderboard.GetOneIndexedRankOf(this, FactionStat.NOTORIETY);
-		info.mWealthRank = WarForgeMod.sLeaderboard.GetOneIndexedRankOf(this, FactionStat.WEALTH);
-		info.mTotalRank = WarForgeMod.sLeaderboard.GetOneIndexedRankOf(this, FactionStat.TOTAL);
+		info.mLegacyRank = WarForgeMod.LEADERBOARD.GetOneIndexedRankOf(this, FactionStat.LEGACY);
+		info.mNotorietyRank = WarForgeMod.LEADERBOARD.GetOneIndexedRankOf(this, FactionStat.NOTORIETY);
+		info.mWealthRank = WarForgeMod.LEADERBOARD.GetOneIndexedRankOf(this, FactionStat.WEALTH);
+		info.mTotalRank = WarForgeMod.LEADERBOARD.GetOneIndexedRankOf(this, FactionStat.TOTAL);
 		
 		info.mNumClaims = mClaims.size();
 		info.mCitadelPos = mCitadelPos;
@@ -368,7 +368,7 @@ public class Faction
 		}
 		if(!mClaims.containsKey(mCitadelPos))
 		{
-			WarForgeMod.sLogger.error("Citadel was not claimed by the faction. Forcing claim");
+			WarForgeMod.LOGGER.error("Citadel was not claimed by the faction. Forcing claim");
 			mClaims.put(mCitadelPos, 0);
 		}
 

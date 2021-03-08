@@ -55,7 +55,7 @@ public class PacketLeaderboardInfo extends PacketBase
 	@Override
 	public void handleServerSide(EntityPlayerMP playerEntity) 
 	{
-		WarForgeMod.sLogger.error("Received LeaderboardInfo on server");
+		WarForgeMod.LOGGER.error("Received LeaderboardInfo on server");
 	}
 
 	@Override

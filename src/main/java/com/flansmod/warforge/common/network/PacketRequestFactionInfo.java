@@ -35,32 +35,32 @@ public class PacketRequestFactionInfo extends PacketBase
 		Faction faction = null;
 		if(!mFactionIDRequest.equals(Faction.NULL))
 		{
-			faction = WarForgeMod.INSTANCE.GetFaction(mFactionIDRequest);
+			faction = WarForgeMod.FACTIONS.GetFaction(mFactionIDRequest);
 		}
 		else if(!mFactionNameRequest.isEmpty())
 		{
-			faction = WarForgeMod.INSTANCE.GetFaction(mFactionNameRequest);
+			faction = WarForgeMod.FACTIONS.GetFaction(mFactionNameRequest);
 		}
 		else
 		{
-			WarForgeMod.sLogger.error("Player " + playerEntity.getName() + " made a request for faction info with no valid key");
+			WarForgeMod.LOGGER.error("Player " + playerEntity.getName() + " made a request for faction info with no valid key");
 		}
 		
 		if(faction != null)
 		{
 			PacketFactionInfo packet = new PacketFactionInfo();
 			packet.mInfo = faction.CreateInfo();
-			WarForgeMod.INSTANCE.sPacketHandler.sendTo(packet, playerEntity);
+			WarForgeMod.INSTANCE.NETWORK.sendTo(packet, playerEntity);
 		}
 		else
 		{
-			WarForgeMod.sLogger.error("Could not find faction for info");
+			WarForgeMod.LOGGER.error("Could not find faction for info");
 		}
 	}
 
 	@Override
 	public void handleClientSide(EntityPlayer clientPlayer) 
 	{
-		WarForgeMod.sLogger.error("Received a faction info request client side");
+		WarForgeMod.LOGGER.error("Received a faction info request client side");
 	}
 }

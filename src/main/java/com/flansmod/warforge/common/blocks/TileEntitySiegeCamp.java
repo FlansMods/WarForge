@@ -90,10 +90,10 @@ public class TileEntitySiegeCamp extends TileEntity implements IClaim
 		
 		if(FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER)
 		{
-			Faction faction = WarForgeMod.INSTANCE.GetFaction(mFactionUUID);
+			Faction faction = WarForgeMod.FACTIONS.GetFaction(mFactionUUID);
 			if(!mFactionUUID.equals(Faction.NULL) && faction == null)
 			{
-				WarForgeMod.sLogger.error("Faction " + mFactionUUID + " could not be found for citadel at " + pos);
+				WarForgeMod.LOGGER.error("Faction " + mFactionUUID + " could not be found for citadel at " + pos);
 				//world.setBlockState(getPos(), Blocks.AIR.getDefaultState());
 			}
 			if(faction != null)
@@ -104,7 +104,7 @@ public class TileEntitySiegeCamp extends TileEntity implements IClaim
 		}
 		else
 		{
-			WarForgeMod.sLogger.error("Loaded TileEntity from NBT on client?");
+			WarForgeMod.LOGGER.error("Loaded TileEntity from NBT on client?");
 		}
 	}
 	
@@ -157,7 +157,7 @@ public class TileEntitySiegeCamp extends TileEntity implements IClaim
 		}
 		else
 		{
-			WarForgeMod.sLogger.error("Siege camp placed by player with no faction");
+			WarForgeMod.LOGGER.error("Siege camp placed by player with no faction");
 		}
 	}
 

@@ -31,14 +31,14 @@ public class PacketRequestLeaderboardInfo extends PacketBase
 	public void handleServerSide(EntityPlayerMP playerEntity) 
 	{
 		PacketLeaderboardInfo packet = new PacketLeaderboardInfo();
-		packet.mInfo = WarForgeMod.sLeaderboard.CreateInfo(mFirstIndex, mStat, playerEntity.getUniqueID());
-		WarForgeMod.sPacketHandler.sendTo(packet, playerEntity);
+		packet.mInfo = WarForgeMod.LEADERBOARD.CreateInfo(mFirstIndex, mStat, playerEntity.getUniqueID());
+		WarForgeMod.NETWORK.sendTo(packet, playerEntity);
 	}
 
 	@Override
 	public void handleClientSide(EntityPlayer clientPlayer) 
 	{
-		WarForgeMod.sLogger.error("Received LeaderboardInfo request on client");
+		WarForgeMod.LOGGER.error("Received LeaderboardInfo request on client");
 	}
 	
 }

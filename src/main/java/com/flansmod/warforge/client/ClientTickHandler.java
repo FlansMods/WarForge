@@ -60,7 +60,7 @@ public class ClientTickHandler
 	@SubscribeEvent
 	public void OnTick(ClientTickEvent tick)
 	{
-		WarForgeMod.INSTANCE.sPacketHandler.handleClientPackets();
+		WarForgeMod.INSTANCE.NETWORK.handleClientPackets();
 		ArrayList<DimBlockPos> expired = new ArrayList<DimBlockPos>();
 		for(HashMap.Entry<DimBlockPos, SiegeCampProgressInfo> kvp : ClientProxy.sSiegeInfo.entrySet())
 		{
@@ -301,14 +301,14 @@ public class ClientTickHandler
 				boolean shouldRender = false;
 				boolean canPlace = false;
 				Block holding = ((ItemBlock)player.getHeldItemMainhand().getItem()).getBlock();
-				if(holding == WarForgeMod.basicClaimBlock
-				|| holding == WarForgeMod.citadelBlock
-				|| holding == WarForgeMod.reinforcedClaimBlock)
+				if(holding == WarForgeMod.CONTENT.basicClaimBlock
+				|| holding == WarForgeMod.CONTENT.citadelBlock
+				|| holding == WarForgeMod.CONTENT.reinforcedClaimBlock)
 				{
 					shouldRender = true;
 					canPlace = !playerIsInExistingClaim;
 				}
-				if(holding == WarForgeMod.siegeCampBlock)
+				if(holding == WarForgeMod.CONTENT.siegeCampBlock)
 				{
 					shouldRender = true;
 					canPlace = false;

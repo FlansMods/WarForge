@@ -67,7 +67,7 @@ public class PacketSiegeCampProgressUpdate extends PacketBase
 	@Override
 	public void handleServerSide(EntityPlayerMP playerEntity) 
 	{
-		WarForgeMod.sLogger.error("Received siege info on server");
+		WarForgeMod.LOGGER.error("Received siege info on server");
 	}
 
 	@Override

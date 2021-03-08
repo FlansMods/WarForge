@@ -87,6 +87,7 @@ import com.flansmod.warforge.server.Siege;
 import com.google.common.io.Files;
 import com.mojang.authlib.GameProfile;
 import com.flansmod.warforge.server.Faction.Role;
+import com.flansmod.warforge.server.FactionStorage;
 import com.flansmod.warforge.server.Leaderboard;
 
 @Mod(modid = WarForgeMod.MODID, name = WarForgeMod.NAME, version = WarForgeMod.VERSION)
@@ -96,28 +97,17 @@ public class WarForgeMod
     public static final String NAME = "WarForge Factions";
     public static final String VERSION = "1.0";
     
-    private HashMap<UUID, Faction> mFactions = new HashMap<UUID, Faction>();
-    // This map contains every single claim, including siege camps.
-    // So if you take one of these and try to look it up in the faction, check their active sieges too
-    private HashMap<DimChunkPos, UUID> mClaims = new HashMap<DimChunkPos, UUID>();
-    
-    // This is all the currently active sieges, keyed by the defending position
-    private HashMap<DimChunkPos, Siege> mSieges = new HashMap<DimChunkPos, Siege>();
-    
 	@Instance(MODID)
 	public static WarForgeMod INSTANCE;
 	@SidedProxy(clientSide = "com.flansmod.warforge.client.ClientProxy", serverSide = "com.flansmod.warforge.common.CommonProxy")
 	public static CommonProxy proxy;
 	
-	public static Logger sLogger;
-	public static final PacketHandler sPacketHandler = new PacketHandler();
-	public static final Leaderboard sLeaderboard = new Leaderboard();
-
-	public static Block citadelBlock, basicClaimBlock, reinforcedClaimBlock, siegeCampBlock;
-	public static Item citadelBlockItem, basicClaimBlockItem, reinforcedClaimBlockItem, siegeCampBlockItem;
-	
-	public static Block denseIronOreBlock, denseGoldOreBlock, denseDiamondOreBlock, magmaVentBlock;
-	public static Item denseIronOreItem, denseGoldOreItem, denseDiamondOreItem, magmaVentItem;
+	// Instances of component parts of the mod
+	public static Logger LOGGER;
+	public static final PacketHandler NETWORK = new PacketHandler();
+	public static final Leaderboard LEADERBOARD = new Leaderboard();
+	public static final FactionStorage FACTIONS = new FactionStorage();
+	public static final Content CONTENT = new Content();
 	
 	public static MinecraftServer MC_SERVER = null;
 	public static Random rand = new Random();
@@ -129,7 +119,7 @@ public class WarForgeMod
     @EventHandler
     public void preInit(FMLPreInitializationEvent event)
     {
-        sLogger = event.getModLog();
+        LOGGER = event.getModLog();
 		//Load config
 		configFile = new Configuration(event.getSuggestedConfigurationFile());
 		syncConfig();
@@ -138,34 +128,7 @@ public class WarForgeMod
 		numberOfSiegeDaysTicked = 0L;
 		numberOfYieldDaysTicked = 0L;
         
-        citadelBlock = new BlockCitadel(Material.ROCK).setRegistryName("citadelblock").setUnlocalizedName("citadelblock");
-        citadelBlockItem = new ItemBlock(citadelBlock).setRegistryName("citadelblock").setUnlocalizedName("citadelblock");
-        GameRegistry.registerTileEntity(TileEntityCitadel.class, new ResourceLocation(MODID, "citadel"));
-        
-        // Basic and reinforced claims, they share a tile entity
-        basicClaimBlock = new BlockBasicClaim(Material.ROCK).setRegistryName("basicclaimblock").setUnlocalizedName("basicclaimblock");
-        basicClaimBlockItem = new ItemBlock(basicClaimBlock).setRegistryName("basicclaimblock").setUnlocalizedName("basicclaimblock");
-        GameRegistry.registerTileEntity(TileEntityBasicClaim.class, new ResourceLocation(MODID, "basicclaim"));
-        reinforcedClaimBlock = new BlockBasicClaim(Material.ROCK).setRegistryName("reinforcedclaimblock").setUnlocalizedName("reinforcedclaimblock");
-        reinforcedClaimBlockItem = new ItemBlock(reinforcedClaimBlock).setRegistryName("reinforcedclaimblock").setUnlocalizedName("reinforcedclaimblock");
-        GameRegistry.registerTileEntity(TileEntityReinforcedClaim.class, new ResourceLocation(MODID, "reinforcedclaim"));
-        
-        // Siege camp
-        siegeCampBlock = new BlockSiegeCamp(Material.ROCK).setRegistryName("siegecampblock").setUnlocalizedName("siegecampblock");
-        siegeCampBlockItem = new ItemBlock(siegeCampBlock).setRegistryName("siegecampblock").setUnlocalizedName("siegecampblock");
-        GameRegistry.registerTileEntity(TileEntitySiegeCamp.class, new ResourceLocation(MODID, "siegecamp"));
-        
-        denseIronOreBlock = new BlockYieldProvider(Material.ROCK, IRON_YIELD_AS_ORE ? new ItemStack(Blocks.IRON_ORE) : new ItemStack(Items.IRON_INGOT), NUM_IRON_PER_DAY_PER_ORE).setRegistryName("denseironore").setUnlocalizedName("denseironore");
-        denseGoldOreBlock = new BlockYieldProvider(Material.ROCK, GOLD_YIELD_AS_ORE ? new ItemStack(Blocks.GOLD_ORE) : new ItemStack(Items.GOLD_INGOT), NUM_GOLD_PER_DAY_PER_ORE).setRegistryName("densegoldore").setUnlocalizedName("densegoldore");
-        denseDiamondOreBlock = new BlockYieldProvider(Material.ROCK, DIAMOND_YIELD_AS_ORE ? new ItemStack(Blocks.DIAMOND_ORE) : new ItemStack(Items.DIAMOND), NUM_DIAMOND_PER_DAY_PER_ORE).setRegistryName("densediamondore").setUnlocalizedName("densediamondore");
-        magmaVentBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.LAVA_BUCKET), 0.01f).setRegistryName("magmavent").setUnlocalizedName("magmavent");
-        
-        denseIronOreItem = new ItemBlock(denseIronOreBlock).setRegistryName("denseironore").setUnlocalizedName("denseironore");
-        denseGoldOreItem = new ItemBlock(denseGoldOreBlock).setRegistryName("densegoldore").setUnlocalizedName("densegoldore");
-        denseDiamondOreItem = new ItemBlock(denseDiamondOreBlock).setRegistryName("densediamondore").setUnlocalizedName("densediamondore");
-        magmaVentItem = new ItemBlock(magmaVentBlock).setRegistryName("magmavent").setUnlocalizedName("magmavent");
-        
-        
+		CONTENT.preInit();        
         
         MinecraftForge.EVENT_BUS.register(new ServerTickHandler());
         MinecraftForge.EVENT_BUS.register(this);
@@ -176,14 +139,14 @@ public class WarForgeMod
     public void init(FMLInitializationEvent event)
     {
 		NetworkRegistry.INSTANCE.registerGuiHandler(this, proxy);
-		sPacketHandler.initialise();
+		NETWORK.initialise();
 		proxy.Init(event);
     }
     
 	@EventHandler
 	public void postInit(FMLPostInitializationEvent event)
 	{
-		sPacketHandler.postInitialise();
+		NETWORK.postInitialise();
 		proxy.PostInit(event);
 		
 		VAULT_BLOCKS.clear();
@@ -193,141 +156,13 @@ public class WarForgeMod
 			if(block != null)
 			{
 				VAULT_BLOCKS.add(block);
-				sLogger.info("Found block with ID " + blockID + " as a valuable block for the vault");
+				LOGGER.info("Found block with ID " + blockID + " as a valuable block for the vault");
 			}
 			else
-				sLogger.error("Could not find block with ID " + blockID + " as a valuable block for the vault");
+				LOGGER.error("Could not find block with ID " + blockID + " as a valuable block for the vault");
 				
 		}
 	}
-    
-    @SubscribeEvent
-	public void registerItems(RegistryEvent.Register<Item> event)
-	{		
-		event.getRegistry().register(citadelBlockItem);
-		event.getRegistry().register(basicClaimBlockItem);
-		event.getRegistry().register(reinforcedClaimBlockItem);
-		event.getRegistry().register(siegeCampBlockItem);
-		event.getRegistry().register(denseIronOreItem);
-		event.getRegistry().register(denseGoldOreItem);
-		event.getRegistry().register(denseDiamondOreItem);
-		event.getRegistry().register(magmaVentItem);
-		sLogger.info("Registered items");
-	}
-	
-	@SubscribeEvent
-	public void registerBlocks(RegistryEvent.Register<Block> event)
-	{
-		event.getRegistry().register(citadelBlock);
-		event.getRegistry().register(basicClaimBlock);
-		event.getRegistry().register(reinforcedClaimBlock);
-		event.getRegistry().register(siegeCampBlock);
-		event.getRegistry().register(denseIronOreBlock);
-		event.getRegistry().register(denseGoldOreBlock);
-		event.getRegistry().register(denseDiamondOreBlock);
-		event.getRegistry().register(magmaVentBlock);
-		sLogger.info("Registered blocks");
-	}
-    
-    public boolean IsPlayerInFaction(UUID playerID, UUID factionID)
-    {
-    	if(mFactions.containsKey(factionID))
-    		return mFactions.get(factionID).IsPlayerInFaction(playerID);
-    	return false;
-    }
-    
-    public boolean IsPlayerRoleInFaction(UUID playerID, UUID factionID, Faction.Role role)
-    {
-    	if(mFactions.containsKey(factionID))
-    		return mFactions.get(factionID).IsPlayerRoleInFaction(playerID, role);
-    	return false;
-    }
-    
-    public Faction GetFaction(UUID factionID)
-    {
-    	if(factionID.equals(Faction.NULL))
-    		return null;
-    	
-    	if(mFactions.containsKey(factionID))
-    		return mFactions.get(factionID);
-    	
-    	sLogger.error("Could not find a faction with UUID " + factionID);
-    	return null;
-    }
-    
-    public Faction GetFaction(String name)
-    {
-    	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
-    	{
-    		if(entry.getValue().mName.equals(name))
-    			return entry.getValue();
-    	}
-    	return null;
-    }
-    
-    public Faction GetFactionWithOpenInviteTo(UUID playerID)
-    {
-    	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
-    	{
-    		if(entry.getValue().IsInvitingPlayer(playerID))
-    			return entry.getValue();
-    	}
-    	return null;
-    }
-    
-	public String[] GetFactionNames() 
-	{
-		String[] names = new String[mFactions.size()];
-		int i = 0;
-    	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
-    	{
-    		names[i] = entry.getValue().mName;
-    		i++;
-    	}
-    	return names;
-	}
-    
-    // This is called for any non-citadel claim. Citadels can be factionless, so this makes no sense
-	public void OnNonCitadelClaimPlaced(IClaim claim, EntityLivingBase placer) 
-	{
-		if(!placer.world.isRemote)
-		{
-			Faction faction = GetFactionOfPlayer(placer.getUniqueID());
-			
-			if(faction != null)
-			{
-				TileEntity tileEntity = claim.GetAsTileEntity();
-				mClaims.put(claim.GetPos().ToChunkPos(), faction.mUUID);
-				
-				claim.OnServerSetFaction(faction);
-				faction.OnClaimPlaced(claim);
-			}
-			else
-				sLogger.error("Invalid placer placed a claim at " + claim.GetPos());
-		}
-	}
-	    
-    public UUID GetClaim(DimBlockPos pos)
-    {
-    	return GetClaim(pos.ToChunkPos());
-    }
-    
-    public UUID GetClaim(DimChunkPos pos)
-    {
-    	if(mClaims.containsKey(pos))
-    		return mClaims.get(pos);
-    	return Faction.NULL;
-    }
-    
-    public Faction GetFactionOfPlayer(UUID playerID)
-    {
-    	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
-    	{
-    		if(entry.getValue().IsPlayerInFaction(playerID))
-    			return entry.getValue();
-    	}
-    	return null;
-    }
     
     public long GetSiegeDayLengthMS()
     {
@@ -365,11 +200,6 @@ public class WarForgeMod
     
     public void UpdateServer()
     {
-    	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
-    	{
-    		entry.getValue().Update();
-    	}
-    	
     	long msTime = System.currentTimeMillis();
     	long dayLength = GetSiegeDayLengthMS();
     	
@@ -382,17 +212,7 @@ public class WarForgeMod
     		
     		MessageAll(new TextComponentString("Battle takes its toll, all sieges have advanced."), true);
     		
-    		for(HashMap.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
-    		{
-    			kvp.getValue().AdvanceDay();
-    		}
-    		
-    		CheckForCompleteSieges();
-    		
-        	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
-        	{
-        		entry.getValue().AdvanceDay();
-        	}
+    		FACTIONS.AdvanceSiegeDay();
     	}
     	
     	dayLength = GetYieldDayLengthMS();
@@ -405,58 +225,11 @@ public class WarForgeMod
     		
     		MessageAll(new TextComponentString("All passive yields have been awarded."), true);
     		
-        	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
-        	{
-        		entry.getValue().AwardYields();
-        	}
+    		FACTIONS.AdvanceYieldDay();
     	}
     }
     
-    private void CheckForCompleteSieges()
-    {
-    	// Cache in a list so we can remove from the siege HashMap
-    	ArrayList<DimChunkPos> completedSieges = new ArrayList<DimChunkPos>();
-		for(HashMap.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
-		{
-			if(kvp.getValue().IsCompleted())
-				completedSieges.add(kvp.getKey());
-		}
-		
-		// Now process the results
-		for(DimChunkPos chunkPos : completedSieges)
-		{
-			Siege siege = mSieges.get(chunkPos);
-			
-			Faction attackers = WarForgeMod.INSTANCE.GetFaction(siege.mAttackingFaction);
-			Faction defenders = WarForgeMod.INSTANCE.GetFaction(siege.mDefendingFaction);
-			
-			if(attackers == null || defenders == null)
-			{
-				WarForgeMod.sLogger.error("Invalid factions in completed siege. Nothing will happen.");
-				continue;
-			}
-			
-			DimBlockPos blockPos = defenders.GetSpecificPosForClaim(chunkPos);
-			boolean successful = siege.WasSuccessful();
-			if(successful)
-			{
-				defenders.OnClaimLost(blockPos);
-				mClaims.remove(blockPos.ToChunkPos());
-				attackers.MessageAll(new TextComponentString("Our faction won the siege on " + defenders.mName + " at " + blockPos.ToFancyString()));
-			}
-			else
-			{
-				attackers.MessageAll(new TextComponentString("Our siege on " + defenders.mName + " at " + blockPos.ToFancyString() + " was unsuccessful"));
-				defenders.MessageAll(new TextComponentString(attackers.mName + "'s siege on " + blockPos.ToFancyString() + " was unsuccessful"));
-			}
-			
-			siege.OnCompleted();
-			
-			// Then remove the siege
-			mSieges.remove(chunkPos);
-		}
-    	
-    }
+    
     
     @SubscribeEvent
     public void PlayerDied(LivingDeathEvent event)
@@ -466,23 +239,7 @@ public class WarForgeMod
     		
     	if(event.getEntityLiving() instanceof EntityPlayerMP)
     	{
-    		Faction faction = GetFactionOfPlayer(event.getEntityLiving().getUniqueID());
-    		
-    		for(HashMap.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
-    		{
-    			// If the player is on the attackers side, send the event
-    			if(kvp.getValue().mAttackingFaction.equals(faction.mUUID))
-    			{
-    				kvp.getValue().OnAttackerDied((EntityPlayerMP)event.getEntityLiving());
-    			}
-    			// If the player is on the defenders side, send the event
-    			if(kvp.getValue().mDefendingFaction.equals(faction.mUUID))
-    			{
-    				kvp.getValue().OnDefenderDied((EntityPlayerMP)event.getEntityLiving());
-    			}
-    		}
-    		
-    		CheckForCompleteSieges();
+    		FACTIONS.PlayerDied((EntityPlayerMP)event.getEntityLiving());
     	}
     }
     
@@ -492,10 +249,10 @@ public class WarForgeMod
 		if(VAULT_BLOCKS.contains(state.getBlock()))
 		{
 			DimChunkPos chunkPos = new DimBlockPos(event.getWorld().provider.getDimension(), event.getPos()).ToChunkPos();
-			UUID factionID = GetClaim(chunkPos);
+			UUID factionID = FACTIONS.GetClaim(chunkPos);
 			if(!factionID.equals(Faction.NULL)) 
 			{
-				Faction faction = GetFaction(factionID);
+				Faction faction = FACTIONS.GetFaction(factionID);
 				if(faction != null)
 				{
 					if(faction.mCitadelPos.ToChunkPos().equals(chunkPos))
@@ -535,10 +292,10 @@ public class WarForgeMod
     	}
     	
     	Item item = event.getItemStack().getItem();
-    	if(item != citadelBlockItem
-    	&& item != basicClaimBlockItem
-    	&& item != reinforcedClaimBlockItem
-    	&& item != siegeCampBlockItem)
+    	if(item != CONTENT.citadelBlockItem
+    	&& item != CONTENT.basicClaimBlockItem
+    	&& item != CONTENT.reinforcedClaimBlockItem
+    	&& item != CONTENT.siegeCampBlockItem)
     	{
     		// We don't care if its not one of ours
     		return;
@@ -555,12 +312,12 @@ public class WarForgeMod
     	}
     	
     	EntityPlayer player = (EntityPlayer)event.getEntity();
-    	Faction playerFaction = GetFactionOfPlayer(player.getUniqueID());
+    	Faction playerFaction = FACTIONS.GetFactionOfPlayer(player.getUniqueID());
     	// TODO : Op override
 
     	// All block placements are cancelled if there is already a block from this mod in that chunk
     	DimChunkPos pos = new DimBlockPos(event.getWorld().provider.getDimension(), placementPos).ToChunkPos();
-    	if(mClaims.containsKey(pos))
+    	if(!FACTIONS.GetClaim(pos).equals(Faction.NULL))
     	{
     		player.sendMessage(new TextComponentString("This chunk already has a claim"));
 			event.setCanceled(true);
@@ -568,7 +325,7 @@ public class WarForgeMod
     	}
     	
     	// Cancel block placement for a couple of reasons
-    	if(block == citadelBlock)
+    	if(block == CONTENT.citadelBlock)
     	{
     		if(playerFaction != null) // Can't place a second citadel
     		{
@@ -577,8 +334,8 @@ public class WarForgeMod
     			return;
     		}
     	}
-    	else if(block == basicClaimBlock
-    		|| block == reinforcedClaimBlock)
+    	else if(block == CONTENT.basicClaimBlock
+    		|| block == CONTENT.reinforcedClaimBlock)
     	{
     		if(playerFaction == null) // Can't expand your claims if you aren't in a faction
     		{
@@ -642,248 +399,10 @@ public class WarForgeMod
 	
 	public boolean IsClaimed(UUID excludingFaction, DimChunkPos pos)
 	{
-		UUID factionID = mClaims.get(pos);
+		UUID factionID = FACTIONS.GetClaim(pos);
 		return factionID != null && !factionID.equals(excludingFaction) && !factionID.equals(Faction.NULL);
 	}
 	
-    // ----------------------------------------
-    //   Server responses to player requests
-    public boolean RequestCreateFaction(TileEntityCitadel citadel, EntityPlayer player, String factionName)
-    {
-    	if(citadel == null)
-    	{
-    		player.sendMessage(new TextComponentString("You can't create a faction without a citadel"));
-    		return false;
-    	}
-    	
-    	if(factionName == null || factionName.isEmpty())
-    	{
-    		player.sendMessage(new TextComponentString("You can't create a faction with no name"));
-    		return false;
-    	}
-    	
-    	Faction existingFaction = GetFactionOfPlayer(player.getUniqueID());
-    	if(existingFaction != null)
-    	{
-    		player.sendMessage(new TextComponentString("You are already in a faction"));
-    		return false;
-    	}
-    	
-    	UUID proposedID = Faction.CreateUUID(factionName);
-    	if(mFactions.containsKey(proposedID))
-    	{
-    		player.sendMessage(new TextComponentString("A faction with the name " + factionName + " already exists"));
-    		return false;
-    	}
-    	
-    	// All checks passed, create a faction
-    	Faction faction = new Faction();
-    	faction.mUUID = proposedID;
-    	faction.mName = factionName;
-    	faction.mCitadelPos = new DimBlockPos(citadel);
-		faction.mColour = Color.HSBtoRGB(rand.nextFloat(), rand.nextFloat() * 0.5f + 0.5f, 1.0f);
-    	faction.mNotoriety = 0;
-    	faction.mLegacy = 0;
-    	faction.mWealth = 0;
-    	
-    	mFactions.put(proposedID, faction);
-    	citadel.OnServerSetFaction(faction);
-    	mClaims.put(citadel.GetPos().ToChunkPos(), proposedID);
-    	sLeaderboard.RegisterFaction(faction);
-    	
-    	faction.AddPlayer(player.getUniqueID());
-    	faction.SetLeader(player.getUniqueID());
-    	
-    	return true;
-    }
-    
-    public boolean RequestRemovePlayerFromFaction(ICommandSender remover, UUID factionID, UUID toRemove)
-    {
-    	Faction faction = GetFaction(factionID);
-    	if(faction == null)
-    	{
-    		remover.sendMessage(new TextComponentString("That faction doesn't exist"));
-    		return false;
-    	}
-    	
-    	if(!faction.IsPlayerInFaction(toRemove))
-    	{
-    		remover.sendMessage(new TextComponentString("That player is not in that faction"));
-    		return false;
-    	}
-    	
-    	boolean canRemove = IsOp(remover);
-    	boolean removingSelf = false;
-    	if(remover instanceof EntityPlayer)
-    	{
-    		UUID removerID = ((EntityPlayer)remover).getUniqueID();
-    		if(removerID == toRemove) // remove self
-    		{
-    			canRemove = true;
-    			removingSelf = true;
-    		}
-    		
-    		if(faction.IsPlayerOutrankingOfficerOf(removerID, toRemove))
-    			canRemove = true;
-    	}
-    	    	
-    	if(!canRemove)
-    	{
-    		remover.sendMessage(new TextComponentString("You don't have permission to remove that player"));
-    		return false;
-    	}
-    	
-    	GameProfile userProfile = MC_SERVER.getPlayerProfileCache().getProfileByUUID(toRemove);
-    	if(userProfile != null)
-    	{
-    		if(removingSelf)
-    			faction.MessageAll(new TextComponentString(userProfile.getName() + " left " + faction.mName));
-    		else
-       			faction.MessageAll(new TextComponentString(userProfile.getName() + " was kicked from " + faction.mName));
-    	}
-    	
-    	faction.RemovePlayer(toRemove);
-    	
-    	return true;
-    }
-        
-    public boolean RequestInvitePlayerToMyFaction(EntityPlayer factionOfficer, UUID invitee)
-    {
-    	Faction myFaction = GetFactionOfPlayer(factionOfficer.getUniqueID());
-    	if(myFaction != null)
-    		return RequestInvitePlayerToFaction(factionOfficer, myFaction.mUUID, invitee);
-    	return false;
-    }
-    
-    public boolean RequestInvitePlayerToFaction(ICommandSender factionOfficer, UUID factionID, UUID invitee)
-    {
-    	Faction faction = GetFaction(factionID);
-    	if(faction == null)
-    	{
-    		factionOfficer.sendMessage(new TextComponentString("That faction doesn't exist"));
-    		return false;
-    	}
-    	
-    	if(!IsOp(factionOfficer) && !faction.IsPlayerRoleInFaction(GetUUID(factionOfficer), Faction.Role.OFFICER))
-    	{
-    		factionOfficer.sendMessage(new TextComponentString("You are not an officer of this faction"));
-    		return false;
-    	}
-    	
-    	Faction existingFaction = GetFactionOfPlayer(invitee);
-    	if(existingFaction != null)
-    	{
-    		factionOfficer.sendMessage(new TextComponentString("That player is already in a faction"));
-    		return false;
-    	}
-    	
-    	// TODO: Faction player limit - grows with claims?
-    	
-    	faction.InvitePlayer(invitee);
-    	MC_SERVER.getPlayerList().getPlayerByUUID(invitee).sendMessage(new TextComponentString("You have received an invite to " + faction.mName + ". Type /f accept to join"));
-    	
-    	return true;
-    }
-    
-    public void RequestAcceptInvite(EntityPlayer player)
-    {
-    	Faction inviter = GetFactionWithOpenInviteTo(player.getUniqueID());
-    	if(inviter != null)
-    	{
-    		inviter.AddPlayer(player.getUniqueID());
-    	}
-    	else
-    		player.sendMessage(new TextComponentString("You have no open invite to accept"));
-    }
-    
-    public boolean RequestTransferLeadership(EntityPlayer factionLeader, UUID factionID, UUID newLeaderID)
-    {
-    	Faction faction = GetFaction(factionID);
-    	if(faction == null)
-    	{
-    		factionLeader.sendMessage(new TextComponentString("That faction does not exist"));
-    		return false;
-    	}
-    	
-    	if(!IsOp(factionLeader) && !faction.IsPlayerRoleInFaction(factionLeader.getUniqueID(), Faction.Role.LEADER))
-    	{
-    		factionLeader.sendMessage(new TextComponentString("You are not the leader of this faction"));
-    		return false;
-    	}
-    	
-    	if(!faction.IsPlayerInFaction(newLeaderID))
-    	{
-    		factionLeader.sendMessage(new TextComponentString("That player is not in your faction"));
-    		return false;
-    	}
-    	
-    	faction.SetLeader(newLeaderID);
-    	return true;
-    }
-    
-    public boolean RequestDisbandFaction(EntityPlayer factionLeader, UUID factionID)
-    {
-    	if(!IsPlayerRoleInFaction(factionLeader.getUniqueID(), factionID, Faction.Role.LEADER))
-    	{
-    		factionLeader.sendMessage(new TextComponentString("You are not the leader of this faction"));
-    		return false;
-    	}
-    	
-    	Faction faction = mFactions.get(factionID);
-    	faction.Disband();
-    	mFactions.remove(factionID);
-    	sLeaderboard.UnregisterFaction(faction);
-    	
-    	return true;
-    }
-    
-    public boolean RequestStartSiege(EntityPlayer factionOfficer, DimBlockPos siegeCampPos, EnumFacing direction)
-    {
-    	Faction attacking = GetFactionOfPlayer(factionOfficer.getUniqueID());
-    	if(attacking == null)
-    	{
-    		factionOfficer.sendMessage(new TextComponentString("You are not in a faction"));
-    		return false;
-    	}
-    	
-    	if(!attacking.IsPlayerRoleInFaction(factionOfficer.getUniqueID(), Faction.Role.OFFICER))
-    	{
-    		factionOfficer.sendMessage(new TextComponentString("You are not an officer of this faction"));
-    		return false;
-    	}
-    	
-    	// TODO: Verify there aren't existing alliances
-    	
-    	TileEntity siegeTE = proxy.GetTile(siegeCampPos);
-    	DimChunkPos defendingChunk = siegeCampPos.ToChunkPos().Offset(direction, 1);
-    	UUID defendingFactionID = mClaims.get(defendingChunk);
-    	Faction defending = GetFaction(defendingFactionID);
-    	if(defending == null)
-    	{
-    		factionOfficer.sendMessage(new TextComponentString("Could not find a target faction at that poisition"));
-    		return false;
-    	}
-    	
-    	DimBlockPos defendingPos = defending.GetSpecificPosForClaim(defendingChunk);
-    	Siege siege = new Siege();
-    	siege.mAttackingFaction = attacking.mUUID;
-    	siege.mDefendingFaction = defendingFactionID;
-    	siege.mAttackingSiegeCamps.add(siegeCampPos);
-    	siege.mDefendingClaim = defendingPos;
-    	//siege.mAttackSuccessThreshold
-    	//siege.mSupportingClaims
-    	
-    	siege.Start();
-    	
-    	mSieges.put(defendingChunk, siege);
-    	
-    	// TODO: 
-    	
-
-    	
-    	return true;
-    }
-    
     public void MessageAll(ITextComponent msg, boolean sendToDiscord) // TODO: optional list of pings
     {
     	// TODO: Discord integration
@@ -895,28 +414,7 @@ public class WarForgeMod
 	    	}
     	}
     }
-    
-    public void SendSiegeInfoToNearby(DimChunkPos siegePos)
-    {
-    	Siege siege = mSieges.get(siegePos);
-    	if(siege != null)
-    	{
-    		SiegeCampProgressInfo info = siege.GetSiegeInfo();
-    		if(info != null)
-    		{
-    			PacketSiegeCampProgressUpdate packet = new PacketSiegeCampProgressUpdate();
-    			packet.mInfo = info;
-    			sPacketHandler.sendToAllAround(packet, siegePos.x * 16, 128d, siegePos.z * 16, SIEGE_INFO_RADIUS + 128f, siegePos.mDim);
-    		}
-    	}
-    }
-    
-    // Non request 
-    public void ForceAddPlayerToFaction(EntityPlayer player, UUID factionID)
-    {
-    	
-    }
-    
+        
     // World Generation
 	private WorldGenDenseOre ironGenerator, goldGenerator;
 	private WorldGenBedrockOre diamondGenerator, magmaGenerator;
@@ -928,19 +426,19 @@ public class WarForgeMod
 		if(event.getWorld().provider.getDimension() == 0)
 		{
 			if(ironGenerator == null)
-				ironGenerator = new WorldGenDenseOre(denseIronOreBlock.getDefaultState(), Blocks.IRON_ORE.getDefaultState(), 
+				ironGenerator = new WorldGenDenseOre(CONTENT.denseIronOreBlock.getDefaultState(), Blocks.IRON_ORE.getDefaultState(), 
 						DENSE_IRON_CELL_SIZE, DENSE_IRON_DEPOSIT_RADIUS, DENSE_IRON_OUTER_SHELL_RADIUS, DENSE_IRON_OUTER_SHELL_CHANCE,
 						DENSE_IRON_MIN_INSTANCES_PER_CELL, DENSE_IRON_MAX_INSTANCES_PER_CELL, DENSE_IRON_MIN_HEIGHT, DENSE_IRON_MAX_HEIGHT);
 			if(goldGenerator == null)
-				goldGenerator = new WorldGenDenseOre(denseGoldOreBlock.getDefaultState(), Blocks.GOLD_ORE.getDefaultState(), 
+				goldGenerator = new WorldGenDenseOre(CONTENT.denseGoldOreBlock.getDefaultState(), Blocks.GOLD_ORE.getDefaultState(), 
 						DENSE_GOLD_CELL_SIZE, DENSE_GOLD_DEPOSIT_RADIUS, DENSE_GOLD_OUTER_SHELL_RADIUS, DENSE_GOLD_OUTER_SHELL_CHANCE,
 						DENSE_GOLD_MIN_INSTANCES_PER_CELL, DENSE_GOLD_MAX_INSTANCES_PER_CELL, DENSE_GOLD_MIN_HEIGHT, DENSE_GOLD_MAX_HEIGHT);
 			if(diamondGenerator == null)
-				diamondGenerator = new WorldGenBedrockOre(denseDiamondOreBlock.getDefaultState(), Blocks.DIAMOND_ORE.getDefaultState(), 
+				diamondGenerator = new WorldGenBedrockOre(CONTENT.denseDiamondOreBlock.getDefaultState(), Blocks.DIAMOND_ORE.getDefaultState(), 
 						DENSE_DIAMOND_CELL_SIZE, DENSE_DIAMOND_DEPOSIT_RADIUS, DENSE_DIAMOND_OUTER_SHELL_RADIUS, DENSE_DIAMOND_OUTER_SHELL_CHANCE,
 						DENSE_DIAMOND_MIN_INSTANCES_PER_CELL, DENSE_DIAMOND_MAX_INSTANCES_PER_CELL, DENSE_DIAMOND_MIN_HEIGHT, DENSE_DIAMOND_MAX_HEIGHT);
 			if(magmaGenerator == null)
-				magmaGenerator = new WorldGenBedrockOre(magmaVentBlock.getDefaultState(), Blocks.LAVA.getDefaultState(), 
+				magmaGenerator = new WorldGenBedrockOre(CONTENT.magmaVentBlock.getDefaultState(), Blocks.LAVA.getDefaultState(), 
 						MAGMA_VENT_CELL_SIZE, MAGMA_VENT_DEPOSIT_RADIUS, MAGMA_VENT_OUTER_SHELL_RADIUS, MAGMA_VENT_OUTER_SHELL_CHANCE,
 						MAGMA_VENT_MIN_INSTANCES_PER_CELL, MAGMA_VENT_MAX_INSTANCES_PER_CELL, MAGMA_VENT_MIN_HEIGHT, MAGMA_VENT_MAX_HEIGHT);
 		
@@ -1104,27 +602,7 @@ public class WarForgeMod
 	
 	private void ReadFromNBT(NBTTagCompound tags)
 	{
-		NBTTagList list = tags.getTagList("factions", 10); // Compound Tag
-		
-		mFactions.clear();
-		mClaims.clear();
-		
-		for(NBTBase baseTag : list)
-		{
-			NBTTagCompound factionTags = ((NBTTagCompound)baseTag);
-			UUID uuid = factionTags.getUniqueId("id");
-			Faction faction = new Faction();
-			faction.mUUID = uuid;
-			faction.ReadFromNBT(factionTags);
-			mFactions.put(uuid, faction);
-			sLeaderboard.RegisterFaction(faction);
-			
-			// Also populate the DimChunkPos lookup table
-			for(DimBlockPos blockPos : faction.mClaims.keySet())
-			{
-				mClaims.put(blockPos.ToChunkPos(), uuid);
-			}
-		}
+		FACTIONS.ReadFromNBT(tags);
 		
 		timestampOfFirstDay = tags.getLong("zero-timestamp");
 		numberOfSiegeDaysTicked = tags.getLong("num-days-elapsed");
@@ -1133,17 +611,8 @@ public class WarForgeMod
 	
 	private void WriteToNBT(NBTTagCompound tags)
 	{
-		NBTTagList factionList = new NBTTagList();
+		FACTIONS.WriteToNBT(tags);
 		
-		for(HashMap.Entry<UUID, Faction> kvp : mFactions.entrySet())
-		{
-			NBTTagCompound factionTags = new NBTTagCompound();
-			factionTags.setUniqueId("id", kvp.getKey());
-			kvp.getValue().WriteToNBT(factionTags);
-			factionList.appendTag(factionTags);
-		}
-		
-		tags.setTag("factions", factionList);
 		tags.setLong("zero-timestamp", timestampOfFirstDay);
 		tags.setLong("num-days-elapsed", numberOfSiegeDaysTicked);
 		tags.setLong("num-yields-awarded", numberOfYieldDaysTicked);
@@ -1180,11 +649,11 @@ public class WarForgeMod
 		{
 			NBTTagCompound tags = CompressedStreamTools.readCompressed(new FileInputStream(getFactionsFile()));
 			ReadFromNBT(tags);
-			sLogger.info("Successfully loaded warforgefactions.dat");
+			LOGGER.info("Successfully loaded warforgefactions.dat");
 		}
 		catch(Exception e)
 		{
-			sLogger.error("Failed to load warforgefactions.dat");
+			LOGGER.error("Failed to load warforgefactions.dat");
 			e.printStackTrace();
 		}
 	}
@@ -1207,12 +676,12 @@ public class WarForgeMod
 				}
 				
 				CompressedStreamTools.writeCompressed(tags, new FileOutputStream(factionsFile));
-				sLogger.info("Successfully saved warforgefactions.dat");
+				LOGGER.info("Successfully saved warforgefactions.dat");
 			}
 		}
 		catch(Exception e)
 		{
-			sLogger.error("Failed to save warforgefactions.dat");
+			LOGGER.error("Failed to save warforgefactions.dat");
 			e.printStackTrace();
 		}
 	}

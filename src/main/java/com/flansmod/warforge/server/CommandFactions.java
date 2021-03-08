@@ -68,7 +68,7 @@ public class CommandFactions extends CommandBase
         	switch(args[0])
         	{
         		case "info": 
-        			return getListOfStringsMatchingLastWord(args, WarForgeMod.INSTANCE.GetFactionNames());
+        			return getListOfStringsMatchingLastWord(args, WarForgeMod.FACTIONS.GetFactionNames());
         		case "invite":
         		case "expel":
         			return getListOfStringsMatchingLastWord(args, server.getOnlinePlayerNames());
@@ -92,7 +92,7 @@ public class CommandFactions extends CommandBase
 		Faction faction = null;
 		if(sender instanceof EntityPlayer)
 		{
-			faction = WarForgeMod.INSTANCE.GetFactionOfPlayer(((EntityPlayer)sender).getUniqueID());
+			faction = WarForgeMod.FACTIONS.GetFactionOfPlayer(((EntityPlayer)sender).getUniqueID());
 		}
 		
 		// Argument 0 is subcommand
@@ -138,9 +138,9 @@ public class CommandFactions extends CommandBase
 				// First, resolve the op version where we can specify the faction
 				if(args.length >= 3 && WarForgeMod.IsOp(sender))
 				{
-					faction = WarForgeMod.INSTANCE.GetFaction(args[2]);
+					faction = WarForgeMod.FACTIONS.GetFaction(args[2]);
 					if(faction != null)
-						WarForgeMod.INSTANCE.RequestInvitePlayerToFaction(sender, faction.mUUID, invitee.getUniqueID());
+						WarForgeMod.FACTIONS.RequestInvitePlayerToFaction(sender, faction.mUUID, invitee.getUniqueID());
 					else 
 						sender.sendMessage(new TextComponentString("Could not find faction " + args[2]));
 					
@@ -150,7 +150,7 @@ public class CommandFactions extends CommandBase
 				// Any other case, we assume players can only invite to their own faction
 				if(sender instanceof EntityPlayer)
 				{
-					WarForgeMod.INSTANCE.RequestInvitePlayerToMyFaction((EntityPlayer)sender, invitee.getUniqueID());
+					WarForgeMod.FACTIONS.RequestInvitePlayerToMyFaction((EntityPlayer)sender, invitee.getUniqueID());
 				}	
 
 				break;
@@ -159,7 +159,7 @@ public class CommandFactions extends CommandBase
 			{
 				if(sender instanceof EntityPlayer)
 				{
-					WarForgeMod.INSTANCE.RequestAcceptInvite((EntityPlayer)sender);
+					WarForgeMod.FACTIONS.RequestAcceptInvite((EntityPlayer)sender);
 				}
 				else
 				{
@@ -171,7 +171,7 @@ public class CommandFactions extends CommandBase
 			{
 				if(sender instanceof EntityPlayer && faction != null)
 				{
-					WarForgeMod.INSTANCE.RequestDisbandFaction((EntityPlayer)sender, faction.mUUID);
+					WarForgeMod.FACTIONS.RequestDisbandFaction((EntityPlayer)sender, faction.mUUID);
 				}
 				// TODO: Op case
 				break;
@@ -188,10 +188,10 @@ public class CommandFactions extends CommandBase
 						
 						if(faction == null)
 						{
-							faction = WarForgeMod.INSTANCE.GetFactionOfPlayer(toRemoveID);
+							faction = WarForgeMod.FACTIONS.GetFactionOfPlayer(toRemoveID);
 						}
 						
-						WarForgeMod.INSTANCE.RequestRemovePlayerFromFaction(sender, faction.mUUID, toRemoveID);
+						WarForgeMod.FACTIONS.RequestRemovePlayerFromFaction(sender, faction.mUUID, toRemoveID);
 					}
 				}
 				break;
@@ -201,7 +201,7 @@ public class CommandFactions extends CommandBase
 			{
 				if(sender instanceof EntityPlayer)
 				{
-					WarForgeMod.INSTANCE.RequestRemovePlayerFromFaction(sender, faction.mUUID, ((EntityPlayer) sender).getUniqueID());
+					WarForgeMod.FACTIONS.RequestRemovePlayerFromFaction(sender, faction.mUUID, ((EntityPlayer) sender).getUniqueID());
 				}
 				break;
 			}
@@ -234,11 +234,11 @@ public class CommandFactions extends CommandBase
 					Faction factionToSend = null;
 					if(args.length >= 2)
 					{
-						factionToSend = WarForgeMod.INSTANCE.GetFaction(args[1]);
+						factionToSend = WarForgeMod.FACTIONS.GetFaction(args[1]);
 					}
 					if(factionToSend == null)
 					{
-						factionToSend = WarForgeMod.INSTANCE.GetFactionOfPlayer(((EntityPlayerMP)sender).getUniqueID());
+						factionToSend = WarForgeMod.FACTIONS.GetFactionOfPlayer(((EntityPlayerMP)sender).getUniqueID());
 					}
 					if(factionToSend == null)
 					{
@@ -248,7 +248,7 @@ public class CommandFactions extends CommandBase
 					{
 						PacketFactionInfo packet = new PacketFactionInfo();
 						packet.mInfo = factionToSend.CreateInfo();
-						WarForgeMod.sPacketHandler.sendTo(packet, (EntityPlayerMP)sender);
+						WarForgeMod.NETWORK.sendTo(packet, (EntityPlayerMP)sender);
 					}
 				}
 				break;
@@ -261,8 +261,8 @@ public class CommandFactions extends CommandBase
 				{
 					UUID uuid = ((EntityPlayerMP)sender).getUniqueID();
 					PacketLeaderboardInfo packet = new PacketLeaderboardInfo();
-					packet.mInfo = WarForgeMod.sLeaderboard.CreateInfo(0, FactionStat.TOTAL, uuid);
-					WarForgeMod.sPacketHandler.sendTo(packet, (EntityPlayerMP)sender);
+					packet.mInfo = WarForgeMod.LEADERBOARD.CreateInfo(0, FactionStat.TOTAL, uuid);
+					WarForgeMod.NETWORK.sendTo(packet, (EntityPlayerMP)sender);
 				}
 				break;
 			}
@@ -275,8 +275,8 @@ public class CommandFactions extends CommandBase
 				{
 					UUID uuid = ((EntityPlayerMP)sender).getUniqueID();
 					PacketLeaderboardInfo packet = new PacketLeaderboardInfo();
-					packet.mInfo = WarForgeMod.sLeaderboard.CreateInfo(0, FactionStat.WEALTH, uuid);
-					WarForgeMod.sPacketHandler.sendTo(packet, (EntityPlayerMP)sender);
+					packet.mInfo = WarForgeMod.LEADERBOARD.CreateInfo(0, FactionStat.WEALTH, uuid);
+					WarForgeMod.NETWORK.sendTo(packet, (EntityPlayerMP)sender);
 				}
 				break;
 			}
@@ -289,8 +289,8 @@ public class CommandFactions extends CommandBase
 				{
 					UUID uuid = ((EntityPlayerMP)sender).getUniqueID();
 					PacketLeaderboardInfo packet = new PacketLeaderboardInfo();
-					packet.mInfo = WarForgeMod.sLeaderboard.CreateInfo(0, FactionStat.NOTORIETY, uuid);
-					WarForgeMod.sPacketHandler.sendTo(packet, (EntityPlayerMP)sender);
+					packet.mInfo = WarForgeMod.LEADERBOARD.CreateInfo(0, FactionStat.NOTORIETY, uuid);
+					WarForgeMod.NETWORK.sendTo(packet, (EntityPlayerMP)sender);
 				}
 				break;
 			}
@@ -303,8 +303,8 @@ public class CommandFactions extends CommandBase
 				{
 					UUID uuid = ((EntityPlayerMP)sender).getUniqueID();
 					PacketLeaderboardInfo packet = new PacketLeaderboardInfo();
-					packet.mInfo = WarForgeMod.sLeaderboard.CreateInfo(0, FactionStat.LEGACY, uuid);
-					WarForgeMod.sPacketHandler.sendTo(packet, (EntityPlayerMP)sender);
+					packet.mInfo = WarForgeMod.LEADERBOARD.CreateInfo(0, FactionStat.LEGACY, uuid);
+					WarForgeMod.NETWORK.sendTo(packet, (EntityPlayerMP)sender);
 				}
 				break;
 			}

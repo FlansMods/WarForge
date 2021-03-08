@@ -133,7 +133,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 	{
 		if(!world.isRemote)
 		{
-			Faction faction = WarForgeMod.INSTANCE.GetFaction(mFactionUUID);
+			Faction faction = WarForgeMod.FACTIONS.GetFaction(mFactionUUID);
 			if(faction != null)
 			{
 				int pendingYields = faction.mClaims.get(GetPos());
@@ -145,7 +145,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 			}
 			else if(!mFactionUUID.equals(Faction.NULL))
 			{
-				WarForgeMod.sLogger.error("Loaded YieldCollector with invalid faction");
+				WarForgeMod.LOGGER.error("Loaded YieldCollector with invalid faction");
 			}
 		}
 		
@@ -178,10 +178,10 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 		mFactionUUID = nbt.getUniqueId("faction");
 		if(FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER)
 		{
-			Faction faction = WarForgeMod.INSTANCE.GetFaction(mFactionUUID);
+			Faction faction = WarForgeMod.FACTIONS.GetFaction(mFactionUUID);
 			if(!mFactionUUID.equals(Faction.NULL) && faction == null)
 			{
-				WarForgeMod.sLogger.error("Faction " + mFactionUUID + " could not be found for citadel at " + pos);
+				WarForgeMod.LOGGER.error("Faction " + mFactionUUID + " could not be found for citadel at " + pos);
 				//world.setBlockState(getPos(), Blocks.AIR.getDefaultState());
 			}
 			if(faction != null)
@@ -192,7 +192,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 		}
 		else
 		{
-			WarForgeMod.sLogger.error("Loaded TileEntity from NBT on client?");
+			WarForgeMod.LOGGER.error("Loaded TileEntity from NBT on client?");
 		}
 		
 		// Read inventory, or as much as we can find
@@ -307,7 +307,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 	@Override
 	public boolean isUsableByPlayer(EntityPlayer player) 
 	{
-		return mFactionUUID.equals(Faction.NULL) || WarForgeMod.INSTANCE.IsPlayerInFaction(player.getUniqueID(), mFactionUUID);
+		return mFactionUUID.equals(Faction.NULL) || WarForgeMod.FACTIONS.IsPlayerInFaction(player.getUniqueID(), mFactionUUID);
 	}
 	@Override
 	public void openInventory(EntityPlayer player) { }

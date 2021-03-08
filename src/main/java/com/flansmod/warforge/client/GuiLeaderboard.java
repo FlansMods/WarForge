@@ -70,7 +70,7 @@ public class GuiLeaderboard extends GuiScreen
 		PacketRequestLeaderboardInfo packet = new PacketRequestLeaderboardInfo();
 		packet.mFirstIndex = 0;
 		packet.mStat = stat;
-		WarForgeMod.sPacketHandler.sendToServer(packet);
+		WarForgeMod.NETWORK.sendToServer(packet);
 	}
 	
 	@Override

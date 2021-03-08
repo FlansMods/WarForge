@@ -50,7 +50,7 @@ public class CommonProxy implements IGuiHandler
 		if(FMLCommonHandler.instance().getSide() == Side.SERVER)
 			return WarForgeMod.MC_SERVER.getWorld(pos.mDim).getTileEntity(pos.ToRegularPos());
 		
-		WarForgeMod.sLogger.error("GetTile failed");
+		WarForgeMod.LOGGER.error("GetTile failed");
 		return null;
 	}
 

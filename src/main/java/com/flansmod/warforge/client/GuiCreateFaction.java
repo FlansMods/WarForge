@@ -68,7 +68,7 @@ public class GuiCreateFaction extends GuiScreen
 				PacketCreateFaction packet = new PacketCreateFaction();
 				packet.mCitadelPos = new DimBlockPos(citadel.getWorld().provider.getDimension(), citadel.getPos());
 				packet.mFactionName = inputField.getText();
-				WarForgeMod.INSTANCE.sPacketHandler.sendToServer(packet);
+				WarForgeMod.INSTANCE.NETWORK.sendToServer(packet);
 				mc.displayGuiScreen(null);
 				
 				break;

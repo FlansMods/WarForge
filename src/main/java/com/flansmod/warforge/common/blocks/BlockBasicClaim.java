@@ -52,7 +52,7 @@ public class BlockBasicClaim extends Block implements ITileEntityProvider
 	@Override
 	public TileEntity createNewTileEntity(World worldIn, int meta)
 	{
-		if(this == WarForgeMod.basicClaimBlock)
+		if(this == WarForgeMod.CONTENT.basicClaimBlock)
 			return new TileEntityBasicClaim();
 		else
 			return new TileEntityReinforcedClaim();
@@ -64,7 +64,7 @@ public class BlockBasicClaim extends Block implements ITileEntityProvider
 		if(!world.isRemote)
 		{
 			// Can't claim a chunk claimed by another faction
-			UUID existingClaim = WarForgeMod.INSTANCE.GetClaim(new DimChunkPos(world.provider.getDimension(), pos));
+			UUID existingClaim = WarForgeMod.FACTIONS.GetClaim(new DimChunkPos(world.provider.getDimension(), pos));
 			if(!existingClaim.equals(Faction.NULL))
 				return false;
 					
@@ -85,7 +85,7 @@ public class BlockBasicClaim extends Block implements ITileEntityProvider
 			if(te != null)
 			{
 				TileEntityBasicClaim claim = (TileEntityBasicClaim)te;
-				WarForgeMod.INSTANCE.OnNonCitadelClaimPlaced(claim, placer);
+				WarForgeMod.FACTIONS.OnNonCitadelClaimPlaced(claim, placer);
 			}
 		}
     }
@@ -97,18 +97,18 @@ public class BlockBasicClaim extends Block implements ITileEntityProvider
 			return false;
 		if(!world.isRemote)
 		{
-			Faction playerFaction = WarForgeMod.INSTANCE.GetFactionOfPlayer(player.getUniqueID());
+			Faction playerFaction = WarForgeMod.FACTIONS.GetFactionOfPlayer(player.getUniqueID());
 			TileEntityBasicClaim claimTE = (TileEntityBasicClaim)world.getTileEntity(pos);
 			
 			// Any factionless players, and players who aren't in this faction get an info panel			
 			if(playerFaction == null || playerFaction.mUUID != claimTE.mFactionUUID)
 			{
-				Faction citadelFaction = WarForgeMod.INSTANCE.GetFaction(claimTE.mFactionUUID);
+				Faction citadelFaction = WarForgeMod.FACTIONS.GetFaction(claimTE.mFactionUUID);
 				if(citadelFaction != null)
 				{
 					PacketFactionInfo packet = new PacketFactionInfo();
 					packet.mInfo = citadelFaction.CreateInfo();
-					WarForgeMod.INSTANCE.sPacketHandler.sendTo(packet, (EntityPlayerMP) player);
+					WarForgeMod.INSTANCE.NETWORK.sendTo(packet, (EntityPlayerMP) player);
 				}
 				else
 				{

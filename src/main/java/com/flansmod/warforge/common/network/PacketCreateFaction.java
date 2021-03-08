@@ -45,14 +45,14 @@ public class PacketCreateFaction extends PacketBase
 	{
 		if(playerEntity.dimension != mCitadelPos.mDim)
 		{
-			WarForgeMod.sLogger.error("Player requested creating a faction in the wrong dim");
+			WarForgeMod.LOGGER.error("Player requested creating a faction in the wrong dim");
 		}
 		else
 		{
 			TileEntity te = playerEntity.world.getTileEntity(mCitadelPos.ToRegularPos());
 			if(te != null && te instanceof TileEntityCitadel)
 			{
-				WarForgeMod.INSTANCE.RequestCreateFaction((TileEntityCitadel)te, playerEntity, mFactionName);
+				WarForgeMod.FACTIONS.RequestCreateFaction((TileEntityCitadel)te, playerEntity, mFactionName);
 			}
 		}
 	}
@@ -60,7 +60,7 @@ public class PacketCreateFaction extends PacketBase
 	@Override
 	public void handleClientSide(EntityPlayer clientPlayer) 
 	{
-		WarForgeMod.sLogger.error("Recieved create faction message on client");
+		WarForgeMod.LOGGER.error("Recieved create faction message on client");
 	}
 	
 }

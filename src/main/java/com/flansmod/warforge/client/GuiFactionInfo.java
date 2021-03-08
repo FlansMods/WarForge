@@ -213,7 +213,7 @@ public class GuiFactionInfo extends GuiScreen
 				}
 				else
 				{
-					WarForgeMod.sLogger.error("Pressed a button with unknown player index");
+					WarForgeMod.LOGGER.error("Pressed a button with unknown player index");
 				}
 				break;
 			}
