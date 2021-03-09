@@ -81,6 +81,7 @@ public class ClientProxy extends CommonProxy
 		RegisterModel(WarForgeMod.CONTENT.basicClaimBlockItem);
 		RegisterModel(WarForgeMod.CONTENT.reinforcedClaimBlockItem);
 		RegisterModel(WarForgeMod.CONTENT.siegeCampBlockItem);
+		RegisterModel(WarForgeMod.CONTENT.adminClaimBlockItem);
 		
 		RegisterModel(WarForgeMod.CONTENT.denseIronOreItem);
 		RegisterModel(WarForgeMod.CONTENT.denseGoldOreItem);

@@ -1,9 +1,11 @@
 package com.flansmod.warforge.common;
 
+import com.flansmod.warforge.common.blocks.BlockAdminClaim;
 import com.flansmod.warforge.common.blocks.BlockBasicClaim;
 import com.flansmod.warforge.common.blocks.BlockCitadel;
 import com.flansmod.warforge.common.blocks.BlockSiegeCamp;
 import com.flansmod.warforge.common.blocks.BlockYieldProvider;
+import com.flansmod.warforge.common.blocks.TileEntityAdminClaim;
 import com.flansmod.warforge.common.blocks.TileEntityBasicClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
 import com.flansmod.warforge.common.blocks.TileEntityReinforcedClaim;
@@ -30,6 +32,9 @@ public class Content
 	public Block denseIronOreBlock, denseGoldOreBlock, denseDiamondOreBlock, magmaVentBlock;
 	public Item denseIronOreItem, denseGoldOreItem, denseDiamondOreItem, magmaVentItem;
 	
+	public Block adminClaimBlock;
+	public Item adminClaimBlockItem;
+	
 	public void preInit()
 	{
         citadelBlock = new BlockCitadel(Material.ROCK).setRegistryName("citadelblock").setUnlocalizedName("citadelblock");
@@ -48,6 +53,12 @@ public class Content
         siegeCampBlock = new BlockSiegeCamp(Material.ROCK).setRegistryName("siegecampblock").setUnlocalizedName("siegecampblock");
         siegeCampBlockItem = new ItemBlock(siegeCampBlock).setRegistryName("siegecampblock").setUnlocalizedName("siegecampblock");
         GameRegistry.registerTileEntity(TileEntitySiegeCamp.class, new ResourceLocation(WarForgeMod.MODID, "siegecamp"));
+ 
+        // Admin claim block
+        adminClaimBlock = new BlockAdminClaim().setRegistryName("adminclaimblock").setUnlocalizedName("adminclaimblock");
+        adminClaimBlockItem = new ItemBlock(adminClaimBlock).setRegistryName("adminclaimblock").setUnlocalizedName("adminclaimblock");
+        GameRegistry.registerTileEntity(TileEntityAdminClaim.class, new ResourceLocation(WarForgeMod.MODID, "adminclaim"));
+ 
         
         denseIronOreBlock = new BlockYieldProvider(Material.ROCK, WarForgeMod.IRON_YIELD_AS_ORE ? new ItemStack(Blocks.IRON_ORE) : new ItemStack(Items.IRON_INGOT), WarForgeMod.NUM_IRON_PER_DAY_PER_ORE).setRegistryName("denseironore").setUnlocalizedName("denseironore");
         denseGoldOreBlock = new BlockYieldProvider(Material.ROCK, WarForgeMod.GOLD_YIELD_AS_ORE ? new ItemStack(Blocks.GOLD_ORE) : new ItemStack(Items.GOLD_INGOT), WarForgeMod.NUM_GOLD_PER_DAY_PER_ORE).setRegistryName("densegoldore").setUnlocalizedName("densegoldore");
@@ -59,6 +70,8 @@ public class Content
         denseDiamondOreItem = new ItemBlock(denseDiamondOreBlock).setRegistryName("densediamondore").setUnlocalizedName("densediamondore");
         magmaVentItem = new ItemBlock(magmaVentBlock).setRegistryName("magmavent").setUnlocalizedName("magmavent");
     
+        
+        
         MinecraftForge.EVENT_BUS.register(this);
 	}
 	
@@ -69,6 +82,7 @@ public class Content
 		event.getRegistry().register(basicClaimBlockItem);
 		event.getRegistry().register(reinforcedClaimBlockItem);
 		event.getRegistry().register(siegeCampBlockItem);
+		event.getRegistry().register(adminClaimBlockItem);
 		event.getRegistry().register(denseIronOreItem);
 		event.getRegistry().register(denseGoldOreItem);
 		event.getRegistry().register(denseDiamondOreItem);
@@ -83,6 +97,7 @@ public class Content
 		event.getRegistry().register(basicClaimBlock);
 		event.getRegistry().register(reinforcedClaimBlock);
 		event.getRegistry().register(siegeCampBlock);
+		event.getRegistry().register(adminClaimBlock);
 		event.getRegistry().register(denseIronOreBlock);
 		event.getRegistry().register(denseGoldOreBlock);
 		event.getRegistry().register(denseDiamondOreBlock);

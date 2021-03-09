@@ -85,6 +85,7 @@ public class BlockBasicClaim extends Block implements ITileEntityProvider
 			if(te != null)
 			{
 				TileEntityBasicClaim claim = (TileEntityBasicClaim)te;
+
 				WarForgeMod.FACTIONS.OnNonCitadelClaimPlaced(claim, placer);
 			}
 		}

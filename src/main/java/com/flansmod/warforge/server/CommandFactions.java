@@ -7,6 +7,9 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
+import com.flansmod.warforge.common.DimBlockPos;
+import com.flansmod.warforge.common.DimChunkPos;
+import com.flansmod.warforge.common.Protections;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.common.network.LeaderboardInfo;
 import com.flansmod.warforge.common.network.PacketFactionInfo;
@@ -53,6 +56,11 @@ public class CommandFactions extends CommandBase
 	
 	private static final String[] tabCompletions = new String[] { 
 			"invite", "accept", "disband", "expel", "leave", "time", "info", "top", "notoriety", "wealth", "legacy",
+	};
+	
+	private static final String[] tabCompletionsOp = new String[] { 
+			"invite", "accept", "disband", "expel", "leave", "time", "info", "top", "notoriety", "wealth", "legacy",
+			"safe", "war", "protection",
 	};
 	
 	@Override
@@ -111,6 +119,13 @@ public class CommandFactions extends CommandBase
 				sender.sendMessage(new TextComponentString("/f wealth"));
 				sender.sendMessage(new TextComponentString("/f legacy"));
 				sender.sendMessage(new TextComponentString("/f notoriety"));
+				
+				if(WarForgeMod.IsOp(sender))
+				{
+					sender.sendMessage(new TextComponentString("/f safezone"));
+					sender.sendMessage(new TextComponentString("/f warzone"));
+				}
+				
 				break;
 			}
 		
@@ -305,6 +320,70 @@ public class CommandFactions extends CommandBase
 					PacketLeaderboardInfo packet = new PacketLeaderboardInfo();
 					packet.mInfo = WarForgeMod.LEADERBOARD.CreateInfo(0, FactionStat.LEGACY, uuid);
 					WarForgeMod.NETWORK.sendTo(packet, (EntityPlayerMP)sender);
+				}
+				break;
+			}
+			case "safe":
+			case "safezone":
+			case "claimsafe":
+			{
+				if(WarForgeMod.IsOp(sender))
+				{
+					if(sender instanceof EntityPlayer)
+					{
+						EntityPlayer player = (EntityPlayer)sender;
+						DimChunkPos pos = new DimBlockPos(player.dimension, player.getPosition()).ToChunkPos();
+						WarForgeMod.FACTIONS.RequestOpClaim(player, pos, FactionStorage.SAFE_ZONE_ID);
+					}
+					else
+					{
+						sender.sendMessage(new TextComponentString("Use an in-game operator account."));
+					}
+				}
+				else
+				{
+					sender.sendMessage(new TextComponentString("You are not op."));
+				}
+				break;
+			}
+			case "warzone":
+			case "war":
+			case "claimwarzone":
+			{
+				if(WarForgeMod.IsOp(sender))
+				{
+					if(sender instanceof EntityPlayer)
+					{
+						EntityPlayer player = (EntityPlayer)sender;
+						DimChunkPos pos = new DimBlockPos(player.dimension, player.getPosition()).ToChunkPos();
+						WarForgeMod.FACTIONS.RequestOpClaim(player, pos, FactionStorage.WAR_ZONE_ID);
+					}
+					else
+					{
+						sender.sendMessage(new TextComponentString("Use an in-game operator account."));
+					}
+				}
+				else
+				{
+					sender.sendMessage(new TextComponentString("You are not op."));
+				}
+				break;
+			}
+			case "opProtection":
+			case "protection":
+			case "protectionOverride":
+			{
+				if(WarForgeMod.IsOp(sender))
+				{
+					Protections.OP_OVERRIDE = !Protections.OP_OVERRIDE;
+					if(Protections.OP_OVERRIDE)
+						sender.sendMessage(new TextComponentString("Admins can now build in protected areas."));
+					else
+						sender.sendMessage(new TextComponentString("Admins can no longer build in protected areas."));
+				}
+				else
+				{
+					sender.sendMessage(new TextComponentString("You are not op."));
 				}
 				break;
 			}

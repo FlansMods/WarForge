@@ -35,6 +35,37 @@ public class FactionStorage
     // This is all the currently active sieges, keyed by the defending position
     private HashMap<DimChunkPos, Siege> mSieges = new HashMap<DimChunkPos, Siege>();
     
+    
+    // SafeZone and WarZone
+    public static UUID SAFE_ZONE_ID = Faction.CreateUUID("safezone");
+    public static UUID WAR_ZONE_ID = Faction.CreateUUID("warzone");
+    public static Faction SAFE_ZONE = null;
+    public static Faction WAR_ZONE = null;
+    public static boolean IsNeutralZone(UUID factionID) { return factionID.equals(SAFE_ZONE_ID) || factionID.equals(WAR_ZONE_ID); }
+    
+    public FactionStorage()
+    {
+    	InitNeutralZones();
+    }
+    
+    private void InitNeutralZones()
+    {
+    	SAFE_ZONE = new Faction();
+    	SAFE_ZONE.mCitadelPos = new DimBlockPos(0,0,0,0); // Overworld origin
+    	SAFE_ZONE.mColour = 0x00ff00;
+    	SAFE_ZONE.mName = "SafeZone";
+    	SAFE_ZONE.mUUID = SAFE_ZONE_ID;
+    	mFactions.put(SAFE_ZONE_ID, SAFE_ZONE);
+    	
+    	WAR_ZONE = new Faction();
+    	WAR_ZONE.mCitadelPos = new DimBlockPos(0,0,0,0); // Overworld origin
+    	WAR_ZONE.mColour = 0xff0000;
+    	WAR_ZONE.mName = "WarZone";
+    	WAR_ZONE.mUUID = WAR_ZONE_ID;
+    	mFactions.put(WAR_ZONE_ID, WAR_ZONE);
+    	// Note: We specifically do not put this data in the leaderboard
+    }
+    
     public boolean IsPlayerInFaction(UUID playerID, UUID factionID)
     {
     	if(mFactions.containsKey(factionID))
@@ -97,21 +128,21 @@ public class FactionStorage
     // This is called for any non-citadel claim. Citadels can be factionless, so this makes no sense
 	public void OnNonCitadelClaimPlaced(IClaim claim, EntityLivingBase placer) 
 	{
-		if(!placer.world.isRemote)
+		OnNonCitadelClaimPlaced(claim, GetFactionOfPlayer(placer.getUniqueID()));
+	}
+	
+	public void OnNonCitadelClaimPlaced(IClaim claim, Faction faction) 
+	{		
+		if(faction != null)
 		{
-			Faction faction = GetFactionOfPlayer(placer.getUniqueID());
+			TileEntity tileEntity = claim.GetAsTileEntity();
+			mClaims.put(claim.GetPos().ToChunkPos(), faction.mUUID);
 			
-			if(faction != null)
-			{
-				TileEntity tileEntity = claim.GetAsTileEntity();
-				mClaims.put(claim.GetPos().ToChunkPos(), faction.mUUID);
-				
-				claim.OnServerSetFaction(faction);
-				faction.OnClaimPlaced(claim);
-			}
-			else
-				WarForgeMod.LOGGER.error("Invalid placer placed a claim at " + claim.GetPos());
+			claim.OnServerSetFaction(faction);
+			faction.OnClaimPlaced(claim);
 		}
+		else
+			WarForgeMod.LOGGER.error("Invalid placer placed a claim at " + claim.GetPos());
 	}
 	
 	public UUID GetClaim(DimBlockPos pos)
@@ -248,6 +279,26 @@ public class FactionStorage
     	{
     		player.sendMessage(new TextComponentString("You can't create a faction with no name"));
     		return false;
+    	}
+    	
+    	if(factionName.length() > WarForgeMod.FACTION_NAME_LENGTH_MAX)
+    	{
+    		player.sendMessage(new TextComponentString("Name is too long, must be at most " + WarForgeMod.FACTION_NAME_LENGTH_MAX + " characters"));
+			return false;
+    	}
+    	
+    	for(int i = 0; i < factionName.length(); i++)
+    	{
+    		char c = factionName.charAt(i);
+    		if('0' <= c && c <= '9')
+    			continue;
+    		if('a' <= c && c <= 'z')
+    			continue;
+    		if('A' <= c && c <= 'Z')
+    			continue;
+    		
+    		player.sendMessage(new TextComponentString("Invalid character [" + c + "] in faction name"));
+			return false;
     	}
     	
     	Faction existingFaction = GetFactionOfPlayer(player.getUniqueID());
@@ -470,6 +521,39 @@ public class FactionStorage
     	return true;
     }
     
+	public boolean RequestOpClaim(EntityPlayer op, DimChunkPos pos, UUID factionID) 
+	{
+		Faction zone = GetFaction(factionID);
+		if(zone == null)
+		{
+			op.sendMessage(new TextComponentString("Could not find that faction"));
+			return false;
+		}
+		
+		UUID existingClaim = GetClaim(pos);
+		if(!existingClaim.equals(Faction.NULL))
+		{
+			op.sendMessage(new TextComponentString("There is already a claim here"));
+			return false;
+		}
+		
+		// Place a bedrock tile entity at 0,0,0 chunk coords
+		// This might look a bit dodge in End. It's only for admin claims though
+		DimBlockPos tePos = new DimBlockPos(pos.mDim, pos.getXStart(), 0, pos.getZStart());
+		op.world.setBlockState(tePos.ToRegularPos(), WarForgeMod.CONTENT.adminClaimBlock.getDefaultState());
+		TileEntity te = op.world.getTileEntity(tePos.ToRegularPos());
+		if(te == null || !(te instanceof IClaim))
+		{
+			op.sendMessage(new TextComponentString("Placing admin claim block failed"));
+			return false;
+		}
+		
+		OnNonCitadelClaimPlaced((IClaim)te, zone);
+		op.sendMessage(new TextComponentString("Claimed " + pos + " for faction " + zone.mName));
+		
+		return true;
+	}
+    
     public void SendSiegeInfoToNearby(DimChunkPos siegePos)
     {
     	Siege siege = mSieges.get(siegePos);
@@ -485,10 +569,37 @@ public class FactionStorage
     	}
     }
     
+	public int GetAdjacentClaims(UUID excludingFaction, DimChunkPos pos, ArrayList<DimChunkPos> positions)
+	{
+		positions.clear();
+		DimChunkPos north = pos.North();
+		DimChunkPos east = pos.East();
+		DimChunkPos south = pos.South();
+		DimChunkPos west = pos.West();
+		if(IsClaimed(excludingFaction, north))
+			positions.add(north);
+		if(IsClaimed(excludingFaction, east))
+			positions.add(east);
+		if(IsClaimed(excludingFaction, south))
+			positions.add(south);
+		if(IsClaimed(excludingFaction, west))
+			positions.add(west);
+		return positions.size();
+	}
+	
+	public boolean IsClaimed(UUID excludingFaction, DimChunkPos pos)
+	{
+		UUID factionID = GetClaim(pos);
+		return factionID != null && !factionID.equals(excludingFaction) && !factionID.equals(Faction.NULL);
+	}
+	
+    
     public void ReadFromNBT(NBTTagCompound tags)
 	{
     	mFactions.clear();
 		mClaims.clear();
+		
+		InitNeutralZones();
 		
 		NBTTagList list = tags.getTagList("factions", 10); // Compound Tag
 		
@@ -496,11 +607,26 @@ public class FactionStorage
 		{
 			NBTTagCompound factionTags = ((NBTTagCompound)baseTag);
 			UUID uuid = factionTags.getUniqueId("id");
-			Faction faction = new Faction();
-			faction.mUUID = uuid;
+			Faction faction;
+			
+			
+			if(uuid.equals(SAFE_ZONE_ID))
+			{
+				faction = SAFE_ZONE;
+			}
+			else if(uuid.equals(WAR_ZONE_ID))
+			{
+				faction = WAR_ZONE;
+			}
+			else
+			{
+				faction = new Faction();
+				faction.mUUID = uuid;
+				mFactions.put(uuid, faction);
+				WarForgeMod.LEADERBOARD.RegisterFaction(faction);
+			}
+			
 			faction.ReadFromNBT(factionTags);
-			mFactions.put(uuid, faction);
-			WarForgeMod.LEADERBOARD.RegisterFaction(faction);
 			
 			// Also populate the DimChunkPos lookup table
 			for(DimBlockPos blockPos : faction.mClaims.keySet())

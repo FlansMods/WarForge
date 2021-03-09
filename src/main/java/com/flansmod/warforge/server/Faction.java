@@ -269,6 +269,11 @@ public class Faction
 		
 		mClaims.remove(claimBlockPos);
 	}
+
+	public void ClaimNoTileEntity(DimChunkPos pos) 
+	{
+		mClaims.put(new DimBlockPos(pos.mDim, pos.getXStart(), 0, pos.getZStart()), 0);
+	}
 	
 	// Messaging
 	public void MessageAll(ITextComponent chat)
@@ -350,6 +355,7 @@ public class Faction
 		// Get citadel pos and defining params
 		mUUID = tags.getUniqueId("uuid");
 		mName = tags.getString("name");
+		mColour = tags.getInteger("colour");
 		
 		// Get our claims and citadel
 		mCitadelPos = DimBlockPos.ReadFromNBT(tags, "citadelPos");
@@ -398,6 +404,7 @@ public class Faction
 		// Set citadel pos and core params
 		tags.setUniqueId("uuid", mUUID);
 		tags.setString("name", mName);
+		tags.setInteger("colour", mColour);
 		
 		// Set claims
 		NBTTagList claimsList = new NBTTagList();
