@@ -117,11 +117,14 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 		
 		for(HashMap.Entry<BlockYieldProvider, Integer> kvp : count.entrySet())
 		{
-			ItemStack stack = kvp.getKey().mYieldToProvide.copy();
-			stack.setCount(MathHelper.ceil(kvp.getValue() * numYields * kvp.getKey().mMultiplier * GetYieldMultiplier()));
-			if(!InventoryHelper.addItemStackToInventory(this, stack, false))
+			if(kvp.getKey().mMultiplier > 0.0f)
 			{
-				
+				ItemStack stack = kvp.getKey().mYieldToProvide.copy();
+				stack.setCount(MathHelper.ceil(kvp.getValue() * numYields * kvp.getKey().mMultiplier * GetYieldMultiplier()));
+				if(!InventoryHelper.addItemStackToInventory(this, stack, false))
+				{
+					
+				}
 			}
 		}
 		

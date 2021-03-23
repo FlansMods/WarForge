@@ -22,6 +22,7 @@ import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.text.TextComponentString;
 
@@ -198,12 +199,12 @@ public class FactionStorage
     	}
     }
     
-    public void PlayerDied(EntityPlayerMP player)
+    public void PlayerDied(EntityPlayerMP player, DamageSource source)
     {
 		Faction faction = GetFactionOfPlayer(player.getUniqueID());
     	
 		if(faction != null)
-		{
+		{			
 	    	for(HashMap.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
 			{
 				// If the player is on the attackers side, send the event
@@ -219,6 +220,15 @@ public class FactionStorage
 			}
 	    	
 	    	CheckForCompleteSieges();
+		}
+		
+		if(source.getTrueSource() instanceof EntityPlayer)
+		{
+			Faction killerFac = GetFactionOfPlayer(source.getTrueSource().getUniqueID());
+			if(killerFac != null)
+				killerFac.mNotoriety += WarForgeMod.NOTORIETY_PER_PLAYER_KILL;
+			
+			((EntityPlayer)source.getTrueSource()).sendMessage(new TextComponentString("Killing " + player.getName() + " earned your faction " + WarForgeMod.NOTORIETY_PER_PLAYER_KILL + " notoriety"));
 		}
     }
     
@@ -253,11 +263,13 @@ public class FactionStorage
 				defenders.OnClaimLost(blockPos);
 				mClaims.remove(blockPos.ToChunkPos());
 				attackers.MessageAll(new TextComponentString("Our faction won the siege on " + defenders.mName + " at " + blockPos.ToFancyString()));
+				attackers.mNotoriety += WarForgeMod.NOTORIETY_PER_SIEGE_ATTACK_SUCCESS;
 			}
 			else
 			{
 				attackers.MessageAll(new TextComponentString("Our siege on " + defenders.mName + " at " + blockPos.ToFancyString() + " was unsuccessful"));
 				defenders.MessageAll(new TextComponentString(attackers.mName + "'s siege on " + blockPos.ToFancyString() + " was unsuccessful"));
+				defenders.mNotoriety += WarForgeMod.NOTORIETY_PER_SIEGE_DEFEND_SUCCESS;
 			}
 			
 			siege.OnCompleted();
@@ -549,6 +561,7 @@ public class FactionStorage
 		}
 		
 		OnNonCitadelClaimPlaced((IClaim)te, zone);
+		
 		op.sendMessage(new TextComponentString("Claimed " + pos + " for faction " + zone.mName));
 		
 		return true;

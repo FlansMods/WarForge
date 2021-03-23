@@ -3,13 +3,16 @@ package com.flansmod.warforge.common;
 import com.flansmod.warforge.common.blocks.BlockAdminClaim;
 import com.flansmod.warforge.common.blocks.BlockBasicClaim;
 import com.flansmod.warforge.common.blocks.BlockCitadel;
+import com.flansmod.warforge.common.blocks.BlockLeaderboard;
 import com.flansmod.warforge.common.blocks.BlockSiegeCamp;
 import com.flansmod.warforge.common.blocks.BlockYieldProvider;
 import com.flansmod.warforge.common.blocks.TileEntityAdminClaim;
 import com.flansmod.warforge.common.blocks.TileEntityBasicClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
+import com.flansmod.warforge.common.blocks.TileEntityLeaderboard;
 import com.flansmod.warforge.common.blocks.TileEntityReinforcedClaim;
 import com.flansmod.warforge.common.blocks.TileEntitySiegeCamp;
+import com.flansmod.warforge.server.Leaderboard.FactionStat;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -34,6 +37,10 @@ public class Content
 	
 	public Block adminClaimBlock;
 	public Item adminClaimBlockItem;
+	
+	public Block topLeaderboardBlock, notorietyLeaderboardBlock, wealthLeaderboardBlock, legacyLeaderboardBlock;
+	public Item topLeaderboardItem, notorietyLeaderboardItem, wealthLeaderboardItem, legacyLeaderboardItem;
+	
 	
 	public void preInit()
 	{
@@ -63,14 +70,23 @@ public class Content
         denseIronOreBlock = new BlockYieldProvider(Material.ROCK, WarForgeMod.IRON_YIELD_AS_ORE ? new ItemStack(Blocks.IRON_ORE) : new ItemStack(Items.IRON_INGOT), WarForgeMod.NUM_IRON_PER_DAY_PER_ORE).setRegistryName("denseironore").setUnlocalizedName("denseironore");
         denseGoldOreBlock = new BlockYieldProvider(Material.ROCK, WarForgeMod.GOLD_YIELD_AS_ORE ? new ItemStack(Blocks.GOLD_ORE) : new ItemStack(Items.GOLD_INGOT), WarForgeMod.NUM_GOLD_PER_DAY_PER_ORE).setRegistryName("densegoldore").setUnlocalizedName("densegoldore");
         denseDiamondOreBlock = new BlockYieldProvider(Material.ROCK, WarForgeMod.DIAMOND_YIELD_AS_ORE ? new ItemStack(Blocks.DIAMOND_ORE) : new ItemStack(Items.DIAMOND), WarForgeMod.NUM_DIAMOND_PER_DAY_PER_ORE).setRegistryName("densediamondore").setUnlocalizedName("densediamondore");
-        magmaVentBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.LAVA_BUCKET), 0.01f).setRegistryName("magmavent").setUnlocalizedName("magmavent");
+        magmaVentBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.LAVA_BUCKET), 0.0f).setRegistryName("magmavent").setUnlocalizedName("magmavent");
         
         denseIronOreItem = new ItemBlock(denseIronOreBlock).setRegistryName("denseironore").setUnlocalizedName("denseironore");
         denseGoldOreItem = new ItemBlock(denseGoldOreBlock).setRegistryName("densegoldore").setUnlocalizedName("densegoldore");
         denseDiamondOreItem = new ItemBlock(denseDiamondOreBlock).setRegistryName("densediamondore").setUnlocalizedName("densediamondore");
         magmaVentItem = new ItemBlock(magmaVentBlock).setRegistryName("magmavent").setUnlocalizedName("magmavent");
     
+        topLeaderboardBlock = new BlockLeaderboard(Material.ROCK, FactionStat.TOTAL).setRegistryName("topleaderboard").setUnlocalizedName("topleaderboard");
+        wealthLeaderboardBlock = new BlockLeaderboard(Material.ROCK, FactionStat.WEALTH).setRegistryName("wealthleaderboard").setUnlocalizedName("wealthleaderboard");
+        notorietyLeaderboardBlock = new BlockLeaderboard(Material.ROCK, FactionStat.NOTORIETY).setRegistryName("notorietyleaderboard").setUnlocalizedName("notorietyleaderboard");
+        legacyLeaderboardBlock = new BlockLeaderboard(Material.ROCK, FactionStat.LEGACY).setRegistryName("legacyleaderboard").setUnlocalizedName("legacyleaderboard");
         
+        topLeaderboardItem = new ItemBlock(topLeaderboardBlock).setRegistryName("topleaderboard").setUnlocalizedName("topleaderboard");
+        wealthLeaderboardItem = new ItemBlock(wealthLeaderboardBlock).setRegistryName("wealthleaderboard").setUnlocalizedName("wealthleaderboard");
+        notorietyLeaderboardItem = new ItemBlock(notorietyLeaderboardBlock).setRegistryName("notorietyleaderboard").setUnlocalizedName("notorietyleaderboard");
+        legacyLeaderboardItem = new ItemBlock(legacyLeaderboardBlock).setRegistryName("legacyleaderboard").setUnlocalizedName("legacyleaderboard");
+        GameRegistry.registerTileEntity(TileEntityLeaderboard.class, new ResourceLocation(WarForgeMod.MODID, "leaderboard"));
         
         MinecraftForge.EVENT_BUS.register(this);
 	}
@@ -87,6 +103,10 @@ public class Content
 		event.getRegistry().register(denseGoldOreItem);
 		event.getRegistry().register(denseDiamondOreItem);
 		event.getRegistry().register(magmaVentItem);
+		event.getRegistry().register(topLeaderboardItem);
+		event.getRegistry().register(wealthLeaderboardItem);
+		event.getRegistry().register(notorietyLeaderboardItem);
+		event.getRegistry().register(legacyLeaderboardItem);
 		WarForgeMod.LOGGER.info("Registered items");
 	}
 	
@@ -102,6 +122,10 @@ public class Content
 		event.getRegistry().register(denseGoldOreBlock);
 		event.getRegistry().register(denseDiamondOreBlock);
 		event.getRegistry().register(magmaVentBlock);
+		event.getRegistry().register(topLeaderboardBlock);
+		event.getRegistry().register(wealthLeaderboardBlock);
+		event.getRegistry().register(notorietyLeaderboardBlock);
+		event.getRegistry().register(legacyLeaderboardBlock);
 		WarForgeMod.LOGGER.info("Registered blocks");
 	}
 }

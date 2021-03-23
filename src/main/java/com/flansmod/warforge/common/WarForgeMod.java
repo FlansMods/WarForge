@@ -239,6 +239,8 @@ public class WarForgeMod
     		
     		FACTIONS.AdvanceYieldDay();
     	}
+    	
+    	
     }
     
     
@@ -251,7 +253,7 @@ public class WarForgeMod
     		
     	if(event.getEntityLiving() instanceof EntityPlayerMP)
     	{
-    		FACTIONS.PlayerDied((EntityPlayerMP)event.getEntityLiving());
+    		FACTIONS.PlayerDied((EntityPlayerMP)event.getEntityLiving(), event.getSource());
     	}
     }
     
@@ -513,6 +515,13 @@ public class WarForgeMod
 	public static float SIEGE_DAY_LENGTH = 24.0f; // In real-world hours
 	public static float SIEGE_INFO_RADIUS = 200f;
 	
+	// Notoriety
+	public static final String CATEGORY_NOTORIETY = "Notoriety";
+	public static int NOTORIETY_PER_PLAYER_KILL = 3;
+	//public static int NOTORIETY_PER_DRAGON_KILL = 9;
+	public static int NOTORIETY_PER_SIEGE_ATTACK_SUCCESS = 10;
+	public static int NOTORIETY_PER_SIEGE_DEFEND_SUCCESS = 10;
+	
 	// Vault blocks
 	public static String[] VAULT_BLOCK_IDS = new String[] { "minecraft:gold_block" };
 	public static ArrayList<Block> VAULT_BLOCKS = new ArrayList<Block>();
@@ -712,6 +721,12 @@ public class WarForgeMod
 		GOLD_YIELD_AS_ORE = configFile.getBoolean("Gold Yield As Ore", CATEGORY_YIELDS, GOLD_YIELD_AS_ORE, "If true, dense gold ore gives ore blocks. If false, it gives ingots");
 		DIAMOND_YIELD_AS_ORE = configFile.getBoolean("Diamond Yield As Ore", CATEGORY_YIELDS, DIAMOND_YIELD_AS_ORE, "If true, dense diamond ore gives ore blocks. If false, it gives diamonds");
 		YIELD_DAY_LENGTH = configFile.getFloat("Yield Day Length", CATEGORY_YIELDS, YIELD_DAY_LENGTH, 0.0001f, 100000f, "The length of time between yields, in real-world hours.");
+				
+		// Notoriety
+		NOTORIETY_PER_PLAYER_KILL = configFile.getInt("Notoriety gain per PVP kill", CATEGORY_NOTORIETY, NOTORIETY_PER_PLAYER_KILL, 0, 1024, "How much notoriety a player earns for their faction when killing another player");
+		NOTORIETY_PER_SIEGE_ATTACK_SUCCESS = configFile.getInt("Notoriety gain per siege attack win", CATEGORY_NOTORIETY, NOTORIETY_PER_SIEGE_ATTACK_SUCCESS, 0, 1024, "How much notoriety a faction earns when successfully winning an siege as attacker");
+		NOTORIETY_PER_SIEGE_DEFEND_SUCCESS = configFile.getInt("Notoriety gain per siege defend win", CATEGORY_NOTORIETY, NOTORIETY_PER_SIEGE_DEFEND_SUCCESS, 0, 1024, "How much notoriety a faction earns when successfully defending a siege");
+		
 				
 		// Visual
 		SHOW_NEW_AREA_TIMER = configFile.getFloat("New Area Timer", Configuration.CATEGORY_GENERAL, SHOW_NEW_AREA_TIMER, 0.0f, 1000f, "How many in-game ticks to show the 'You have entered {faction}' message for.");

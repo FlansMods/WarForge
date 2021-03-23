@@ -8,6 +8,7 @@ import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.common.blocks.TileEntityBasicClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
+import com.flansmod.warforge.common.blocks.TileEntityLeaderboard;
 import com.flansmod.warforge.common.blocks.TileEntitySiegeCamp;
 import com.flansmod.warforge.common.network.PacketRequestFactionInfo;
 import com.flansmod.warforge.common.network.SiegeCampProgressInfo;
@@ -44,9 +45,11 @@ public class ClientProxy extends CommonProxy
 	@Override
 	public void Init(FMLInitializationEvent event)
 	{
-		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityCitadel.class, new TileEntityBeamRender());
-		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBasicClaim.class, new TileEntityBeamRender());
-		ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySiegeCamp.class, new TileEntityBeamRender());
+		//ClientRegistry.bindTileEntitySpecialRenderer(TileEntityCitadel.class, new TileEntityBeamRender());
+		//ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBasicClaim.class, new TileEntityBeamRender());
+		//ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySiegeCamp.class, new TileEntityBeamRender());
+		
+		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLeaderboard.class, new TileEntityLeaderboardRenderer());
 	}
 	
 	@Override
@@ -87,6 +90,11 @@ public class ClientProxy extends CommonProxy
 		RegisterModel(WarForgeMod.CONTENT.denseGoldOreItem);
 		RegisterModel(WarForgeMod.CONTENT.denseDiamondOreItem);
 		RegisterModel(WarForgeMod.CONTENT.magmaVentItem);
+		
+		RegisterModel(WarForgeMod.CONTENT.topLeaderboardItem);
+		RegisterModel(WarForgeMod.CONTENT.legacyLeaderboardItem);
+		RegisterModel(WarForgeMod.CONTENT.wealthLeaderboardItem);
+		RegisterModel(WarForgeMod.CONTENT.notorietyLeaderboardItem);
 	}
 	
 	private void RegisterModel(Item item)
