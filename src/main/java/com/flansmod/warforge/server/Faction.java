@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.DimChunkPos;
+import com.flansmod.warforge.common.WarForgeConfig;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.common.blocks.IClaim;
 import com.flansmod.warforge.common.blocks.TileEntitySiegeCamp;
@@ -312,7 +313,7 @@ public class Faction
 					{
 						BlockPos blockPos = chunkPos.getBlock(i, j, k);
 						IBlockState state = world.getBlockState(blockPos);
-						if(WarForgeMod.VAULT_BLOCKS.contains(state.getBlock()))
+						if(WarForgeConfig.VAULT_BLOCKS.contains(state.getBlock()))
 							count++;
 					}
 				}

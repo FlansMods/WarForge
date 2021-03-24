@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.DimChunkPos;
+import com.flansmod.warforge.common.WarForgeConfig;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.common.blocks.IClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
@@ -226,9 +227,9 @@ public class FactionStorage
 		{
 			Faction killerFac = GetFactionOfPlayer(source.getTrueSource().getUniqueID());
 			if(killerFac != null)
-				killerFac.mNotoriety += WarForgeMod.NOTORIETY_PER_PLAYER_KILL;
+				killerFac.mNotoriety += WarForgeConfig.NOTORIETY_PER_PLAYER_KILL;
 			
-			((EntityPlayer)source.getTrueSource()).sendMessage(new TextComponentString("Killing " + player.getName() + " earned your faction " + WarForgeMod.NOTORIETY_PER_PLAYER_KILL + " notoriety"));
+			((EntityPlayer)source.getTrueSource()).sendMessage(new TextComponentString("Killing " + player.getName() + " earned your faction " + WarForgeConfig.NOTORIETY_PER_PLAYER_KILL + " notoriety"));
 		}
     }
     
@@ -263,13 +264,13 @@ public class FactionStorage
 				defenders.OnClaimLost(blockPos);
 				mClaims.remove(blockPos.ToChunkPos());
 				attackers.MessageAll(new TextComponentString("Our faction won the siege on " + defenders.mName + " at " + blockPos.ToFancyString()));
-				attackers.mNotoriety += WarForgeMod.NOTORIETY_PER_SIEGE_ATTACK_SUCCESS;
+				attackers.mNotoriety += WarForgeConfig.NOTORIETY_PER_SIEGE_ATTACK_SUCCESS;
 			}
 			else
 			{
 				attackers.MessageAll(new TextComponentString("Our siege on " + defenders.mName + " at " + blockPos.ToFancyString() + " was unsuccessful"));
 				defenders.MessageAll(new TextComponentString(attackers.mName + "'s siege on " + blockPos.ToFancyString() + " was unsuccessful"));
-				defenders.mNotoriety += WarForgeMod.NOTORIETY_PER_SIEGE_DEFEND_SUCCESS;
+				defenders.mNotoriety += WarForgeConfig.NOTORIETY_PER_SIEGE_DEFEND_SUCCESS;
 			}
 			
 			siege.OnCompleted();
@@ -293,9 +294,9 @@ public class FactionStorage
     		return false;
     	}
     	
-    	if(factionName.length() > WarForgeMod.FACTION_NAME_LENGTH_MAX)
+    	if(factionName.length() > WarForgeConfig.FACTION_NAME_LENGTH_MAX)
     	{
-    		player.sendMessage(new TextComponentString("Name is too long, must be at most " + WarForgeMod.FACTION_NAME_LENGTH_MAX + " characters"));
+    		player.sendMessage(new TextComponentString("Name is too long, must be at most " + WarForgeConfig.FACTION_NAME_LENGTH_MAX + " characters"));
 			return false;
     	}
     	
@@ -577,7 +578,7 @@ public class FactionStorage
     		{
     			PacketSiegeCampProgressUpdate packet = new PacketSiegeCampProgressUpdate();
     			packet.mInfo = info;
-    			WarForgeMod.NETWORK.sendToAllAround(packet, siegePos.x * 16, 128d, siegePos.z * 16, WarForgeMod.SIEGE_INFO_RADIUS + 128f, siegePos.mDim);
+    			WarForgeMod.NETWORK.sendToAllAround(packet, siegePos.x * 16, 128d, siegePos.z * 16, WarForgeConfig.SIEGE_INFO_RADIUS + 128f, siegePos.mDim);
     		}
     	}
     }

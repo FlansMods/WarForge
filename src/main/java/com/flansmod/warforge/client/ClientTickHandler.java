@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.DimChunkPos;
+import com.flansmod.warforge.common.WarForgeConfig;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.common.blocks.IClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
@@ -94,7 +95,7 @@ public class ClientTickHandler
 		if(Minecraft.getMinecraft().player != null && Minecraft.getMinecraft().player.ticksExisted % 200 == 0)
 			CLAIMS_DIRTY = true;
 		
-		if(WarForgeMod.SHOW_NEW_AREA_TIMER > 0.0f)
+		if(WarForgeConfig.SHOW_NEW_AREA_TIMER > 0.0f)
 		{
 			EntityPlayerSP player = Minecraft.getMinecraft().player;
 			if(player != null)
@@ -131,7 +132,7 @@ public class ClientTickHandler
 							// We've entered a new claim
 							mAreaMessage = "Entering " + postClaim.GetDisplayName();		
 							mAreaMessageColour = postClaim.GetColour();
-							mShowNewAreaTicksRemaining = WarForgeMod.SHOW_NEW_AREA_TIMER;
+							mShowNewAreaTicksRemaining = WarForgeConfig.SHOW_NEW_AREA_TIMER;
 						}
 					}
 					else // We've left somewhere 
@@ -141,7 +142,7 @@ public class ClientTickHandler
 							// Gone to nowhere, bye
 							mAreaMessage = "Leaving " + preClaim.GetDisplayName();		
 							mAreaMessageColour = preClaim.GetColour();
-							mShowNewAreaTicksRemaining = WarForgeMod.SHOW_NEW_AREA_TIMER;
+							mShowNewAreaTicksRemaining = WarForgeConfig.SHOW_NEW_AREA_TIMER;
 						}
 						else
 						{
@@ -155,7 +156,7 @@ public class ClientTickHandler
 								// Otherwise, we've switched faction
 								mAreaMessage = "Leaving " + preClaim.GetDisplayName() + ", Entering " + postClaim.GetDisplayName();			
 								mAreaMessageColour = postClaim.GetColour();
-								mShowNewAreaTicksRemaining = WarForgeMod.SHOW_NEW_AREA_TIMER;
+								mShowNewAreaTicksRemaining = WarForgeConfig.SHOW_NEW_AREA_TIMER;
 							}
 						}
 					}
@@ -183,7 +184,7 @@ public class ClientTickHandler
 				{
 					double distSq = info.mDefendingPos.distanceSq(player.posX, player.posY, player.posZ);
 					if(info.mDefendingPos.mDim == player.dimension 
-					&& distSq < WarForgeMod.SIEGE_INFO_RADIUS * WarForgeMod.SIEGE_INFO_RADIUS)
+					&& distSq < WarForgeConfig.SIEGE_INFO_RADIUS * WarForgeConfig.SIEGE_INFO_RADIUS)
 					{
 						if(distSq < bestDistanceSq)
 						{
@@ -287,7 +288,7 @@ public class ClientTickHandler
 					
 					int stringWidth = mc.fontRenderer.getStringWidth(mAreaMessage);
 					
-					float fadeOut = 2.0f * mShowNewAreaTicksRemaining / WarForgeMod.SHOW_NEW_AREA_TIMER;
+					float fadeOut = 2.0f * mShowNewAreaTicksRemaining / WarForgeConfig.SHOW_NEW_AREA_TIMER;
 					if(fadeOut > 1.0f)
 						fadeOut = 1.0f;
 					

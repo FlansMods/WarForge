@@ -3,6 +3,7 @@ package com.flansmod.warforge.common.blocks;
 import java.util.UUID;
 
 import com.flansmod.warforge.common.DimBlockPos;
+import com.flansmod.warforge.common.WarForgeConfig;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.server.Faction;
 
@@ -42,7 +43,7 @@ public class TileEntitySiegeCamp extends TileEntity implements IClaim
 	@Override
 	public int GetSupportStrength() { return 0; }
 	@Override
-	public int GetAttackStrength() { return WarForgeMod.ATTACK_STRENGTH_SIEGE_CAMP; }
+	public int GetAttackStrength() { return WarForgeConfig.ATTACK_STRENGTH_SIEGE_CAMP; }
 	@Override
 	public UUID GetFaction() { return mFactionUUID; }
 	@Override 

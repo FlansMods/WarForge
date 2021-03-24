@@ -61,9 +61,12 @@ public class BlockSiegeCamp extends Block implements ITileEntityProvider
 	public boolean canPlaceBlockAt(World world, BlockPos pos)
 	{
 		// Can't claim a chunk claimed by another faction
-		UUID existingClaim = WarForgeMod.FACTIONS.GetClaim(new DimChunkPos(world.provider.getDimension(), pos));
-		if(!existingClaim.equals(Faction.NULL))
-			return false;
+		if(!world.isRemote)
+		{
+			UUID existingClaim = WarForgeMod.FACTIONS.GetClaim(new DimChunkPos(world.provider.getDimension(), pos));
+			if(!existingClaim.equals(Faction.NULL))
+				return false;
+		}
 		
 		// TODO: Verify there is a valid attack place
 		
@@ -77,11 +80,14 @@ public class BlockSiegeCamp extends Block implements ITileEntityProvider
 	@Override
     public void onBlockPlacedBy(World world, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack)
     {
-		TileEntity te = world.getTileEntity(pos);
-		if(te != null)
+		if(!world.isRemote)
 		{
-			TileEntitySiegeCamp siegeCamp = (TileEntitySiegeCamp)te;
-			WarForgeMod.FACTIONS.OnNonCitadelClaimPlaced(siegeCamp, placer);
+			TileEntity te = world.getTileEntity(pos);
+			if(te != null)
+			{
+				TileEntitySiegeCamp siegeCamp = (TileEntitySiegeCamp)te;
+				WarForgeMod.FACTIONS.OnNonCitadelClaimPlaced(siegeCamp, placer);
+			}
 		}
     }
 	

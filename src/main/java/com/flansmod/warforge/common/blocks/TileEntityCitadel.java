@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.flansmod.warforge.common.DimBlockPos;
+import com.flansmod.warforge.common.WarForgeConfig;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.server.Faction;
 
@@ -42,9 +43,9 @@ public class TileEntityCitadel extends TileEntityYieldCollector implements IClai
 	
 	// IClaim
 	@Override
-	public int GetDefenceStrength() { return WarForgeMod.CLAIM_STRENGTH_CITADEL; }
+	public int GetDefenceStrength() { return WarForgeConfig.CLAIM_STRENGTH_CITADEL; }
 	@Override
-	public int GetSupportStrength() { return WarForgeMod.SUPPORT_STRENGTH_CITADEL; }
+	public int GetSupportStrength() { return WarForgeConfig.SUPPORT_STRENGTH_CITADEL; }
 	@Override
 	public int GetAttackStrength() { return 0; }
 	@Override

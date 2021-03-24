@@ -67,9 +67,9 @@ public class Content
         GameRegistry.registerTileEntity(TileEntityAdminClaim.class, new ResourceLocation(WarForgeMod.MODID, "adminclaim"));
  
         
-        denseIronOreBlock = new BlockYieldProvider(Material.ROCK, WarForgeMod.IRON_YIELD_AS_ORE ? new ItemStack(Blocks.IRON_ORE) : new ItemStack(Items.IRON_INGOT), WarForgeMod.NUM_IRON_PER_DAY_PER_ORE).setRegistryName("denseironore").setUnlocalizedName("denseironore");
-        denseGoldOreBlock = new BlockYieldProvider(Material.ROCK, WarForgeMod.GOLD_YIELD_AS_ORE ? new ItemStack(Blocks.GOLD_ORE) : new ItemStack(Items.GOLD_INGOT), WarForgeMod.NUM_GOLD_PER_DAY_PER_ORE).setRegistryName("densegoldore").setUnlocalizedName("densegoldore");
-        denseDiamondOreBlock = new BlockYieldProvider(Material.ROCK, WarForgeMod.DIAMOND_YIELD_AS_ORE ? new ItemStack(Blocks.DIAMOND_ORE) : new ItemStack(Items.DIAMOND), WarForgeMod.NUM_DIAMOND_PER_DAY_PER_ORE).setRegistryName("densediamondore").setUnlocalizedName("densediamondore");
+        denseIronOreBlock = new BlockYieldProvider(Material.ROCK, WarForgeConfig.IRON_YIELD_AS_ORE ? new ItemStack(Blocks.IRON_ORE) : new ItemStack(Items.IRON_INGOT), WarForgeConfig.NUM_IRON_PER_DAY_PER_ORE).setRegistryName("denseironore").setUnlocalizedName("denseironore");
+        denseGoldOreBlock = new BlockYieldProvider(Material.ROCK, WarForgeConfig.GOLD_YIELD_AS_ORE ? new ItemStack(Blocks.GOLD_ORE) : new ItemStack(Items.GOLD_INGOT), WarForgeConfig.NUM_GOLD_PER_DAY_PER_ORE).setRegistryName("densegoldore").setUnlocalizedName("densegoldore");
+        denseDiamondOreBlock = new BlockYieldProvider(Material.ROCK, WarForgeConfig.DIAMOND_YIELD_AS_ORE ? new ItemStack(Blocks.DIAMOND_ORE) : new ItemStack(Items.DIAMOND), WarForgeConfig.NUM_DIAMOND_PER_DAY_PER_ORE).setRegistryName("densediamondore").setUnlocalizedName("densediamondore");
         magmaVentBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.LAVA_BUCKET), 0.0f).setRegistryName("magmavent").setUnlocalizedName("magmavent");
         
         denseIronOreItem = new ItemBlock(denseIronOreBlock).setRegistryName("denseironore").setUnlocalizedName("denseironore");

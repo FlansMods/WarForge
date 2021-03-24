@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.InventoryHelper;
+import com.flansmod.warforge.common.WarForgeConfig;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.server.Faction;
 
@@ -99,7 +100,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 		{
 			for(int z = chunk.z * 16; z < (chunk.z + 1) * 16; z++)
 			{
-				for(int y = 0; y < WarForgeMod.HIGHEST_YIELD_ASSUMPTION; y++)
+				for(int y = 0; y < WarForgeConfig.HIGHEST_YIELD_ASSUMPTION; y++)
 				{
 					Block block = world.getBlockState(new BlockPos(x, y, z)).getBlock();
 					if(block instanceof BlockYieldProvider)

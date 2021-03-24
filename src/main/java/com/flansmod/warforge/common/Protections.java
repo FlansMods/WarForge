@@ -7,7 +7,7 @@ import java.util.UUID;
 
 import javax.annotation.Nonnull;
 
-import com.flansmod.warforge.common.WarForgeMod.ProtectionConfig;
+import com.flansmod.warforge.common.WarForgeConfig.ProtectionConfig;
 import com.flansmod.warforge.server.Faction;
 import com.flansmod.warforge.server.FactionStorage;
 
@@ -46,9 +46,9 @@ public class Protections
 	{
 		UUID factionID = WarForgeMod.FACTIONS.GetClaim(pos);
 		if(factionID.equals(FactionStorage.SAFE_ZONE_ID))
-			return WarForgeMod.SAFE_ZONE;
+			return WarForgeConfig.SAFE_ZONE;
 		if(factionID.equals(FactionStorage.WAR_ZONE_ID))
-			return WarForgeMod.WAR_ZONE;
+			return WarForgeConfig.WAR_ZONE;
 		
 		Faction faction = WarForgeMod.FACTIONS.GetFaction(factionID);
 		if(faction != null)
@@ -56,12 +56,12 @@ public class Protections
 			boolean playerIsInFaction = playerID != null && !playerID.equals(Faction.NULL) && faction.IsPlayerInFaction(playerID);
 			
 			if(faction.mCitadelPos.ToChunkPos().equals(pos))
-				return playerIsInFaction ? WarForgeMod.CITADEL_FRIEND : WarForgeMod.CITADEL_FOE;
+				return playerIsInFaction ? WarForgeConfig.CITADEL_FRIEND : WarForgeConfig.CITADEL_FOE;
 
-			return playerIsInFaction ? WarForgeMod.CLAIM_FRIEND : WarForgeMod.CLAIM_FOE;
+			return playerIsInFaction ? WarForgeConfig.CLAIM_FRIEND : WarForgeConfig.CLAIM_FOE;
 		}
 		
-		return WarForgeMod.UNCLAIMED;
+		return WarForgeConfig.UNCLAIMED;
 	}
 	
 	@SubscribeEvent

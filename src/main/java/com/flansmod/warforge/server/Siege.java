@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.DimChunkPos;
+import com.flansmod.warforge.common.WarForgeConfig;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.common.blocks.IClaim;
 import com.flansmod.warforge.common.blocks.TileEntitySiegeCamp;
@@ -135,11 +136,11 @@ public class Siege
 		
 		CalculateBasePower();
 		float totalSwing = 0.0f;
-		totalSwing += WarForgeMod.SIEGE_SWING_PER_DAY_ELAPSED_BASE;
+		totalSwing += WarForgeConfig.SIEGE_SWING_PER_DAY_ELAPSED_BASE;
 		if(!defenders.mHasHadAnyLoginsToday)
-			totalSwing += WarForgeMod.SIEGE_SWING_PER_DAY_ELAPSED_NO_DEFENDER_LOGINS;
+			totalSwing += WarForgeConfig.SIEGE_SWING_PER_DAY_ELAPSED_NO_DEFENDER_LOGINS;
 		if(!attackers.mHasHadAnyLoginsToday)
-			totalSwing -= WarForgeMod.SIEGE_SWING_PER_DAY_ELAPSED_NO_ATTACKER_LOGINS;
+			totalSwing -= WarForgeConfig.SIEGE_SWING_PER_DAY_ELAPSED_NO_ATTACKER_LOGINS;
 		mAttackProgress += totalSwing;
 		
 		if(totalSwing > 0)
@@ -226,8 +227,8 @@ public class Siege
 		
 		if(taxicabDistance <= 2)
 		{
-			mAttackProgress -= WarForgeMod.SIEGE_SWING_PER_ATTACKER_DEATH;
-			attacker.sendMessage(new TextComponentString("Your death has shifted the siege progress by " + WarForgeMod.SIEGE_SWING_PER_ATTACKER_DEATH));
+			mAttackProgress -= WarForgeConfig.SIEGE_SWING_PER_ATTACKER_DEATH;
+			attacker.sendMessage(new TextComponentString("Your death has shifted the siege progress by " + WarForgeConfig.SIEGE_SWING_PER_ATTACKER_DEATH));
 			
 			WarForgeMod.FACTIONS.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
 		}
@@ -241,8 +242,8 @@ public class Siege
 		
 		if(taxicabDistance <= 2)
 		{
-			mAttackProgress += WarForgeMod.SIEGE_SWING_PER_DEFENDER_DEATH;
-			defender.sendMessage(new TextComponentString("Your death has shifted the siege progress by " + WarForgeMod.SIEGE_SWING_PER_DEFENDER_DEATH));
+			mAttackProgress += WarForgeConfig.SIEGE_SWING_PER_DEFENDER_DEATH;
+			defender.sendMessage(new TextComponentString("Your death has shifted the siege progress by " + WarForgeConfig.SIEGE_SWING_PER_DEFENDER_DEATH));
 			
 			WarForgeMod.FACTIONS.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
 		}
