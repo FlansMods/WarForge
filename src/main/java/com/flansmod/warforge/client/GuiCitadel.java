@@ -3,6 +3,7 @@ package com.flansmod.warforge.client;
 import com.flansmod.warforge.common.CommonProxy;
 import com.flansmod.warforge.common.ContainerCitadel;
 import com.flansmod.warforge.common.WarForgeMod;
+import com.flansmod.warforge.common.network.PacketDisbandFaction;
 import com.flansmod.warforge.common.network.PacketRequestFactionInfo;
 import com.flansmod.warforge.server.Faction;
 
@@ -18,6 +19,7 @@ public class GuiCitadel extends GuiContainer
 	private static final ResourceLocation texture = new ResourceLocation(WarForgeMod.MODID, "gui/citadelmenu.png");
 
 	private static final int BUTTON_INFO = 0;
+	private static final int BUTTON_DISBAND = 1;
 	private static final int BUTTON_CREATE = 2;
 	
 	public ContainerCitadel citadelContainer;
@@ -49,10 +51,10 @@ public class GuiCitadel extends GuiContainer
 		buttonList.add(infoButton);
 		
 		//Disband button
-		//GuiButton disbandButton = new GuiButton(BUTTON_DISBAND, width / 2 - 20, height / 2 - 70, 100, 20, "Disband");
-		//disbandButton.enabled = hasFactionSet;
-		//disbandButton.visible = hasFactionSet;
-		//buttonList.add(disbandButton);
+		GuiButton disbandButton = new GuiButton(BUTTON_DISBAND, width / 2 - 20, height / 2 - 70, 100, 20, "Disband");
+		disbandButton.enabled = hasFactionSet;
+		disbandButton.visible = hasFactionSet;
+		buttonList.add(disbandButton);
 	}
 	
 
@@ -77,6 +79,12 @@ public class GuiCitadel extends GuiContainer
 			case BUTTON_INFO:
 			{
 				ClientProxy.RequestFactionInfo(citadelContainer.citadel.GetFaction());
+				break;
+			}
+			case BUTTON_DISBAND:
+			{
+				WarForgeMod.NETWORK.sendToServer(new PacketDisbandFaction());
+				mc.player.closeScreen();
 				break;
 			}
 		}	

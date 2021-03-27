@@ -13,6 +13,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.EnumFacing;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class PacketSiegeCampInfo extends PacketBase
 {
@@ -74,9 +76,13 @@ public class PacketSiegeCampInfo extends PacketBase
 	@Override
 	public void handleClientSide(EntityPlayer clientPlayer) 
 	{
+		ShowClientGUI();
+	}
+	
+	@SideOnly(Side.CLIENT)
+	private void ShowClientGUI()
+	{
 		Minecraft.getMinecraft().displayGuiScreen(new GuiSiegeCamp(mSiegeCampPos, mPossibleAttacks));
-		//clientPlayer.openGui(WarForgeMod.INSTANCE, CommonProxy.GUI_TYPE_SIEGE_CAMP, world, pos.getX(), pos.getY(), pos.getZ());
-		
 	}
 	
 }

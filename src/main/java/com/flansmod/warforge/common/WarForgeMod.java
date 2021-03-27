@@ -2,6 +2,9 @@ package com.flansmod.warforge.common;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockEnderChest;
+import net.minecraft.block.BlockNewLeaf;
+import net.minecraft.block.BlockNewLog;
+import net.minecraft.block.BlockPlanks.EnumType;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.CommandHandler;
@@ -29,6 +32,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
+import net.minecraft.world.gen.feature.WorldGenLakes;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.event.RegistryEvent;
@@ -42,11 +46,13 @@ import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.event.world.BlockEvent.EntityPlaceEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.Mod.Instance;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLInterModComms;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
@@ -57,6 +63,7 @@ import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.server.FMLServerHandler;
+import scala.util.parsing.json.JSON;
 
 import java.awt.Color;
 import java.io.File;
@@ -82,13 +89,17 @@ import com.flansmod.warforge.common.blocks.TileEntitySiegeCamp;
 import com.flansmod.warforge.common.network.PacketHandler;
 import com.flansmod.warforge.common.network.PacketSiegeCampProgressUpdate;
 import com.flansmod.warforge.common.network.SiegeCampProgressInfo;
+import com.flansmod.warforge.common.world.WorldGenAncientTree;
 import com.flansmod.warforge.common.world.WorldGenBedrockOre;
+import com.flansmod.warforge.common.world.WorldGenClayPool;
 import com.flansmod.warforge.common.world.WorldGenDenseOre;
+import com.flansmod.warforge.common.world.WorldGenNetherPillar;
 import com.flansmod.warforge.server.CommandFactions;
 import com.flansmod.warforge.server.Faction;
 import com.flansmod.warforge.server.ServerTickHandler;
 import com.flansmod.warforge.server.Siege;
 import com.google.common.io.Files;
+import com.google.gson.Gson;
 import com.mojang.authlib.GameProfile;
 import com.flansmod.warforge.server.Faction.Role;
 import com.flansmod.warforge.server.FactionStorage;
@@ -99,7 +110,7 @@ public class WarForgeMod
 {
     public static final String MODID = "warforge";
     public static final String NAME = "WarForge Factions";
-    public static final String VERSION = "1.0";
+    public static final String VERSION = "1.0.2";
     
 	@Instance(MODID)
 	public static WarForgeMod INSTANCE;
@@ -166,6 +177,8 @@ public class WarForgeMod
 				LOGGER.error("Could not find block with ID " + blockID + " as a valuable block for the vault");
 				
 		}
+		
+		FMLInterModComms.sendRuntimeMessage(this, DISCORD_MODID, "registerListener", "");
 		
 		WarForgeConfig.UNCLAIMED.FindBlocks();
 		WarForgeConfig.SAFE_ZONE.FindBlocks();
@@ -312,9 +325,19 @@ public class WarForgeMod
 	@SubscribeEvent
 	public void BlockRemoved(BlockEvent.BreakEvent event)
 	{
+		IBlockState state = event.getState();
+		if(state.getBlock() == CONTENT.citadelBlock
+		|| state.getBlock() == CONTENT.basicClaimBlock
+		|| state.getBlock() == CONTENT.reinforcedClaimBlock
+		|| state.getBlock() == CONTENT.siegeCampBlock)
+		{
+			event.setCanceled(true);
+			return;
+		}
+		
 		if(!event.getWorld().isRemote) 
 		{
-			BlockPlacedOrRemoved(event, event.getState());
+			BlockPlacedOrRemoved(event, state);
 		}
 	}
     
@@ -415,10 +438,19 @@ public class WarForgeMod
     	
     }
     
-
+    // Discord integration
+    private static final String DISCORD_MODID = "discordintegration";
+    private static HashMap<String, UUID> sDiscordUserIDMap = new HashMap<String, UUID>();
+    
+    public UUID GetPlayerIDOfDiscordUser(String discordUserID)
+    {
+    	if(sDiscordUserIDMap.containsKey(discordUserID))
+    		return sDiscordUserIDMap.get(discordUserID);
+    	return Faction.NULL;
+    }
+    
     public void MessageAll(ITextComponent msg, boolean sendToDiscord) // TODO: optional list of pings
     {
-    	// TODO: Discord integration
     	if(MC_SERVER != null)
     	{
 	    	for(EntityPlayerMP player : MC_SERVER.getPlayerList().getPlayers())
@@ -426,11 +458,33 @@ public class WarForgeMod
 	    		player.sendMessage(msg);
 	    	}
     	}
+    	
+    	if(Loader.isModLoaded(DISCORD_MODID))
+    	{
+    		NBTTagCompound sendDiscordMessageTagCompound = new NBTTagCompound();
+    		sendDiscordMessageTagCompound.setString("message", msg.getFormattedText());
+    		sendDiscordMessageTagCompound.setLong("channel", WarForgeConfig.FACTIONS_BOT_CHANNEL_ID);
+    		FMLInterModComms.sendRuntimeMessage(this, DISCORD_MODID, "sendMessage", sendDiscordMessageTagCompound);
+    	}
+    }
+    
+    @EventHandler
+    public void IMCEvent(FMLInterModComms.IMCEvent event)
+    {
+        for (final FMLInterModComms.IMCMessage imc : event.getMessages())
+        {
+        	//JSON.parseRaw(imc.getStringValue()).;
+        	//Gson gson = new Gson();
+        	//gson.
+        }
     }
         
     // World Generation
 	private WorldGenDenseOre ironGenerator, goldGenerator;
 	private WorldGenBedrockOre diamondGenerator, magmaGenerator;
+	private WorldGenAncientTree ancientTreeGenerator;
+	private WorldGenClayPool clayLakeGenerator;
+	private WorldGenNetherPillar quartzPillarGenerator;
 	
 	@SubscribeEvent
 	public void populateOverworldChunk(PopulateChunkEvent event)
@@ -455,15 +509,36 @@ public class WarForgeMod
 						WarForgeConfig.MAGMA_VENT_CELL_SIZE, WarForgeConfig.MAGMA_VENT_DEPOSIT_RADIUS, WarForgeConfig.MAGMA_VENT_OUTER_SHELL_RADIUS, WarForgeConfig.MAGMA_VENT_OUTER_SHELL_CHANCE,
 						WarForgeConfig.MAGMA_VENT_MIN_INSTANCES_PER_CELL, WarForgeConfig.MAGMA_VENT_MAX_INSTANCES_PER_CELL, WarForgeConfig.MAGMA_VENT_MIN_HEIGHT, WarForgeConfig.MAGMA_VENT_MAX_HEIGHT);
 		
+			if(ancientTreeGenerator == null)
+				ancientTreeGenerator = new WorldGenAncientTree(CONTENT.ancientOakBlock.getDefaultState(), Blocks.LOG2.getDefaultState().withProperty(BlockNewLog.VARIANT, EnumType.DARK_OAK), Blocks.LEAVES2.getDefaultState().withProperty(BlockNewLeaf.VARIANT, EnumType.DARK_OAK), 
+						WarForgeConfig.ANCIENT_OAK_CELL_SIZE, WarForgeConfig.ANCIENT_OAK_CHANCE, WarForgeConfig.ANCIENT_OAK_HOLE_RADIUS, 
+						WarForgeConfig.ANCIENT_OAK_CORE_RADIUS, WarForgeConfig.ANCIENT_OAK_MAX_TRUNK_RADIUS, WarForgeConfig.ANCIENT_OAK_MAX_HEIGHT);
+
+			if(clayLakeGenerator == null)
+				clayLakeGenerator = new WorldGenClayPool(CONTENT.denseClayBlock, Blocks.CLAY, Blocks.WATER);
+			
 			ironGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
 			goldGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
 			diamondGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
 			magmaGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
+			ancientTreeGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
+			
+			if(rand.nextInt(WarForgeConfig.CLAY_POOL_CHANCE) == 0)
+				clayLakeGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
+		}
+		else if(event.getWorld().provider.getDimension() == -1)
+		{
+			if(quartzPillarGenerator == null)
+				quartzPillarGenerator = new WorldGenNetherPillar(CONTENT.denseQuartzOreBlock.getDefaultState(), Blocks.QUARTZ_ORE.getDefaultState());
+
+			
+			if(rand.nextInt(WarForgeConfig.QUARTZ_PILLAR_CHANCE) == 0)
+			{
+				quartzPillarGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
+			}
 		}
 	}
-	
-	
-	
+
 	private void ReadFromNBT(NBTTagCompound tags)
 	{
 		FACTIONS.ReadFromNBT(tags);

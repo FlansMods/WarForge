@@ -3,6 +3,7 @@ package com.flansmod.warforge.server;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import com.flansmod.warforge.common.DimBlockPos;
@@ -214,6 +215,16 @@ public class Faction
 	
 	public boolean Disband()
 	{
+		// Clean up remaining claims
+		for(Map.Entry<DimBlockPos, Integer> kvp : mClaims.entrySet())
+		{
+			World world = WarForgeMod.MC_SERVER.getWorld(kvp.getKey().mDim);
+			world.setBlockToAir(kvp.getKey().ToRegularPos());
+		}
+		
+		World world = WarForgeMod.MC_SERVER.getWorld(mCitadelPos.mDim);
+		world.setBlockToAir(mCitadelPos.ToRegularPos());
+		
 		MessageAll(new TextComponentString(mName + " was disbanded."));
 		mMembers.clear();
 		mClaims.clear();
@@ -266,9 +277,19 @@ public class Faction
 		// Destroy our claim block
 		WarForgeMod.MC_SERVER.getWorld(claimBlockPos.mDim).setBlockToAir(claimBlockPos);
 		
-		MessageAll(new TextComponentString("Our faction lost a claim at " + claimBlockPos.ToFancyString()));
-		
-		mClaims.remove(claimBlockPos);
+		// Uh oh
+		if(claimBlockPos.equals(mCitadelPos))
+		{
+			WarForgeMod.FACTIONS.FactionDefeated(this);
+			WarForgeMod.INSTANCE.MessageAll(new TextComponentString(mName + "'s citadel was destroyed. " + mName + " is no more."), true);
+		}
+		else
+		{
+			MessageAll(new TextComponentString("Our faction lost a claim at " + claimBlockPos.ToFancyString()));
+			
+			mClaims.remove(claimBlockPos);
+		}
+
 	}
 
 	public void ClaimNoTileEntity(DimChunkPos pos) 

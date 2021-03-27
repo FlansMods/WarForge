@@ -343,6 +343,8 @@ public class FactionStorage
     	mClaims.put(citadel.GetPos().ToChunkPos(), proposedID);
     	WarForgeMod.LEADERBOARD.RegisterFaction(faction);
     	
+    	WarForgeMod.INSTANCE.MessageAll(new TextComponentString(player.getName() + " created the faction " + factionName), true);
+    	
     	faction.AddPlayer(player.getUniqueID());
     	faction.SetLeader(player.getUniqueID());
     	
@@ -475,6 +477,13 @@ public class FactionStorage
     
     public boolean RequestDisbandFaction(EntityPlayer factionLeader, UUID factionID)
     {
+    	if(factionID.equals(Faction.NULL))
+    	{
+    		Faction faction = GetFactionOfPlayer(factionLeader.getUniqueID());
+    		if(faction != null)
+    			factionID = faction.mUUID;
+    	}
+    	
     	if(!IsPlayerRoleInFaction(factionLeader.getUniqueID(), factionID, Faction.Role.LEADER))
     	{
     		factionLeader.sendMessage(new TextComponentString("You are not the leader of this faction"));
@@ -487,6 +496,13 @@ public class FactionStorage
     	WarForgeMod.LEADERBOARD.UnregisterFaction(faction);
     	
     	return true;
+    }
+    
+    public void FactionDefeated(Faction faction)
+    {
+    	faction.Disband();
+    	mFactions.remove(faction.mUUID);
+    	WarForgeMod.LEADERBOARD.UnregisterFaction(faction);
     }
     
     public boolean RequestStartSiege(EntityPlayer factionOfficer, DimBlockPos siegeCampPos, EnumFacing direction)

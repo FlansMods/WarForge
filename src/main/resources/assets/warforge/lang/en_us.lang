@@ -11,3 +11,6 @@ tile.topleaderboard.name=Top Leaderboard Block
 tile.wealthleaderboard.name=Wealth Leaderboard Block
 tile.legacyleaderboard.name=Legacy Leaderboard Block
 tile.notorietyleaderboard.name=Notoriety Leaderboard Block
+tile.ancientoak.name=Ancient Oak Block
+tile.densequartzore.name=Dense Quartz Ore
+tile.denseclay.name=Dense Clay Source

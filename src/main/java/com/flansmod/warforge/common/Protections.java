@@ -14,8 +14,12 @@ import com.flansmod.warforge.server.FactionStorage;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemBlock;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.TileEntityPiston;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EntityDamageSource;
+import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -32,6 +36,36 @@ public class Protections
 	public Protections()
 	{
 		MinecraftForge.EVENT_BUS.register(this);
+	}
+	
+	public void UpdateServer()
+	{
+		/*
+		 * oof pistons are a pain
+		for(World world: WarForgeMod.MC_SERVER.worlds)
+		{
+			ArrayList<TileEntityPiston> list = new ArrayList<TileEntityPiston>();
+			
+			for(TileEntity te : world.loadedTileEntityList)
+			{
+				if(te instanceof TileEntityPiston)
+				{
+					list.add( (TileEntityPiston)te);
+				}
+			}
+			
+			for(TileEntityPiston piston : list)
+			{
+				NBTTagCompound tags = new NBTTagCompound();
+				piston.writeToNBT(tags);
+				tags.setBoolean("extending", !tags.getBoolean("extending"));
+				piston.readFromNBT(tags);
+				
+				piston.clearPistonTileEntity();
+			}
+		}
+		*/
+		
 	}
 	
 	@Nonnull
