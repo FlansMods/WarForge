@@ -197,6 +197,9 @@ public class ClientTickHandler
 				// Render siege overlay
 				if(infoToRender != null)
 				{
+					GlStateManager.enableAlpha();
+					GlStateManager.enableBlend();
+					
 	                float attackR = (float)(infoToRender.mAttackingColour >> 16 & 255) / 255.0F;
 	                float attackG = (float)(infoToRender.mAttackingColour >> 8 & 255) / 255.0F;
 	                float attackB = (float)(infoToRender.mAttackingColour & 255) / 255.0F;
@@ -395,7 +398,7 @@ public class ClientTickHandler
 		if(world == null || world.rand == null || mRenderData.size() == 0)
 			return;
 		int index = world.rand.nextInt(mRenderData.size());
-		
+				
 		// Then construct the mesh for one random entry
 		for(HashMap.Entry<DimChunkPos, BorderRenderData> kvp : mRenderData.entrySet())
 		{
@@ -650,241 +653,244 @@ public class ClientTickHandler
 		
 		//Push
 		GlStateManager.pushMatrix();
-		//Setup lighting
-		Minecraft.getMinecraft().entityRenderer.enableLightmap();
-		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-		GlStateManager.disableLighting();
-		GlStateManager.enableAlpha();
-		GlStateManager.enableTexture2D();
-		GlStateManager.enableBlend();
-		GlStateManager.disableCull();
-		Minecraft.getMinecraft().entityRenderer.disableLightmap();
-		Minecraft.getMinecraft().renderEngine.bindTexture(texture);
-		
-		
-		
-		double skyRenderDistance = 80d;
-		double groundRenderDistance = 64d;
-		int resolution = 1;
-
-		if(CLAIMS_DIRTY)
+		GlStateManager.pushAttrib();
 		{
-			UpdateRenderData();
-			CLAIMS_DIRTY = false;
-		}
+			//Setup lighting
+			Minecraft.getMinecraft().entityRenderer.enableLightmap();
+			GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+			GlStateManager.disableLighting();
+			GlStateManager.enableAlpha();
+			GlStateManager.enableTexture2D();
+			GlStateManager.enableBlend();
+			GlStateManager.disableCull();
+			Minecraft.getMinecraft().entityRenderer.disableLightmap();
+			Minecraft.getMinecraft().renderEngine.bindTexture(texture);
 		
-		UpdateRandomMesh();
-		
-		// Render each chunk we have border data for
-		for(HashMap.Entry<DimChunkPos, BorderRenderData> kvp : mRenderData.entrySet())
-		{
-			DimChunkPos pos = kvp.getKey();
-			BorderRenderData data = kvp.getValue();
-
-			if(data.renderList >= 0)
+			double skyRenderDistance = 80d;
+			double groundRenderDistance = 64d;
+			int resolution = 1;
+	
+			if(CLAIMS_DIRTY)
 			{
-				GlStateManager.pushMatrix();
-				
-				int colour = data.claim.GetColour();
-	            float f = (float)(colour >> 16 & 255) / 255.0F;
-	            float f1 = (float)(colour >> 8 & 255) / 255.0F;
-	            float f2 = (float)(colour & 255) / 255.0F;
-				GlStateManager.color(f, f1, f2, 1.0F);
-				GlStateManager.translate(pos.x * 16 - x, 0 - y, pos.z * 16 - z);
-	            GlStateManager.callList(data.renderList);
-	            GlStateManager.popMatrix();
-			}
-		}
-					
-		// Player CanPlace? Overlay
-		if(player.getHeldItemMainhand().getItem() instanceof ItemBlock)
-		{
-			boolean shouldRender = false;
-			Block holding = ((ItemBlock)player.getHeldItemMainhand().getItem()).getBlock();
-			if(holding == WarForgeMod.CONTENT.basicClaimBlock
-			|| holding == WarForgeMod.CONTENT.citadelBlock
-			|| holding == WarForgeMod.CONTENT.reinforcedClaimBlock)
-			{
-				shouldRender = true;
+				UpdateRenderData();
+				CLAIMS_DIRTY = false;
 			}
 			
-			// Ray trace player hand to see which chunk they looking at
-			DimChunkPos playerPos = new DimChunkPos(player.dimension, player.getPosition());
-			RayTraceResult result = player.rayTrace(10.0f, event.getPartialTicks());
-			if(result.typeOfHit == RayTraceResult.Type.BLOCK)
-			{
-				playerPos = new DimChunkPos(player.dimension, result.getBlockPos());
-			}
+			// Slower update speed on fast graphics
+			if(Minecraft.getMinecraft().isFancyGraphicsEnabled() || player.world.rand.nextInt(5) == 0)
+				UpdateRandomMesh();
 			
-			boolean canPlace = true;
-			List<DimChunkPos> siegeablePositions = new ArrayList<DimChunkPos>();
-			for(TileEntity te : Minecraft.getMinecraft().world.loadedTileEntityList)
+			// Render each chunk we have border data for
+			for(HashMap.Entry<DimChunkPos, BorderRenderData> kvp : mRenderData.entrySet())
 			{
-				if(te instanceof IClaim)
+				DimChunkPos pos = kvp.getKey();
+				BorderRenderData data = kvp.getValue();
+	
+				if(data.renderList >= 0)
 				{
-					DimBlockPos blockPos = ((IClaim) te).GetPos();
-					DimChunkPos chunkPos = blockPos.ToChunkPos();
+					GlStateManager.pushMatrix();
 					
-					if(playerPos.x == chunkPos.x && playerPos.z == chunkPos.z)
-					{
-						canPlace = false;
-					}
-					if(((IClaim)te).CanBeSieged())	
-						siegeablePositions.add(chunkPos);
-				}
-			}
-			if(holding == WarForgeMod.CONTENT.siegeCampBlock)
-			{
-				shouldRender = true;
-				if(canPlace)
-				{
-					canPlace = false;
-					for(EnumFacing facing : EnumFacing.HORIZONTALS)
-					{
-						if(siegeablePositions.contains(playerPos.Offset(facing, 1)))
-						{
-							canPlace = true;
-						}
-					}
-				}
-			}
-			
-			if(shouldRender)
-			{					
-				// Render overlay
-				if(canPlace)
-					GlStateManager.color(0f, 1f, 0f, 1.0F);
-				else
-					GlStateManager.color(1f, 0f, 0f, 1.0F);
-					
-				Minecraft.getMinecraft().renderEngine.bindTexture(overlayTex);
-				
-				GlStateManager.translate(playerPos.x * 16 - x, 0 - y, playerPos.z * 16 - z);
-				for(int i = 0; i < 16; i++)
-				{
-					for(int k = 0; k < 16; k++)
-					{
-						BlockPos pos = new BlockPos(playerPos.x * 16 + i, player.posY, playerPos.z * 16 + k);
-						
-						//pos = player.world.getHeight(pos);
-						for(; pos.getY() > 0 && player.world.isAirBlock(pos); pos = pos.down())
-						{ 
-						}
-						
-						tess.getBuffer().begin(7, DefaultVertexFormats.POSITION_TEX);
-						
-						tess.getBuffer().pos(i + 0, pos.getY() + 1.5d, k + 0).tex(0f, 0f).endVertex();
-						tess.getBuffer().pos(i + 1, pos.getY() + 1.5d, k + 0).tex(1f, 0f).endVertex();
-						tess.getBuffer().pos(i + 1, pos.getY() + 1.5d, k + 1).tex(1f, 1f).endVertex();
-						tess.getBuffer().pos(i + 0, pos.getY() + 1.5d, k + 1).tex(0f, 1f).endVertex();
-
-						tess.draw();
-					}
-				}
-			}
-		}
-		
-		// Flag rendering
-		
-		GlStateManager.disableLighting();
-		GlStateManager.disableAlpha();
-		GlStateManager.enableTexture2D();
-		GlStateManager.disableBlend();
-		GlStateManager.enableCull();
-		GlStateManager.color(1f, 1f, 1f);
-		
-		for(TileEntity te : Minecraft.getMinecraft().world.loadedTileEntityList)
-		{
-			if(te instanceof TileEntityCitadel)
-			{
-				TileEntityCitadel citadel = (TileEntityCitadel)te;
-				DimBlockPos blockPos = ((IClaim) te).GetPos();
-				
-				double distance = Math.sqrt((blockPos.getX() - x)*(blockPos.getX() - x)+(blockPos.getY() - y)*(blockPos.getY() - y)+(blockPos.getZ() - z)*(blockPos.getZ() - z));					
-				double groundLevelBlend = (skyRenderDistance - distance) / (skyRenderDistance - groundRenderDistance);
-				
-				if(groundLevelBlend < 0.0d)
-					groundLevelBlend = 0.0d;
-				
-				if(groundLevelBlend > 1.0d)
-					groundLevelBlend = 1.0d;
-				
-				groundLevelBlend = groundLevelBlend * groundLevelBlend * (3 - 2 * groundLevelBlend);
-			
-				
-				ItemStack bannerStack = citadel.getStackInSlot(TileEntityCitadel.BANNER_SLOT_INDEX);
-				if(bannerStack.isEmpty())
-				{
-					
-				}
-				else if(mBannerTextures.containsKey(bannerStack))
-				{
-					Minecraft.getMinecraft().renderEngine.bindTexture(mBannerTextures.get(bannerStack));
-				}
-				else if(bannerStack.getItem() instanceof ItemBanner)
-				{
-					ItemBanner banner = (ItemBanner)bannerStack.getItem();
-				    
-		        	// Start with base colour
-					EnumDyeColor baseColour = ItemBanner.getBaseColor(bannerStack);
-		        	String patternResourceLocation = "b" + baseColour.getDyeDamage();
-		        	List<BannerPattern> patternList = Lists.<BannerPattern>newArrayList();
-				    List<EnumDyeColor> colorList = Lists.<EnumDyeColor>newArrayList();
-				    
-	                patternList.add(BannerPattern.BASE);
-	                colorList.add(baseColour);
-				    
-		        	// Then append patterns
-			        if (bannerStack.hasTagCompound() && bannerStack.getTagCompound().hasKey("Patterns", 9))
-			        {
-			        	NBTTagList patterns = bannerStack.getTagCompound().getTagList("Patterns", 10).copy();
-		                if (patterns != null)
-		                {
-		                    for (int p = 0; p < patterns.tagCount(); p++)
-		                    {
-		                        NBTTagCompound nbttagcompound = patterns.getCompoundTagAt(p);
-		                        BannerPattern bannerpattern = BannerPattern.byHash(nbttagcompound.getString("Pattern"));
-
-		                        if (bannerpattern != null)
-		                        {
-		                            patternList.add(bannerpattern);
-		                            int j = nbttagcompound.getInteger("Color");
-		                            colorList.add(EnumDyeColor.byDyeDamage(j));
-		                            patternResourceLocation = patternResourceLocation + bannerpattern.getHashname() + j;
-		                        }
-		                    }
-		                }
-			        }
-			        
-			        
-					ResourceLocation resLoc = BannerTextures.BANNER_DESIGNS.getResourceLocation(patternResourceLocation, patternList, colorList);
-					mBannerTextures.put(bannerStack, resLoc);
-					Minecraft.getMinecraft().renderEngine.bindTexture(resLoc);
-					
-					 GlStateManager.pushMatrix();
-			            
-		            double deltaX = te.getPos().getX() - x;
-		            double deltaZ = te.getPos().getZ() - z;
-		            
-		            float angle = (float)Math.atan2(deltaZ, deltaX) * 180f / (float)Math.PI + 90f;
-		            
-		            double yPos = te.getPos().getY() + 2d;
-		            yPos = 256 + (yPos - 256) * groundLevelBlend;
-		            float scale = (float)(1d * groundLevelBlend + 10d * (1d - groundLevelBlend));
-		            
-		            GlStateManager.translate(0.5d + te.getPos().getX() - x, yPos - y, 0.5d + te.getPos().getZ() - z);
-		            GlStateManager.scale(scale, -scale, -scale);
-		            GlStateManager.rotate(angle, 0f, 1f, 0f);
-		            this.bannerModel.renderBanner();
+					int colour = data.claim.GetColour();
+		            float f = (float)(colour >> 16 & 255) / 255.0F;
+		            float f1 = (float)(colour >> 8 & 255) / 255.0F;
+		            float f2 = (float)(colour & 255) / 255.0F;
+					GlStateManager.color(f, f1, f2, 1.0F);
+					GlStateManager.translate(pos.x * 16 - x, 0 - y, pos.z * 16 - z);
+		            GlStateManager.callList(data.renderList);
 		            GlStateManager.popMatrix();
 				}
 			}
-		}
+	
+			// Player CanPlace? Overlay
+			if(player.getHeldItemMainhand().getItem() instanceof ItemBlock)
+			{
+				boolean shouldRender = false;
+				Block holding = ((ItemBlock)player.getHeldItemMainhand().getItem()).getBlock();
+				if(holding == WarForgeMod.CONTENT.basicClaimBlock
+				|| holding == WarForgeMod.CONTENT.citadelBlock
+				|| holding == WarForgeMod.CONTENT.reinforcedClaimBlock)
+				{
+					shouldRender = true;
+				}
+				
+				// Ray trace player hand to see which chunk they looking at
+				DimChunkPos playerPos = new DimChunkPos(player.dimension, player.getPosition());
+				RayTraceResult result = player.rayTrace(10.0f, event.getPartialTicks());
+				if(result != null && result.typeOfHit == RayTraceResult.Type.BLOCK)
+				{
+					playerPos = new DimChunkPos(player.dimension, result.getBlockPos());
+				}
+				
+				boolean canPlace = true;
+				List<DimChunkPos> siegeablePositions = new ArrayList<DimChunkPos>();
+				for(TileEntity te : Minecraft.getMinecraft().world.loadedTileEntityList)
+				{
+					if(te instanceof IClaim)
+					{
+						DimBlockPos blockPos = ((IClaim) te).GetPos();
+						DimChunkPos chunkPos = blockPos.ToChunkPos();
+						
+						if(playerPos.x == chunkPos.x && playerPos.z == chunkPos.z)
+						{
+							canPlace = false;
+						}
+						if(((IClaim)te).CanBeSieged())	
+							siegeablePositions.add(chunkPos);
+					}
+				}
+				if(holding == WarForgeMod.CONTENT.siegeCampBlock)
+				{
+					shouldRender = true;
+					if(canPlace)
+					{
+						canPlace = false;
+						for(EnumFacing facing : EnumFacing.HORIZONTALS)
+						{
+							if(siegeablePositions.contains(playerPos.Offset(facing, 1)))
+							{
+								canPlace = true;
+							}
+						}
+					}
+				}
+				
+				if(shouldRender)
+				{					
+					// Render overlay
+					if(canPlace)
+						GlStateManager.color(0f, 1f, 0f, 1.0F);
+					else
+						GlStateManager.color(1f, 0f, 0f, 1.0F);
+						
+					Minecraft.getMinecraft().renderEngine.bindTexture(overlayTex);
+					
+					GlStateManager.translate(playerPos.x * 16 - x, 0 - y, playerPos.z * 16 - z);
+					for(int i = 0; i < 16; i++)
+					{
+						for(int k = 0; k < 16; k++)
+						{
+							BlockPos pos = new BlockPos(playerPos.x * 16 + i, player.posY, playerPos.z * 16 + k);
+							
+							//pos = player.world.getHeight(pos);
+							for(; pos.getY() > 0 && player.world.isAirBlock(pos); pos = pos.down())
+							{ 
+							}
+							
+							tess.getBuffer().begin(7, DefaultVertexFormats.POSITION_TEX);
+							
+							tess.getBuffer().pos(i + 0, pos.getY() + 1.5d, k + 0).tex(0f, 0f).endVertex();
+							tess.getBuffer().pos(i + 1, pos.getY() + 1.5d, k + 0).tex(1f, 0f).endVertex();
+							tess.getBuffer().pos(i + 1, pos.getY() + 1.5d, k + 1).tex(1f, 1f).endVertex();
+							tess.getBuffer().pos(i + 0, pos.getY() + 1.5d, k + 1).tex(0f, 1f).endVertex();
+	
+							tess.draw();
+						}
+					}
+				}
+			}
 		
-		//Reset Lighting
-		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-		GlStateManager.disableLighting();
-		//Pop
+			// Flag rendering
+			
+			GlStateManager.disableLighting();
+			GlStateManager.disableAlpha();
+			GlStateManager.enableTexture2D();
+			GlStateManager.disableBlend();
+			GlStateManager.enableCull();
+			GlStateManager.color(1f, 1f, 1f);
+			
+			for(TileEntity te : Minecraft.getMinecraft().world.loadedTileEntityList)
+			{
+				if(te instanceof TileEntityCitadel)
+				{
+					TileEntityCitadel citadel = (TileEntityCitadel)te;
+					DimBlockPos blockPos = ((IClaim) te).GetPos();
+					
+					double distance = Math.sqrt((blockPos.getX() - x)*(blockPos.getX() - x)+(blockPos.getY() - y)*(blockPos.getY() - y)+(blockPos.getZ() - z)*(blockPos.getZ() - z));					
+					double groundLevelBlend = (skyRenderDistance - distance) / (skyRenderDistance - groundRenderDistance);
+					
+					if(groundLevelBlend < 0.0d)
+						groundLevelBlend = 0.0d;
+					
+					if(groundLevelBlend > 1.0d)
+						groundLevelBlend = 1.0d;
+					
+					groundLevelBlend = groundLevelBlend * groundLevelBlend * (3 - 2 * groundLevelBlend);
+				
+					
+					ItemStack bannerStack = citadel.getStackInSlot(TileEntityCitadel.BANNER_SLOT_INDEX);
+					if(bannerStack.isEmpty())
+					{
+						
+					}
+					else if(mBannerTextures.containsKey(bannerStack))
+					{
+						Minecraft.getMinecraft().renderEngine.bindTexture(mBannerTextures.get(bannerStack));
+					}
+					else if(bannerStack.getItem() instanceof ItemBanner)
+					{
+						ItemBanner banner = (ItemBanner)bannerStack.getItem();
+					    
+			        	// Start with base colour
+						EnumDyeColor baseColour = ItemBanner.getBaseColor(bannerStack);
+			        	String patternResourceLocation = "b" + baseColour.getDyeDamage();
+			        	List<BannerPattern> patternList = Lists.<BannerPattern>newArrayList();
+					    List<EnumDyeColor> colorList = Lists.<EnumDyeColor>newArrayList();
+					    
+		                patternList.add(BannerPattern.BASE);
+		                colorList.add(baseColour);
+					    
+			        	// Then append patterns
+				        if (bannerStack.hasTagCompound() && bannerStack.getTagCompound().hasKey("Patterns", 9))
+				        {
+				        	NBTTagList patterns = bannerStack.getTagCompound().getTagList("Patterns", 10).copy();
+			                if (patterns != null)
+			                {
+			                    for (int p = 0; p < patterns.tagCount(); p++)
+			                    {
+			                        NBTTagCompound nbttagcompound = patterns.getCompoundTagAt(p);
+			                        BannerPattern bannerpattern = BannerPattern.byHash(nbttagcompound.getString("Pattern"));
+	
+			                        if (bannerpattern != null)
+			                        {
+			                            patternList.add(bannerpattern);
+			                            int j = nbttagcompound.getInteger("Color");
+			                            colorList.add(EnumDyeColor.byDyeDamage(j));
+			                            patternResourceLocation = patternResourceLocation + bannerpattern.getHashname() + j;
+			                        }
+			                    }
+			                }
+				        }
+				        
+				        
+						ResourceLocation resLoc = BannerTextures.BANNER_DESIGNS.getResourceLocation(patternResourceLocation, patternList, colorList);
+						mBannerTextures.put(bannerStack, resLoc);
+						Minecraft.getMinecraft().renderEngine.bindTexture(resLoc);
+						
+						 GlStateManager.pushMatrix();
+				            
+			            double deltaX = te.getPos().getX() - x;
+			            double deltaZ = te.getPos().getZ() - z;
+			            
+			            float angle = (float)Math.atan2(deltaZ, deltaX) * 180f / (float)Math.PI + 90f;
+			            
+			            double yPos = te.getPos().getY() + 2d;
+			            yPos = 256 + (yPos - 256) * groundLevelBlend;
+			            float scale = (float)(1d * groundLevelBlend + 10d * (1d - groundLevelBlend));
+			            
+			            GlStateManager.translate(0.5d + te.getPos().getX() - x, yPos - y, 0.5d + te.getPos().getZ() - z);
+			            GlStateManager.scale(scale, -scale, -scale);
+			            GlStateManager.rotate(angle, 0f, 1f, 0f);
+			            this.bannerModel.renderBanner();
+			            GlStateManager.popMatrix();
+					}
+				}
+			}
+		
+			//Reset Lighting
+			GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+			GlStateManager.disableLighting();
+		}
+		GlStateManager.popAttrib();
 		GlStateManager.popMatrix();
 	}
 	

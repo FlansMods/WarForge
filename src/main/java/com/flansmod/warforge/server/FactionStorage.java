@@ -3,6 +3,7 @@ package com.flansmod.warforge.server;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import com.flansmod.warforge.common.DimBlockPos;
@@ -13,6 +14,7 @@ import com.flansmod.warforge.common.blocks.IClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
 import com.flansmod.warforge.common.network.PacketSiegeCampProgressUpdate;
 import com.flansmod.warforge.common.network.SiegeCampProgressInfo;
+import com.flansmod.warforge.server.Faction.Role;
 import com.mojang.authlib.GameProfile;
 
 import net.minecraft.command.ICommandSender;
@@ -25,7 +27,9 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
+import net.minecraft.world.World;
 
 public class FactionStorage 
 {
@@ -186,10 +190,13 @@ public class FactionStorage
 		
 		CheckForCompleteSieges();
 		
-    	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
-    	{
-    		entry.getValue().AdvanceDay();
-    	}
+		if(!WarForgeConfig.LEGACY_USES_YIELD_TIMER)
+		{
+	    	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
+	    	{
+	    		entry.getValue().AdvanceDay();
+	    	}
+		}
     }
     
     public void AdvanceYieldDay()
@@ -198,6 +205,14 @@ public class FactionStorage
     	{
     		entry.getValue().AwardYields();
     	}
+    	
+		if(WarForgeConfig.LEGACY_USES_YIELD_TIMER)
+		{
+	    	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
+	    	{
+	    		entry.getValue().AdvanceDay();
+	    	}
+		}
     }
     
     public void PlayerDied(EntityPlayerMP player, DamageSource source)
@@ -225,12 +240,53 @@ public class FactionStorage
 		
 		if(source.getTrueSource() instanceof EntityPlayer)
 		{
+			Faction killedFac = GetFactionOfPlayer(player.getUniqueID());
 			Faction killerFac = GetFactionOfPlayer(source.getTrueSource().getUniqueID());
+
 			if(killerFac != null)
-				killerFac.mNotoriety += WarForgeConfig.NOTORIETY_PER_PLAYER_KILL;
-			
-			((EntityPlayer)source.getTrueSource()).sendMessage(new TextComponentString("Killing " + player.getName() + " earned your faction " + WarForgeConfig.NOTORIETY_PER_PLAYER_KILL + " notoriety"));
+			{
+				int numTimesKilled = 0;
+				if(killerFac.mKillCounter.containsKey(player.getUniqueID()))
+				{
+					numTimesKilled = killerFac.mKillCounter.get(player.getUniqueID()) + 1;
+					killerFac.mKillCounter.replace(player.getUniqueID(), numTimesKilled);
+				}
+				else
+				{
+					numTimesKilled = 1;
+					killerFac.mKillCounter.put(player.getUniqueID(), numTimesKilled);
+				}
+				
+				if(numTimesKilled <= WarForgeConfig.NOTORIETY_KILL_CAP_PER_PLAYER) 
+				{
+					if(killerFac != killedFac)
+					{
+						((EntityPlayer)source.getTrueSource()).sendMessage(new TextComponentString("Killing " + player.getName() + " earned your faction " + WarForgeConfig.NOTORIETY_PER_PLAYER_KILL + " notoriety"));
+						killerFac.mNotoriety += WarForgeConfig.NOTORIETY_PER_PLAYER_KILL;
+					}
+				}
+				else
+				{
+					((EntityPlayer)source.getTrueSource()).sendMessage(new TextComponentString("Your faction has already killed " + player.getName() + " " + numTimesKilled + " times. You will not become more notorious."));
+				}
+			}
 		}
+    }
+    
+    public void ClearNotoriety()
+    {
+    	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
+    	{
+    		entry.getValue().mNotoriety = 0;
+    	}
+    }
+    
+    public void ClearLegacy()
+    {
+    	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
+    	{
+    		entry.getValue().mLegacy = 0;
+    	}
     }
     
     public void CheckForCompleteSieges()
@@ -475,6 +531,53 @@ public class FactionStorage
     	return true;
     }
     
+	public boolean RequestPromote(EntityPlayer factionLeader, EntityPlayerMP target) 
+	{
+		Faction faction = GetFactionOfPlayer(factionLeader.getUniqueID());
+		if(faction == null)
+		{
+			factionLeader.sendMessage(new TextComponentString("You are not in a faction"));
+    		return false;
+		}
+		if(!faction.IsPlayerRoleInFaction(factionLeader.getUniqueID(), Role.LEADER))
+		{
+			factionLeader.sendMessage(new TextComponentString("You are not the leader of this faction"));
+			return false;
+		}
+		if(!faction.IsPlayerRoleInFaction(target.getUniqueID(), Role.MEMBER))
+		{
+			factionLeader.sendMessage(new TextComponentString("This player cannot be promoted"));
+			return false;
+		}
+		
+		faction.Promote(target.getUniqueID());
+		return true;
+	}
+	
+	public boolean RequestDemote(EntityPlayer factionLeader, EntityPlayerMP target) 
+	{
+		Faction faction = GetFactionOfPlayer(factionLeader.getUniqueID());
+		if(faction == null)
+		{
+			factionLeader.sendMessage(new TextComponentString("You are not in a faction"));
+    		return false;
+		}
+		if(!faction.IsPlayerRoleInFaction(factionLeader.getUniqueID(), Role.LEADER))
+		{
+			factionLeader.sendMessage(new TextComponentString("You are not the leader of this faction"));
+			return false;
+		}
+		if(!faction.IsPlayerRoleInFaction(target.getUniqueID(), Role.OFFICER))
+		{
+			factionLeader.sendMessage(new TextComponentString("This player cannot be demoted"));
+			return false;
+		}
+		
+		faction.Demote(target.getUniqueID());
+		return true;
+	}
+	
+    
     public boolean RequestDisbandFaction(EntityPlayer factionLeader, UUID factionID)
     {
     	if(factionID.equals(Faction.NULL))
@@ -491,6 +594,10 @@ public class FactionStorage
     	}
     	
     	Faction faction = mFactions.get(factionID);
+		for(Map.Entry<DimBlockPos, Integer> kvp : faction.mClaims.entrySet())
+		{
+			mClaims.remove(kvp.getKey().ToChunkPos());
+		}
     	faction.Disband();
     	mFactions.remove(factionID);
     	WarForgeMod.LEADERBOARD.UnregisterFaction(faction);
@@ -500,10 +607,31 @@ public class FactionStorage
     
     public void FactionDefeated(Faction faction)
     {
+		for(Map.Entry<DimBlockPos, Integer> kvp : faction.mClaims.entrySet())
+		{
+			mClaims.remove(kvp.getKey().ToChunkPos());
+		}
     	faction.Disband();
     	mFactions.remove(faction.mUUID);
     	WarForgeMod.LEADERBOARD.UnregisterFaction(faction);
     }
+    
+	public boolean IsSiegeInProgress(DimChunkPos chunkPos) 
+	{
+		
+		for(Map.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
+		{
+			if(kvp.getKey().equals(chunkPos))
+				return true;
+			
+			for(DimBlockPos attackerPos : kvp.getValue().mAttackingSiegeCamps)
+			{
+				if(attackerPos.ToChunkPos().equals(chunkPos))
+					return true;
+			}
+		}
+		return false;
+	}
     
     public boolean RequestStartSiege(EntityPlayer factionOfficer, DimBlockPos siegeCampPos, EnumFacing direction)
     {
@@ -533,6 +661,14 @@ public class FactionStorage
     	}
     	
     	DimBlockPos defendingPos = defending.GetSpecificPosForClaim(defendingChunk);
+    	
+		if(IsSiegeInProgress(defendingPos.ToChunkPos()))
+		{
+			factionOfficer.sendMessage(new TextComponentString("That position is already being sieged"));
+			return false;
+		}
+    	
+    	
     	Siege siege = new Siege();
     	siege.mAttackingFaction = attacking.mUUID;
     	siege.mDefendingFaction = defendingFactionID;

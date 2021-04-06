@@ -98,12 +98,12 @@ public class BlockCitadel extends Block implements ITileEntityProvider
 			TileEntityCitadel citadel = (TileEntityCitadel)world.getTileEntity(pos);
 			
 			// If the player has no faction and is the placer, they can open the UI
-			if(playerFaction == null && player.getUniqueID() == citadel.GetPlacer())
+			if(playerFaction == null && player.getUniqueID().equals(citadel.GetPlacer()))
 			{
 				player.openGui(WarForgeMod.INSTANCE, CommonProxy.GUI_TYPE_CITADEL, world, pos.getX(), pos.getY(), pos.getZ());
 			}
 			// Any other factionless players, and players who aren't in this faction get an info panel			
-			else if(playerFaction == null || playerFaction.mUUID != citadel.mFactionUUID)
+			else if(playerFaction == null || !playerFaction.mUUID.equals(citadel.mFactionUUID))
 			{
 				Faction citadelFaction = WarForgeMod.FACTIONS.GetFaction(citadel.mFactionUUID);
 				if(citadelFaction != null)

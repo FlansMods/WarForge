@@ -3,6 +3,7 @@ package com.flansmod.warforge.common.blocks;
 import java.util.HashMap;
 import java.util.UUID;
 
+import com.flansmod.warforge.api.IItemYieldProvider;
 import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.InventoryHelper;
 import com.flansmod.warforge.common.WarForgeConfig;
@@ -45,7 +46,12 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 	@Override
 	public TileEntity GetAsTileEntity() { return this; }
 	@Override
-	public DimBlockPos GetPos() { return new DimBlockPos(world.provider.getDimension(), getPos()); }
+	public DimBlockPos GetPos() 
+	{ 
+		if(world == null)
+			return DimBlockPos.ZERO;
+		return new DimBlockPos(world.provider.getDimension(), getPos()); 
+	}
 	@Override 
 	public boolean CanBeSieged() { return true; }
 	@Override
@@ -92,7 +98,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 		if(world.isRemote)
 			return;
 		
-		HashMap<BlockYieldProvider, Integer> count = new HashMap<BlockYieldProvider, Integer>();
+		HashMap<IItemYieldProvider, Integer> count = new HashMap<IItemYieldProvider, Integer>();
 		
 		ChunkPos chunk = new ChunkPos(getPos());
 		
@@ -103,9 +109,9 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 				for(int y = 0; y < WarForgeConfig.HIGHEST_YIELD_ASSUMPTION; y++)
 				{
 					Block block = world.getBlockState(new BlockPos(x, y, z)).getBlock();
-					if(block instanceof BlockYieldProvider)
+					if(block instanceof IItemYieldProvider)
 					{
-						BlockYieldProvider yieldProv = (BlockYieldProvider)block;
+						IItemYieldProvider yieldProv = (IItemYieldProvider)block;
 						if(count.containsKey(yieldProv))
 							count.replace(yieldProv, count.get(yieldProv) + 1);
 						else
@@ -116,12 +122,12 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 			}
 		}
 		
-		for(HashMap.Entry<BlockYieldProvider, Integer> kvp : count.entrySet())
+		for(HashMap.Entry<IItemYieldProvider, Integer> kvp : count.entrySet())
 		{
-			if(kvp.getKey().mMultiplier > 0.0f)
+			if(kvp.getKey().GetMultiplier() > 0.0f)
 			{
-				ItemStack stack = kvp.getKey().mYieldToProvide.copy();
-				stack.setCount(MathHelper.ceil(kvp.getValue() * numYields * kvp.getKey().mMultiplier * GetYieldMultiplier()));
+				ItemStack stack = kvp.getKey().GetYieldToProvide().copy();
+				stack.setCount(MathHelper.ceil(kvp.getValue() * numYields * kvp.getKey().GetMultiplier() * GetYieldMultiplier()));
 				if(!InventoryHelper.addItemStackToInventory(this, stack, false))
 				{
 					

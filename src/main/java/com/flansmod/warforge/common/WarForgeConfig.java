@@ -104,18 +104,37 @@ public class WarForgeConfig
 	
 	// Notoriety
 	public static final String CATEGORY_NOTORIETY = "Notoriety";
-	public static int NOTORIETY_PER_PLAYER_KILL = 3;
+	public static int NOTORIETY_PER_PLAYER_KILL = 1;
+	public static int NOTORIETY_KILL_CAP_PER_PLAYER = 3;
 	//public static int NOTORIETY_PER_DRAGON_KILL = 9;
-	public static int NOTORIETY_PER_SIEGE_ATTACK_SUCCESS = 10;
+	public static int NOTORIETY_PER_SIEGE_ATTACK_SUCCESS = 7;
 	public static int NOTORIETY_PER_SIEGE_DEFEND_SUCCESS = 10;
 	
-	// Vault blocks
+	// Legacy
+	public static final String CATEGORY_LEGACY = "Legacy";
+	public static int LEGACY_PER_DAY = 3;
+	public static boolean LEGACY_USES_YIELD_TIMER = true;
+	
+	// Wealth - Vault blocks
 	public static String[] VAULT_BLOCK_IDS = new String[] { "minecraft:gold_block" };
 	public static ArrayList<Block> VAULT_BLOCKS = new ArrayList<Block>();
 	
 	public static float SHOW_NEW_AREA_TIMER = 200.0f;
     public static int FACTION_NAME_LENGTH_MAX = 32;
 	public static boolean BLOCK_ENDER_CHEST = false;
+	
+	public static boolean SHOW_OPPONENT_BORDERS = true;
+	public static boolean SHOW_ALLY_BORDERS = true;
+	
+	// Warps
+	public static final String CATEGORY_WARPS = "Warps";
+	public static boolean ENABLE_F_HOME_COMMAND = true;
+	public static boolean ALLOW_F_HOME_BETWEEN_DIMENSIONS = false;
+	public static boolean ENABLE_F_HOME_POTION_EFFECT = false; // TODO
+	public static int NUM_TICKS_FOR_WARP_COMMANDS = 20 * 20;
+	public static boolean ENABLE_SPAWN_COMMAND = true;
+	public static boolean ENABLE_SPAWN_POTION_EFFECT = false; // TODO
+	public static boolean ALLOW_SPAWN_BETWEEN_DIMENSIONS = false;
 	
 
     public static long FACTIONS_BOT_CHANNEL_ID = 799595436154683422L;
@@ -132,10 +151,12 @@ public class WarForgeConfig
 		public boolean PLAYER_TAKE_DAMAGE_FROM_PLAYER = true;
 		public boolean PLAYER_TAKE_DAMAGE_FROM_OTHER = true;
 		public boolean PLAYER_DEAL_DAMAGE = true;
+		public boolean ALLOW_MOB_SPAWNS = true;
+		public boolean ALLOW_MOB_ENTRY = true;
 		
 		private String[] BLOCK_PLACE_EXCEPTION_IDS = new String[] { "minecraft:torch" };
 		private String[] BLOCK_BREAK_EXCEPTION_IDS = new String[] { "minecraft:torch" };
-		private String[] BLOCK_INTERACT_EXCEPTION_IDS = new String[] { "minecraft:ender_chest" };
+		private String[] BLOCK_INTERACT_EXCEPTION_IDS = new String[] { "minecraft:ender_chest", "warforge:citadelblock", "warforge:basicclaimblock", "warforge:reinforcedclaimblock", "warforge:siegecampblock"   };
 		private String[] ITEM_USE_EXCEPTION_IDS = new String[] { "minecraft:snowball" };
 		
 		public List<Block> BLOCK_PLACE_EXCEPTIONS;
@@ -194,6 +215,8 @@ public class WarForgeConfig
 			BLOCK_INTERACT_EXCEPTION_IDS = configFile.getStringList(name + " - Interact Exceptions", category, BLOCK_INTERACT_EXCEPTION_IDS, "The block IDs that can still be interacted with. Has no effect if interacting is allowed anyway");
 			ITEM_USE_EXCEPTION_IDS = configFile.getStringList(name + " - Use Exceptions", category, ITEM_USE_EXCEPTION_IDS, "The item IDs that can still be used. Has no effect if interacting is allowed anyway");
 				
+			ALLOW_MOB_SPAWNS = configFile.getBoolean(name + " - Allow Mob Spawns", category, ALLOW_MOB_SPAWNS, "Can mobs spawn in " + desc);
+			ALLOW_MOB_ENTRY = configFile.getBoolean(name + " - Allow Mob Entry", category, ALLOW_MOB_ENTRY, "Can mobs enter " + desc);
 			
 		}
 	}
@@ -212,12 +235,13 @@ public class WarForgeConfig
 	// Init default perms
 	static
 	{ 
-		SAFE_ZONE.BREAK_BLOCKS = false;					SAFE_ZONE.PLACE_BLOCKS = false;						SAFE_ZONE.INTERACT = false;						SAFE_ZONE.USE_ITEM = false;
-		SAFE_ZONE.PLAYER_TAKE_DAMAGE_FROM_MOB = false;	SAFE_ZONE.PLAYER_TAKE_DAMAGE_FROM_PLAYER = false;	SAFE_ZONE.PLAYER_TAKE_DAMAGE_FROM_OTHER = true;	SAFE_ZONE.PLAYER_DEAL_DAMAGE = false;
+		SAFE_ZONE.BREAK_BLOCKS = false;					SAFE_ZONE.PLACE_BLOCKS = false;						SAFE_ZONE.INTERACT = false;							SAFE_ZONE.USE_ITEM = false;
+		SAFE_ZONE.PLAYER_TAKE_DAMAGE_FROM_MOB = false;	SAFE_ZONE.PLAYER_TAKE_DAMAGE_FROM_PLAYER = false;	SAFE_ZONE.PLAYER_TAKE_DAMAGE_FROM_OTHER = false;	SAFE_ZONE.PLAYER_DEAL_DAMAGE = false;
 		SAFE_ZONE.BLOCK_REMOVAL = false;				SAFE_ZONE.EXPLOSION_DAMAGE = false;
 		SAFE_ZONE.BLOCK_BREAK_EXCEPTION_IDS = new String[] {};	
 		SAFE_ZONE.BLOCK_PLACE_EXCEPTION_IDS = new String[] {};	
 		SAFE_ZONE.BLOCK_INTERACT_EXCEPTION_IDS = new String[] { "minecraft:ender_chest", "minecraft:lever", "minecraft:button", "warforge:leaderboard" };
+		SAFE_ZONE.ALLOW_MOB_SPAWNS = false;				SAFE_ZONE.ALLOW_MOB_ENTRY = false;
 		
 		WAR_ZONE.BREAK_BLOCKS = false;					WAR_ZONE.PLACE_BLOCKS = false;						WAR_ZONE.INTERACT = true;						WAR_ZONE.USE_ITEM = true;
 		WAR_ZONE.PLAYER_TAKE_DAMAGE_FROM_MOB = true;	WAR_ZONE.PLAYER_TAKE_DAMAGE_FROM_PLAYER = true;		WAR_ZONE.PLAYER_TAKE_DAMAGE_FROM_OTHER = true;	WAR_ZONE.PLAYER_DEAL_DAMAGE = true;
@@ -342,16 +366,30 @@ public class WarForgeConfig
 		NOTORIETY_PER_PLAYER_KILL = configFile.getInt("Notoriety gain per PVP kill", CATEGORY_NOTORIETY, NOTORIETY_PER_PLAYER_KILL, 0, 1024, "How much notoriety a player earns for their faction when killing another player");
 		NOTORIETY_PER_SIEGE_ATTACK_SUCCESS = configFile.getInt("Notoriety gain per siege attack win", CATEGORY_NOTORIETY, NOTORIETY_PER_SIEGE_ATTACK_SUCCESS, 0, 1024, "How much notoriety a faction earns when successfully winning an siege as attacker");
 		NOTORIETY_PER_SIEGE_DEFEND_SUCCESS = configFile.getInt("Notoriety gain per siege defend win", CATEGORY_NOTORIETY, NOTORIETY_PER_SIEGE_DEFEND_SUCCESS, 0, 1024, "How much notoriety a faction earns when successfully defending a siege");
-		
+		NOTORIETY_KILL_CAP_PER_PLAYER = configFile.getInt("Max # kills per player", CATEGORY_NOTORIETY, NOTORIETY_KILL_CAP_PER_PLAYER, 0, 1024, "How many times a faction can kill the same player and still get points");
+		// Legacy
+		LEGACY_PER_DAY = configFile.getInt("Legacy gain per day", CATEGORY_LEGACY, LEGACY_PER_DAY, 0, 1024, "How much legacy a faction gets for having at least one player on");
+		LEGACY_USES_YIELD_TIMER = configFile.getBoolean("Legacy uses yield timer", CATEGORY_LEGACY, LEGACY_USES_YIELD_TIMER, "If true, legacy triggers every yield timer. Otherwise, every siege timer");
 				
 		// Visual
 		SHOW_NEW_AREA_TIMER = configFile.getFloat("New Area Timer", Configuration.CATEGORY_GENERAL, SHOW_NEW_AREA_TIMER, 0.0f, 1000f, "How many in-game ticks to show the 'You have entered {faction}' message for.");
 		FACTION_NAME_LENGTH_MAX = configFile.getInt("Max Faction Name Length", Configuration.CATEGORY_GENERAL, FACTION_NAME_LENGTH_MAX, 3, 128, "How many characters long can a faction name be.");
-		
+		SHOW_OPPONENT_BORDERS = configFile.getBoolean("Show Opponent Chunk Borders", Configuration.CATEGORY_GENERAL, SHOW_OPPONENT_BORDERS, "Turns the in-world border rendering on/off for opponent chunks");
+		SHOW_ALLY_BORDERS = configFile.getBoolean("Show Ally Chunk Borders", Configuration.CATEGORY_GENERAL, SHOW_ALLY_BORDERS, "Turns the in-world border rendering on/off for ally chunks");
 		
 		// Other permissions
 		BLOCK_ENDER_CHEST = configFile.getBoolean("Disable Ender Chest", Configuration.CATEGORY_GENERAL, BLOCK_ENDER_CHEST, "Prevent players from opening ender chests");
-			
+		
+		//Warps
+		ENABLE_F_HOME_COMMAND = configFile.getBoolean("Enable /f home Command", CATEGORY_WARPS, ENABLE_F_HOME_COMMAND, "Allow players to use /f home to teleport to their citadel");
+		ENABLE_F_HOME_POTION_EFFECT = configFile.getBoolean("Enable /f home Potion", CATEGORY_WARPS, ENABLE_F_HOME_POTION_EFFECT, "Allow players to craft a potion that takes them to their citadel");
+		ALLOW_F_HOME_BETWEEN_DIMENSIONS = configFile.getBoolean("Allow /f home across dimensions", CATEGORY_WARPS, ALLOW_F_HOME_BETWEEN_DIMENSIONS, "Allow players to use /f home when in a different dimension to their citadel");
+		ENABLE_SPAWN_COMMAND = configFile.getBoolean("Enable /spawn Command", CATEGORY_WARPS, ENABLE_SPAWN_COMMAND, "Allow players to use /spawn to teleport to the world spawn");
+		ENABLE_SPAWN_POTION_EFFECT = configFile.getBoolean("Enable /spawn Potion", CATEGORY_WARPS, ENABLE_SPAWN_POTION_EFFECT, "Allow players to craft a potion that takes them to the world spawn");
+		ALLOW_SPAWN_BETWEEN_DIMENSIONS = configFile.getBoolean("Allow /spawn across dimensions", CATEGORY_WARPS, ALLOW_SPAWN_BETWEEN_DIMENSIONS, "Allow players to use /spawn when in a different dimension to the world spawn");
+		NUM_TICKS_FOR_WARP_COMMANDS = configFile.getInt("Num Ticks for Warps", CATEGORY_WARPS, NUM_TICKS_FOR_WARP_COMMANDS, 0, 20 * 60 * 5, "How many ticks must the player stand still for a warp command to take effect");
+	
+		
 		String botChannelString = configFile.getString("Discord Bot Channel ID", Configuration.CATEGORY_GENERAL, "" + FACTIONS_BOT_CHANNEL_ID, "https://github.com/Chikachi/DiscordIntegration/wiki/IMC-Feature");
 		FACTIONS_BOT_CHANNEL_ID = Long.parseLong(botChannelString);
 		

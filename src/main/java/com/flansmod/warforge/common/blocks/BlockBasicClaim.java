@@ -102,7 +102,7 @@ public class BlockBasicClaim extends Block implements ITileEntityProvider
 			TileEntityBasicClaim claimTE = (TileEntityBasicClaim)world.getTileEntity(pos);
 			
 			// Any factionless players, and players who aren't in this faction get an info panel			
-			if(playerFaction == null || playerFaction.mUUID != claimTE.mFactionUUID)
+			if(playerFaction == null || !playerFaction.mUUID.equals(claimTE.mFactionUUID))
 			{
 				Faction citadelFaction = WarForgeMod.FACTIONS.GetFaction(claimTE.mFactionUUID);
 				if(citadelFaction != null)

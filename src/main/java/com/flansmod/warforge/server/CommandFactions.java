@@ -2,6 +2,7 @@ package com.flansmod.warforge.server;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,10 +12,13 @@ import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.DimChunkPos;
 import com.flansmod.warforge.common.Protections;
 import com.flansmod.warforge.common.WarForgeMod;
+import com.flansmod.warforge.common.network.FactionDisplayInfo;
 import com.flansmod.warforge.common.network.LeaderboardInfo;
 import com.flansmod.warforge.common.network.PacketFactionInfo;
 import com.flansmod.warforge.common.network.PacketLeaderboardInfo;
+import com.flansmod.warforge.server.Faction.PlayerData;
 import com.flansmod.warforge.server.Leaderboard.FactionStat;
+import com.mojang.authlib.GameProfile;
 
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -56,10 +60,12 @@ public class CommandFactions extends CommandBase
 	
 	private static final String[] tabCompletions = new String[] { 
 			"invite", "accept", "disband", "expel", "leave", "time", "info", "top", "notoriety", "wealth", "legacy",
+			"promote", "demote", "msg"
 	};
 	
 	private static final String[] tabCompletionsOp = new String[] { 
 			"invite", "accept", "disband", "expel", "leave", "time", "info", "top", "notoriety", "wealth", "legacy",
+			"promote", "demote", "msg",
 			"safe", "war", "protection",
 	};
 	
@@ -79,6 +85,8 @@ public class CommandFactions extends CommandBase
         			return getListOfStringsMatchingLastWord(args, WarForgeMod.FACTIONS.GetFactionNames());
         		case "invite":
         		case "expel":
+        		case "demote":
+        		case "promote":
         			return getListOfStringsMatchingLastWord(args, server.getOnlinePlayerNames());
         		default: 
         			return getListOfStringsMatchingLastWord(args, new String[0]);
@@ -184,6 +192,14 @@ public class CommandFactions extends CommandBase
 			}
 			case "disband":
 			{
+				if(WarForgeMod.IsOp(sender) && args.length == 2)
+				{
+					Faction toDisband = WarForgeMod.FACTIONS.GetFaction(args[1]);
+					if(toDisband != null)
+					{
+						WarForgeMod.FACTIONS.FactionDefeated(toDisband);
+					}
+				}
 				if(sender instanceof EntityPlayer && faction != null)
 				{
 					WarForgeMod.FACTIONS.RequestDisbandFaction((EntityPlayer)sender, faction.mUUID);
@@ -229,7 +245,11 @@ public class CommandFactions extends CommandBase
 				long h = m / 60;
 				long d = h / 24;
 				
-				sender.sendMessage(new TextComponentString("Yields will next be awarded in " + (d) + " days, " + (h % 24) + ":" + (m % 60) + ":" + (s % 60)));
+				sender.sendMessage(new TextComponentString("Yields will next be awarded in "
+				+ (d) + " days, "
+				+ String.format("%02d", (h % 24))  + ":"
+				+ String.format("%02d", (m % 60)) + ":"
+				+ String.format("%02d", (s % 60))));
 				
 				ms = WarForgeMod.INSTANCE.GetMSToNextSiegeAdvance();
 				s = ms / 1000;
@@ -237,7 +257,11 @@ public class CommandFactions extends CommandBase
 				h = m / 60;
 				d = h / 24;
 				
-				sender.sendMessage(new TextComponentString("Sieges will progress in " + (d) + " days, " + (h % 24) + ":" + (m % 60) + ":" + (s % 60)));
+				sender.sendMessage(new TextComponentString("Sieges will progress in "
+				+ (d) + " days, "
+				+ String.format("%02d", (h % 24)) + ":"
+				+ String.format("%02d", (m % 60)) + ":"
+				+ String.format("%02d", (s % 60))));
 				break;
 			}
 			
@@ -266,6 +290,28 @@ public class CommandFactions extends CommandBase
 						WarForgeMod.NETWORK.sendTo(packet, (EntityPlayerMP)sender);
 					}
 				}
+				else
+				{
+					Faction factionToSend = WarForgeMod.FACTIONS.GetFaction(args[1]);
+					if(factionToSend != null)
+					{
+						String memberList = "Members: ";
+						for(HashMap.Entry<UUID, PlayerData> kvp : factionToSend.mMembers.entrySet())
+						{
+							GameProfile profile = WarForgeMod.MC_SERVER.getPlayerProfileCache().getProfileByUUID(kvp.getKey());
+							if(profile != null)
+							{
+								memberList = memberList + profile.getName() + ", ";
+							}
+						}
+						
+						sender.sendMessage(new TextComponentString("**" + factionToSend.mName + "**\n"
+																	+ memberList + "\n"
+																	+ "Notoriety: " + factionToSend.mNotoriety + "\n"
+																	+ "Wealth: " + factionToSend.mWealth + "\n"
+																	+ "Legacy: " + factionToSend.mLegacy + "\n"));
+					}
+				}
 				break;
 			}
 			
@@ -278,6 +324,17 @@ public class CommandFactions extends CommandBase
 					PacketLeaderboardInfo packet = new PacketLeaderboardInfo();
 					packet.mInfo = WarForgeMod.LEADERBOARD.CreateInfo(0, FactionStat.TOTAL, uuid);
 					WarForgeMod.NETWORK.sendTo(packet, (EntityPlayerMP)sender);
+				}
+				else
+				{
+					LeaderboardInfo info = WarForgeMod.LEADERBOARD.CreateInfo(0, FactionStat.TOTAL, Faction.NULL);
+					String result = "**Top Leaderboard**";
+					for(int i = 0; i < LeaderboardInfo.NUM_LEADERBOARD_ENTRIES_PER_PAGE; i++)
+					{
+						FactionDisplayInfo facInfo = info.mFactionInfos[i];
+						result = result + "\n#" + facInfo.mTotalRank + " | " + (facInfo.mLegacy + facInfo.mNotoriety + facInfo.mWealth);
+					}
+					sender.sendMessage(new TextComponentString(result));
 				}
 				break;
 			}
@@ -293,6 +350,17 @@ public class CommandFactions extends CommandBase
 					packet.mInfo = WarForgeMod.LEADERBOARD.CreateInfo(0, FactionStat.WEALTH, uuid);
 					WarForgeMod.NETWORK.sendTo(packet, (EntityPlayerMP)sender);
 				}
+				else
+				{
+					LeaderboardInfo info = WarForgeMod.LEADERBOARD.CreateInfo(0, FactionStat.WEALTH, Faction.NULL);
+					String result = "**Top Leaderboard**";
+					for(int i = 0; i < LeaderboardInfo.NUM_LEADERBOARD_ENTRIES_PER_PAGE; i++)
+					{
+						FactionDisplayInfo facInfo = info.mFactionInfos[i];
+						result = result + "\n#" + facInfo.mWealthRank + " | " + facInfo.mWealth;
+					}
+					sender.sendMessage(new TextComponentString(result));
+				}
 				break;
 			}
 			case "notoriety":
@@ -307,6 +375,17 @@ public class CommandFactions extends CommandBase
 					packet.mInfo = WarForgeMod.LEADERBOARD.CreateInfo(0, FactionStat.NOTORIETY, uuid);
 					WarForgeMod.NETWORK.sendTo(packet, (EntityPlayerMP)sender);
 				}
+				else
+				{
+					LeaderboardInfo info = WarForgeMod.LEADERBOARD.CreateInfo(0, FactionStat.NOTORIETY, Faction.NULL);
+					String result = "**Notoriety Leaderboard**";
+					for(int i = 0; i < LeaderboardInfo.NUM_LEADERBOARD_ENTRIES_PER_PAGE; i++)
+					{
+						FactionDisplayInfo facInfo = info.mFactionInfos[i];
+						result = result + "\n#" + facInfo.mNotorietyRank + " | " + facInfo.mNotoriety;
+					}
+					sender.sendMessage(new TextComponentString(result));
+				}
 				break;
 			}
 			case "legacy":
@@ -320,6 +399,17 @@ public class CommandFactions extends CommandBase
 					PacketLeaderboardInfo packet = new PacketLeaderboardInfo();
 					packet.mInfo = WarForgeMod.LEADERBOARD.CreateInfo(0, FactionStat.LEGACY, uuid);
 					WarForgeMod.NETWORK.sendTo(packet, (EntityPlayerMP)sender);
+				}
+				else
+				{
+					LeaderboardInfo info = WarForgeMod.LEADERBOARD.CreateInfo(0, FactionStat.LEGACY, Faction.NULL);
+					String result = "**Legacy Leaderboard**";
+					for(int i = 0; i < LeaderboardInfo.NUM_LEADERBOARD_ENTRIES_PER_PAGE; i++)
+					{
+						FactionDisplayInfo facInfo = info.mFactionInfos[i];
+						result = result + "\n#" + facInfo.mLegacyRank + " | " + facInfo.mLegacy;
+					}
+					sender.sendMessage(new TextComponentString(result));
 				}
 				break;
 			}
@@ -387,6 +477,107 @@ public class CommandFactions extends CommandBase
 				}
 				break;
 			}
+			case "home":
+			{
+				if(sender instanceof EntityPlayer)
+					WarForgeMod.TELEPORTS.RequestFHome((EntityPlayer)sender);
+				else
+					sender.sendMessage(new TextComponentString("Only valid for players"));
+				break;
+			}
+			case "spawn":
+			{
+				if(sender instanceof EntityPlayer)
+					WarForgeMod.TELEPORTS.RequestSpawn((EntityPlayer)sender);
+				else
+					sender.sendMessage(new TextComponentString("Only valid for players"));
+				break;
+			}
+			case "promote":
+			{
+				if(sender instanceof EntityPlayer)
+				{
+					if(args.length == 2)
+					{
+						EntityPlayerMP target = WarForgeMod.MC_SERVER.getPlayerList().getPlayerByUsername(args[1]);
+						if(target == null)
+						{
+							sender.sendMessage(new TextComponentString("Could not find " + args[1]));
+						}
+						else
+						{
+							WarForgeMod.FACTIONS.RequestPromote((EntityPlayer)sender, target);
+						}
+					}
+					else
+					{
+						sender.sendMessage(new TextComponentString("Please specify the player you want to promote"));
+					}
+				}
+				else
+					sender.sendMessage(new TextComponentString("Only valid for players"));
+				
+				break;
+			}
+			case "demote":
+			{
+				if(sender instanceof EntityPlayer)
+				{
+					if(args.length == 2)
+					{
+						EntityPlayerMP target = WarForgeMod.MC_SERVER.getPlayerList().getPlayerByUsername(args[1]);
+						if(target == null)
+						{
+							sender.sendMessage(new TextComponentString("Could not find " + args[1]));
+						}
+						else
+						{
+							WarForgeMod.FACTIONS.RequestDemote((EntityPlayer)sender, target);
+						}
+					}
+					else
+					{
+						sender.sendMessage(new TextComponentString("Please specify the player you want to promote"));
+					}
+				}
+				else
+					sender.sendMessage(new TextComponentString("Only valid for players"));
+				
+				break;
+			}
+			case "clearnotoriety":
+			{
+				if(WarForgeMod.IsOp(sender))
+				{
+					WarForgeMod.FACTIONS.ClearNotoriety();
+				}
+				break;
+			}
+			case "clearlegacy":
+			{
+				if(WarForgeMod.IsOp(sender))
+				{
+					WarForgeMod.FACTIONS.ClearLegacy();
+				}
+				break;
+			}
+			case "chat":
+			case "msg":
+			{
+				if(sender instanceof EntityPlayer)
+				{
+					if(faction != null)
+					{
+						String msg = "\u00a7a[" + sender.getName() + " > Faction] ";
+						for(int i = 1; i < args.length; i++)
+							msg += args[i];
+						faction.MessageAll(new TextComponentString(msg));
+					}
+				}
+				break;
+			}
+			
+			
 			
 			default:
 			{

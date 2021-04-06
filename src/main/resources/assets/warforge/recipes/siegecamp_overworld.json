@@ -6,11 +6,15 @@
     "OOO"
   ],
   "key": {
-    "B": {
-      "item": "minecraft:bed"
-    },
-    "N": {
-      "item": "minecraft:banner"
+    "B": 
+	{ 
+		"item": "minecraft:bed",
+		"data": 32767
+	},
+    "N": 
+	{
+      "item": "minecraft:banner",
+	  "data": 32767
     },
     "F": {
       "item": "minecraft:furnace"

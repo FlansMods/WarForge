@@ -11,9 +11,13 @@ import com.flansmod.warforge.common.WarForgeConfig.ProtectionConfig;
 import com.flansmod.warforge.server.Faction;
 import com.flansmod.warforge.server.FactionStorage;
 
+import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.MoverType;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemFood;
+import net.minecraft.item.ItemPotion;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityPiston;
@@ -21,11 +25,15 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.util.EntityDamageSource;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.EntityEvent.EnteringChunk;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
+import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.ExplosionEvent;
+import net.minecraftforge.event.world.WorldEvent.PotentialSpawns;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
@@ -248,11 +256,19 @@ public class Protections
     	
     	DimBlockPos pos = new DimBlockPos(event.getEntity().dimension, event.getPos());
     	ProtectionConfig config = GetProtections(event.getEntityPlayer().getUniqueID(), pos);
+   
     	
-    	if(!config.USE_ITEM)
+    	if(!config.INTERACT)
     	{
-    		//WarForgeMod.LOGGER.info("Cancelled item use event while looking at block");
-    		event.setCanceled(true);
+    		Block block = event.getWorld().getBlockState(event.getPos()).getBlock();
+    		if(block != WarForgeMod.CONTENT.citadelBlock
+    			&& block != WarForgeMod.CONTENT.basicClaimBlock
+    			&& block != WarForgeMod.CONTENT.reinforcedClaimBlock
+    			&& !config.BLOCK_INTERACT_EXCEPTIONS.contains(block))
+    		{
+	    		//WarForgeMod.LOGGER.info("Cancelled item use event while looking at block");
+	    		event.setCanceled(true);
+    		}
     	}
     }
     
@@ -265,6 +281,10 @@ public class Protections
     	if(OP_OVERRIDE && WarForgeMod.IsOp(event.getEntityPlayer()))
     		return;
     	
+    	// Always allow food
+    	if(event.getItemStack().getItem() instanceof ItemFood)
+    		return;
+    	    	
     	DimBlockPos pos = new DimBlockPos(event.getEntity().dimension, event.getPos());
     	ProtectionConfig config = GetProtections(event.getEntityPlayer().getUniqueID(), pos);
     	
@@ -272,6 +292,35 @@ public class Protections
     	{
     		//WarForgeMod.LOGGER.info("Cancelled item use event");
     		event.setCanceled(true);
+    	}
+    }
+    
+    @SubscribeEvent
+    public void OnMobSpawn(PotentialSpawns event)
+    {
+    	ProtectionConfig config = GetProtections(Faction.NULL, new DimBlockPos(event.getWorld().provider.getDimension(), event.getPos()));
+    	if(!config.ALLOW_MOB_SPAWNS)
+    	{
+    		event.setCanceled(true);
+    	}
+    }
+    
+    private static boolean inLoop = false;
+    @SubscribeEvent
+    public void LivingUpdate(EnteringChunk event)
+    {
+    	if(!inLoop)
+    	{
+    		if(!(event.getEntity() instanceof EntityPlayer))
+    		{
+		    	ProtectionConfig config = GetProtections(Faction.NULL, new DimBlockPos(event.getEntity().dimension, event.getEntity().getPosition()));
+		    	if(!config.ALLOW_MOB_ENTRY)
+		    	{
+		    		inLoop = true;
+		    		event.getEntity().move(MoverType.SELF, event.getOldChunkX() - event.getNewChunkX(), 0d, event.getOldChunkZ() - event.getNewChunkZ());
+		    		inLoop = false;
+		    	}
+    		}
     	}
     }
 }

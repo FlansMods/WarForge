@@ -98,6 +98,7 @@ import com.flansmod.warforge.server.CommandFactions;
 import com.flansmod.warforge.server.Faction;
 import com.flansmod.warforge.server.ServerTickHandler;
 import com.flansmod.warforge.server.Siege;
+import com.flansmod.warforge.server.Teleports;
 import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.mojang.authlib.GameProfile;
@@ -110,7 +111,7 @@ public class WarForgeMod
 {
     public static final String MODID = "warforge";
     public static final String NAME = "WarForge Factions";
-    public static final String VERSION = "1.0.2";
+    public static final String VERSION = "1.1.1";
     
 	@Instance(MODID)
 	public static WarForgeMod INSTANCE;
@@ -124,9 +125,11 @@ public class WarForgeMod
 	public static final FactionStorage FACTIONS = new FactionStorage();
 	public static final Content CONTENT = new Content();
 	public static final Protections PROTECTIONS = new Protections();
+	public static final Teleports TELEPORTS = new Teleports();
 	
 	public static MinecraftServer MC_SERVER = null;
 	public static Random rand = new Random();
+	
 	
 	public static long numberOfSiegeDaysTicked = 0L;
 	public static long numberOfYieldDaysTicked = 0L;
@@ -459,13 +462,10 @@ public class WarForgeMod
 	    	}
     	}
     	
-    	if(Loader.isModLoaded(DISCORD_MODID))
-    	{
-    		NBTTagCompound sendDiscordMessageTagCompound = new NBTTagCompound();
-    		sendDiscordMessageTagCompound.setString("message", msg.getFormattedText());
-    		sendDiscordMessageTagCompound.setLong("channel", WarForgeConfig.FACTIONS_BOT_CHANNEL_ID);
-    		FMLInterModComms.sendRuntimeMessage(this, DISCORD_MODID, "sendMessage", sendDiscordMessageTagCompound);
-    	}
+		NBTTagCompound sendDiscordMessageTagCompound = new NBTTagCompound();
+		sendDiscordMessageTagCompound.setString("message", msg.getFormattedText());
+		sendDiscordMessageTagCompound.setLong("channel", WarForgeConfig.FACTIONS_BOT_CHANNEL_ID);
+		FMLInterModComms.sendRuntimeMessage(this, DISCORD_MODID, "sendMessage", sendDiscordMessageTagCompound);
     }
     
     @EventHandler

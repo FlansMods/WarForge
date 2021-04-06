@@ -70,6 +70,7 @@ public class Faction
 	public HashMap<DimBlockPos, Integer> mClaims;
 	public HashMap<UUID, PlayerData> mMembers;
 	public HashMap<UUID, Float> mPendingInvites;
+	public HashMap<UUID, Integer> mKillCounter;
 	public boolean mHasHadAnyLoginsToday;
 	public int mColour = 0xffffff;
 	public int mNotoriety = 0;
@@ -81,6 +82,7 @@ public class Faction
 		mMembers = new HashMap<UUID, PlayerData>();
 		mPendingInvites = new HashMap<UUID, Float>();
 		mClaims = new HashMap<DimBlockPos, Integer>();
+		mKillCounter = new HashMap<UUID, Integer>();
 	}
 	
 	public void Update()
@@ -111,7 +113,7 @@ public class Faction
 	{
 		if(mHasHadAnyLoginsToday)
 		{
-			mLegacy++;
+			mLegacy += WarForgeConfig.LEGACY_PER_DAY;
 		}
 		
 		mHasHadAnyLoginsToday = false;
@@ -214,7 +216,7 @@ public class Faction
 	}
 	
 	public boolean Disband()
-	{
+	{		
 		// Clean up remaining claims
 		for(Map.Entry<DimBlockPos, Integer> kvp : mClaims.entrySet())
 		{
@@ -369,6 +371,26 @@ public class Faction
 		}
 	}
 	
+	public void Promote(UUID playerID) 
+	{
+		PlayerData data = mMembers.get(playerID);
+		if(data != null)
+		{
+			if(data.mRole == Role.MEMBER)
+				data.mRole = Role.OFFICER;
+		}
+	}
+	
+	public void Demote(UUID playerID) 
+	{
+		PlayerData data = mMembers.get(playerID);
+		if(data != null)
+		{
+			if(data.mRole == Role.OFFICER)
+				data.mRole = Role.MEMBER;
+		}
+	}
+	
 	public void ReadFromNBT(NBTTagCompound tags)
 	{
 		mClaims.clear();
@@ -398,6 +420,19 @@ public class Faction
 		{
 			WarForgeMod.LOGGER.error("Citadel was not claimed by the faction. Forcing claim");
 			mClaims.put(mCitadelPos, 0);
+		}
+		
+		NBTTagList killList = tags.getTagList("kills", 10); // CompoundTag (see NBTBase.class)
+		if(killList != null)
+		{
+			for(NBTBase base : killList)
+			{
+				NBTTagCompound killInfo = (NBTTagCompound)base;
+				UUID uuid = killInfo.getUniqueId("id");
+				int kills = killInfo.getInteger("count");
+						
+				mKillCounter.put(uuid, kills);
+			}
 		}
 
 		
@@ -441,6 +476,17 @@ public class Faction
 		tags.setTag("claims", claimsList);
 		mCitadelPos.WriteToNBT(tags, "citadelPos");
 		
+		NBTTagList killsList = new NBTTagList();
+		for(HashMap.Entry<UUID, Integer> kvp : mKillCounter.entrySet())
+		{
+			NBTTagCompound killTags = new NBTTagCompound();
+			killTags.setUniqueId("id", kvp.getKey());
+			killTags.setInteger("count", kvp.getValue());
+			
+			killsList.appendTag(killTags);
+		}
+		tags.setTag("kills", killsList);
+		
 		// Set gameplay params
 		tags.setInteger("notoriety", mNotoriety);
 		tags.setInteger("wealth", mWealth);
@@ -468,4 +514,6 @@ public class Faction
 	{
 		return WarForgeMod.MC_SERVER.getPlayerList().getPlayerByUUID(playerID);
 	}
+
+
 }
