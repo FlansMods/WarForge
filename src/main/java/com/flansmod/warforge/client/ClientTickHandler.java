@@ -75,6 +75,7 @@ public class ClientTickHandler
 	public void OnTick(ClientTickEvent tick)
 	{
 		WarForgeMod.INSTANCE.NETWORK.handleClientPackets();
+		WarForgeMod.proxy.TickClient();
 		ArrayList<DimBlockPos> expired = new ArrayList<DimBlockPos>();
 		for(HashMap.Entry<DimBlockPos, SiegeCampProgressInfo> kvp : ClientProxy.sSiegeInfo.entrySet())
 		{

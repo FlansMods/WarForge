@@ -3,6 +3,8 @@ package com.flansmod.warforge.client;
 import java.util.HashMap;
 import java.util.UUID;
 
+import org.lwjgl.input.Keyboard;
+
 import com.flansmod.warforge.common.CommonProxy;
 import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.WarForgeMod;
@@ -14,7 +16,9 @@ import com.flansmod.warforge.common.network.PacketRequestFactionInfo;
 import com.flansmod.warforge.common.network.SiegeCampProgressInfo;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
@@ -23,6 +27,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
+import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.FMLCommonHandler;
@@ -34,12 +39,17 @@ import net.minecraftforge.fml.relauncher.Side;
 public class ClientProxy extends CommonProxy
 {
 	public static HashMap<DimBlockPos, SiegeCampProgressInfo> sSiegeInfo = new HashMap<DimBlockPos, SiegeCampProgressInfo>();
+	public static KeyBinding factionChatKey = new KeyBinding("key.factionchat.desc",
+			KeyConflictContext.IN_GAME,
+			Keyboard.KEY_Y,
+			"key.warforge.factionchat");
 	
 	@Override
 	public void PreInit(FMLPreInitializationEvent event)
 	{
 		MinecraftForge.EVENT_BUS.register(this);
 		MinecraftForge.EVENT_BUS.register(new ClientTickHandler());
+		ClientRegistry.registerKeyBinding(factionChatKey);	
 	}
 	
 	@Override
@@ -50,6 +60,16 @@ public class ClientProxy extends CommonProxy
 		//ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySiegeCamp.class, new TileEntityBeamRender());
 		
 		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLeaderboard.class, new TileEntityLeaderboardRenderer());
+	}
+	
+	@Override
+	public void TickClient()
+	{
+		if(factionChatKey.isPressed())
+		{
+			GuiChat gui = new GuiChat("/f chat ");
+			Minecraft.getMinecraft().displayGuiScreen(gui);
+		}
 	}
 	
 	@Override

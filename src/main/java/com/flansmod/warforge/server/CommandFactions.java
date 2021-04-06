@@ -568,9 +568,9 @@ public class CommandFactions extends CommandBase
 				{
 					if(faction != null)
 					{
-						String msg = "\u00a7a[" + sender.getName() + " > Faction] ";
+						String msg = "\u00a7a[" + sender.getName() + " > Faction]\u00a7f";
 						for(int i = 1; i < args.length; i++)
-							msg += args[i];
+							msg += " " + args[i];
 						faction.MessageAll(new TextComponentString(msg));
 					}
 				}
