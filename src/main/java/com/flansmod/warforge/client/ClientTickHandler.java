@@ -57,6 +57,7 @@ public class ClientTickHandler
 {
 	private Tessellator tess;
 	private static final ResourceLocation texture = new ResourceLocation(WarForgeMod.MODID, "world/borders.png");
+	private static final ResourceLocation fastTexture = new ResourceLocation(WarForgeMod.MODID, "world/borders_fast.png");
 	private static final ResourceLocation overlayTex = new ResourceLocation(WarForgeMod.MODID, "world/overlay.png");
 	private static final ResourceLocation siegeprogress = new ResourceLocation(WarForgeMod.MODID, "gui/siegeprogressslim.png");
 	private final ModelBanner bannerModel = new ModelBanner();
@@ -659,12 +660,22 @@ public class ClientTickHandler
 			Minecraft.getMinecraft().entityRenderer.enableLightmap();
 			GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 			GlStateManager.disableLighting();
-			GlStateManager.enableAlpha();
 			GlStateManager.enableTexture2D();
-			GlStateManager.enableBlend();
 			GlStateManager.disableCull();
 			Minecraft.getMinecraft().entityRenderer.disableLightmap();
-			Minecraft.getMinecraft().renderEngine.bindTexture(texture);
+			
+			if(Minecraft.getMinecraft().isFancyGraphicsEnabled())
+			{
+				Minecraft.getMinecraft().renderEngine.bindTexture(texture);
+				GlStateManager.enableAlpha();
+				GlStateManager.enableBlend();
+			}
+			else
+			{
+				Minecraft.getMinecraft().renderEngine.bindTexture(fastTexture);
+			}
+			
+			
 		
 			double skyRenderDistance = 80d;
 			double groundRenderDistance = 64d;
