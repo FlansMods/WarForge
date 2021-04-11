@@ -620,6 +620,14 @@ public class CommandFactions extends CommandBase
 					sender.sendMessage(new TextComponentString("This command is only for players"));
 				break;
 			}
+			case "resetflagcooldowns":
+			{
+				if(WarForgeMod.IsOp(sender))
+				{
+					WarForgeMod.FACTIONS.OpResetFlagCooldowns();
+				}
+				break;
+			}
 			
 			
 			

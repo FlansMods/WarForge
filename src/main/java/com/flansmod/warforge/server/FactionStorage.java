@@ -14,6 +14,7 @@ import com.flansmod.warforge.common.blocks.IClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
 import com.flansmod.warforge.common.network.PacketSiegeCampProgressUpdate;
 import com.flansmod.warforge.common.network.SiegeCampProgressInfo;
+import com.flansmod.warforge.server.Faction.PlayerData;
 import com.flansmod.warforge.server.Faction.Role;
 import com.mojang.authlib.GameProfile;
 
@@ -676,6 +677,8 @@ public class FactionStorage
     	//siege.mAttackSuccessThreshold
     	//siege.mSupportingClaims
     	
+    	RequestPlaceFlag((EntityPlayerMP)factionOfficer, siegeCampPos);
+    	
     	siege.Start();
     	
     	mSieges.put(defendingChunk, siege);
@@ -824,6 +827,8 @@ public class FactionStorage
 			kvp.getValue().CalculateBasePower();
 		}
 		
+		SendAllSiegeInfoToNearby();
+		
 		return faction.PlaceFlag(player, pos);
 	}
 	
@@ -916,5 +921,16 @@ public class FactionStorage
 		}
 		
 		tags.setTag("factions", factionList);
+	}
+
+	public void OpResetFlagCooldowns() 
+	{
+		for(HashMap.Entry<UUID, Faction> kvp : mFactions.entrySet())
+		{
+			for(HashMap.Entry<UUID, PlayerData> pDataKVP : kvp.getValue().mMembers.entrySet())
+			{
+				pDataKVP.getValue().mHasMovedFlagToday = false;
+			}
+		}
 	}
 }

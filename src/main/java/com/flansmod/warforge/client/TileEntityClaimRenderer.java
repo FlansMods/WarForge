@@ -44,7 +44,7 @@ public class TileEntityClaimRenderer extends TileEntitySpecialRenderer<TileEntit
         //float textScale = 1f / fontPxPerMcPx;
         //GlStateManager.scale(textScale, textScale, textScale);
         
-        double poleH = flags.size() + 1.2d;
+        double poleH = flags.size() * 1.2d + 1.2d;
         
         GlStateManager.pushMatrix();
         {
@@ -90,9 +90,7 @@ public class TileEntityClaimRenderer extends TileEntitySpecialRenderer<TileEntit
         // Flag backgrounds
         GlStateManager.pushMatrix();
         {
-            GlStateManager.disableTexture2D();
-        	GlStateManager.enableLighting();
-        	GlStateManager.disableCull();
+           
 
         	GlStateManager.translate(0.5F, 0.0F, 0.5F);
         	
@@ -102,7 +100,11 @@ public class TileEntityClaimRenderer extends TileEntitySpecialRenderer<TileEntit
 	        
 	        for(int i = 0; i < flags.size(); i++)
 	        {
-	        	GlStateManager.translate(0.0F, 1.0F, 0.0F);
+	        	GlStateManager.translate(0.0F, 1.2F, 0.0F);
+	        	
+	        	 GlStateManager.disableTexture2D();
+	         	GlStateManager.enableLighting();
+	         	GlStateManager.disableCull();
 	        	
 		        GlStateManager.color(r, g, b);
 		        
@@ -117,8 +119,8 @@ public class TileEntityClaimRenderer extends TileEntitySpecialRenderer<TileEntit
 		        buff.begin(5, DefaultVertexFormats.POSITION_NORMAL);
 		        for(int n = 0; n < numVerts; n++)
 		        {
-		        	float sin = (float)Math.sin(time + n * 0.3f);
-		        	float cos = (float)Math.cos(time + n * 0.3f);
+		        	float sin = (float)Math.sin(time + n * 0.3f + i * Math.PI * 0.5f);
+		        	float cos = (float)Math.cos(time + n * 0.3f + i * Math.PI * 0.5f);
 		        	double zOffset = waveSize * sin * n / numSegments;
 		        	
 		        	buff.pos(length * n / (float)numSegments, 1, zOffset).normal(sin, 0, cos).endVertex();
@@ -145,8 +147,8 @@ public class TileEntityClaimRenderer extends TileEntitySpecialRenderer<TileEntit
 		        {
 		        	int n = m + (numSegments - numFaceSegments) / 2;
 		        	
-		        	float sin = (float)Math.sin(time + n * 0.3f);
-		        	float cos = (float)Math.cos(time + n * 0.3f);
+		        	float sin = (float)Math.sin(time + n * 0.3f + i * Math.PI * 0.5f);
+		        	float cos = (float)Math.cos(time + n * 0.3f + i * Math.PI * 0.5f);
 		        	double zOffset = waveSize * sin * n / numSegments + 0.01;
 		        	
 		        	float u = 0.125f + 0.125f * m / numFaceSegments;
@@ -162,8 +164,8 @@ public class TileEntityClaimRenderer extends TileEntitySpecialRenderer<TileEntit
 		        {
 		        	int n = m + (numSegments - numFaceSegments) / 2;
 		        	
-		        	float sin = (float)Math.sin(time + n * 0.3f);
-		        	float cos = (float)Math.cos(time + n * 0.3f);
+		        	float sin = (float)Math.sin(time + n * 0.3f + i * Math.PI * 0.5f);
+		        	float cos = (float)Math.cos(time + n * 0.3f + i * Math.PI * 0.5f);
 		        	double zOffset = waveSize * sin * n / numSegments - 0.01;
 		        	
 		        	float u = 0.125f + 0.125f * m / numFaceSegments;

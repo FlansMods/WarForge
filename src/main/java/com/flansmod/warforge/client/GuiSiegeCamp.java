@@ -10,6 +10,7 @@ import com.flansmod.warforge.common.blocks.IClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
 import com.flansmod.warforge.common.blocks.TileEntitySiegeCamp;
 import com.flansmod.warforge.common.network.PacketCreateFaction;
+import com.flansmod.warforge.common.network.PacketPlaceFlag;
 import com.flansmod.warforge.common.network.PacketStartSiege;
 import com.flansmod.warforge.common.network.SiegeCampAttackInfo;
 
@@ -33,6 +34,7 @@ public class GuiSiegeCamp extends GuiScreen
 	private static final int BUTTON_EAST = 1;
 	private static final int BUTTON_SOUTH = 2;
 	private static final int BUTTON_WEST = 3;
+	// private static final int BUTTON_SET_FLAG = 4;
 	
 	private GuiButton northButton, eastButton, southButton, westButton;
         
@@ -51,40 +53,48 @@ public class GuiSiegeCamp extends GuiScreen
 	public void initGui()
 	{
 		super.initGui();
-		
+				
 		int j = width / 2 - xSize / 2;
 		int k = height / 2 - ySize / 2;
-				
-		// North Button
-		northButton = new GuiButton(BUTTON_NORTH, j + 16, k + 86, 104, 20, "Attack North");
-		buttonList.add(northButton);
 		
-		// East Button
-		eastButton = new GuiButton(BUTTON_EAST, j + 16, k + 108, 104, 20, "Attack East");
-		buttonList.add(eastButton);
-		
-		// South Button
-		southButton = new GuiButton(BUTTON_SOUTH, j + 16, k + 130, 104, 20, "Attack South");
-		buttonList.add(southButton);
-		
-		// West Button
-		westButton = new GuiButton(BUTTON_WEST, j + 16, k + 152, 104, 20, "Attack West");
-		buttonList.add(westButton);
-		
-		northButton.enabled = false;
-		eastButton.enabled = false;
-		southButton.enabled = false;
-		westButton.enabled = false;
-		
-		for(SiegeCampAttackInfo info : mAttackInfo)
+		if(ClientProxy.sSiegeInfo.containsKey(mSiegeCamp.GetPos()))
 		{
-			switch(info.mDirection)
+			GuiButton setFlagButton = new GuiButton(4, j + 16, k + 86, 104, 20, "Place Flag Here");
+			buttonList.add(setFlagButton);
+		}
+		else
+		{	
+			// North Button
+			northButton = new GuiButton(BUTTON_NORTH, j + 16, k + 86, 104, 20, "Attack North");
+			buttonList.add(northButton);
+			
+			// East Button
+			eastButton = new GuiButton(BUTTON_EAST, j + 16, k + 108, 104, 20, "Attack East");
+			buttonList.add(eastButton);
+			
+			// South Button
+			southButton = new GuiButton(BUTTON_SOUTH, j + 16, k + 130, 104, 20, "Attack South");
+			buttonList.add(southButton);
+			
+			// West Button
+			westButton = new GuiButton(BUTTON_WEST, j + 16, k + 152, 104, 20, "Attack West");
+			buttonList.add(westButton);
+			
+			northButton.enabled = false;
+			eastButton.enabled = false;
+			southButton.enabled = false;
+			westButton.enabled = false;
+			
+			for(SiegeCampAttackInfo info : mAttackInfo)
 			{
-				case NORTH: northButton.enabled = true; break;
-				case EAST: eastButton.enabled = true; break;
-				case SOUTH: southButton.enabled = true; break;
-				case WEST: westButton.enabled = true; break;
-				default: break;
+				switch(info.mDirection)
+				{
+					case NORTH: northButton.enabled = true; break;
+					case EAST: eastButton.enabled = true; break;
+					case SOUTH: southButton.enabled = true; break;
+					case WEST: westButton.enabled = true; break;
+					default: break;
+				}
 			}
 		}
 	}
@@ -92,19 +102,29 @@ public class GuiSiegeCamp extends GuiScreen
 	@Override
 	protected void actionPerformed(GuiButton button)
 	{
-		PacketStartSiege siegePacket = new PacketStartSiege();
-			
-		siegePacket.mSiegeCampPos = mSiegeCamp.GetPos();
-		switch(button.id)
+		if(button.id == 4)
 		{
-			case BUTTON_NORTH: siegePacket.mDirection = EnumFacing.NORTH; break;
-			case BUTTON_EAST: siegePacket.mDirection = EnumFacing.EAST; break;
-			case BUTTON_SOUTH: siegePacket.mDirection = EnumFacing.SOUTH; break;
-			case BUTTON_WEST: siegePacket.mDirection = EnumFacing.WEST; break;
-		}	
-		
-		WarForgeMod.INSTANCE.NETWORK.sendToServer(siegePacket);
-		mc.displayGuiScreen(null);
+			PacketPlaceFlag packet = new PacketPlaceFlag();
+			packet.pos = mSiegeCamp.GetPos();
+			WarForgeMod.INSTANCE.NETWORK.sendToServer(packet);
+			mc.displayGuiScreen(null);
+		}
+		else
+		{
+			PacketStartSiege siegePacket = new PacketStartSiege();
+				
+			siegePacket.mSiegeCampPos = mSiegeCamp.GetPos();
+			switch(button.id)
+			{
+				case BUTTON_NORTH: siegePacket.mDirection = EnumFacing.NORTH; break;
+				case BUTTON_EAST: siegePacket.mDirection = EnumFacing.EAST; break;
+				case BUTTON_SOUTH: siegePacket.mDirection = EnumFacing.SOUTH; break;
+				case BUTTON_WEST: siegePacket.mDirection = EnumFacing.WEST; break;
+			}	
+			
+			WarForgeMod.INSTANCE.NETWORK.sendToServer(siegePacket);
+			mc.displayGuiScreen(null);
+		}
 	}
 
 	

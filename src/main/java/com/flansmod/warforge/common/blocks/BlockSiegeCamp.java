@@ -149,15 +149,13 @@ public class BlockSiegeCamp extends Block implements ITileEntityProvider
 			DimChunkPos chunkPos = new DimChunkPos(world.provider.getDimension(), pos);
 			if(WarForgeMod.FACTIONS.IsSiegeInProgress(chunkPos))
 			{
-				
+				WarForgeMod.FACTIONS.SendAllSiegeInfoToNearby();
 			}
-			else
-			{
-				PacketSiegeCampInfo info = new PacketSiegeCampInfo();
-				info.mPossibleAttacks = CalculatePossibleAttackDirections(world, pos);
-				info.mSiegeCampPos = new DimBlockPos(world.provider.getDimension(), pos);
-				WarForgeMod.INSTANCE.NETWORK.sendTo(info, (EntityPlayerMP)player);
-			}
+
+			PacketSiegeCampInfo info = new PacketSiegeCampInfo();
+			info.mPossibleAttacks = CalculatePossibleAttackDirections(world, pos);
+			info.mSiegeCampPos = new DimBlockPos(world.provider.getDimension(), pos);
+			WarForgeMod.INSTANCE.NETWORK.sendTo(info, (EntityPlayerMP)player);
 		}
 		//player.openGui(WarForgeMod.INSTANCE, CommonProxy.GUI_TYPE_SIEGE_CAMP, world, pos.getX(), pos.getY(), pos.getZ());
 		return true;

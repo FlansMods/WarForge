@@ -205,6 +205,8 @@ public class Faction
 		// Let everyone know
 		MessageAll(new TextComponentString(GetPlayerName(playerID) + " joined " + mName));
 		
+		PlaceFlag(WarForgeMod.MC_SERVER.getPlayerList().getPlayerByUUID(playerID), mCitadelPos);
+		
 		return true;
 	}
 	
