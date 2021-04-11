@@ -67,9 +67,7 @@ public class BlockSiegeCamp extends Block implements ITileEntityProvider
 			if(!existingClaim.equals(Faction.NULL))
 				return false;
 		}
-		
-		// TODO: Verify there is a valid attack place
-		
+	
 		// Can only place on a solid surface
 		if(!world.getBlockState(pos.add(0, -1, 0)).isSideSolid(world, pos.add(0, -1, 0), EnumFacing.UP))
 			return false;
@@ -87,6 +85,10 @@ public class BlockSiegeCamp extends Block implements ITileEntityProvider
 			{
 				TileEntitySiegeCamp siegeCamp = (TileEntitySiegeCamp)te;
 				WarForgeMod.FACTIONS.OnNonCitadelClaimPlaced(siegeCamp, placer);
+				if(placer instanceof EntityPlayerMP)
+				{
+					WarForgeMod.FACTIONS.RequestPlaceFlag((EntityPlayerMP)placer, new DimBlockPos(world.provider.getDimension(), pos));
+				}
 			}
 		}
     }

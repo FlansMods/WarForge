@@ -24,6 +24,7 @@ public class CommonProxy implements IGuiHandler
 	public static final int GUI_TYPE_SIEGE_CAMP = 3;
 	public static final int GUI_TYPE_FACTION_INFO = 4;
 	public static final int GUI_TYPE_LEADERBOARD = 5;
+	public static final int GUI_TYPE_RECOLOUR_FACTION = 6;
 	
 	public void PreInit(FMLPreInitializationEvent event)
 	{
@@ -79,6 +80,7 @@ public class CommonProxy implements IGuiHandler
 			case GUI_TYPE_SIEGE_CAMP: return null;
 			case GUI_TYPE_FACTION_INFO: return null;
 			case GUI_TYPE_LEADERBOARD: return null;
+			case GUI_TYPE_RECOLOUR_FACTION: return null;
 		}
 		return null;
 	}

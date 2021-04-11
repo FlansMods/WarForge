@@ -11,6 +11,7 @@ import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.common.blocks.TileEntityBasicClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
 import com.flansmod.warforge.common.blocks.TileEntityLeaderboard;
+import com.flansmod.warforge.common.blocks.TileEntityReinforcedClaim;
 import com.flansmod.warforge.common.blocks.TileEntitySiegeCamp;
 import com.flansmod.warforge.common.network.PacketRequestFactionInfo;
 import com.flansmod.warforge.common.network.SiegeCampProgressInfo;
@@ -55,9 +56,10 @@ public class ClientProxy extends CommonProxy
 	@Override
 	public void Init(FMLInitializationEvent event)
 	{
-		//ClientRegistry.bindTileEntitySpecialRenderer(TileEntityCitadel.class, new TileEntityBeamRender());
-		//ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBasicClaim.class, new TileEntityBeamRender());
-		//ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySiegeCamp.class, new TileEntityBeamRender());
+		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityCitadel.class, new TileEntityClaimRenderer());
+		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBasicClaim.class, new TileEntityClaimRenderer());
+		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityReinforcedClaim.class, new TileEntityClaimRenderer());
+		ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySiegeCamp.class, new TileEntityClaimRenderer());
 		
 		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLeaderboard.class, new TileEntityLeaderboardRenderer());
 	}
@@ -78,7 +80,8 @@ public class ClientProxy extends CommonProxy
 		switch(ID)
 		{
 			case GUI_TYPE_CITADEL: return new GuiCitadel(getServerGuiElement(ID, player, world, x, y, z));
-			case GUI_TYPE_CREATE_FACTION: return new GuiCreateFaction((TileEntityCitadel)world.getTileEntity(new BlockPos(x, y, z)));
+			case GUI_TYPE_CREATE_FACTION: return new GuiCreateFaction((TileEntityCitadel)world.getTileEntity(new BlockPos(x, y, z)), false);
+			case GUI_TYPE_RECOLOUR_FACTION: return new GuiCreateFaction((TileEntityCitadel)world.getTileEntity(new BlockPos(x, y, z)), true);
 			case GUI_TYPE_BASIC_CLAIM: return new GuiBasicClaim(getServerGuiElement(ID, player, world, x, y, z));
 			case GUI_TYPE_FACTION_INFO: return new GuiFactionInfo();
 			//case GUI_TYPE_SIEGE_CAMP: return new GuiSiegeCamp();

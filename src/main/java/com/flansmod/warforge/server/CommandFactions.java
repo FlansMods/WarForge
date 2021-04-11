@@ -60,12 +60,12 @@ public class CommandFactions extends CommandBase
 	
 	private static final String[] tabCompletions = new String[] { 
 			"invite", "accept", "disband", "expel", "leave", "time", "info", "top", "notoriety", "wealth", "legacy",
-			"promote", "demote", "msg"
+			"promote", "demote", "msg", "flag",
 	};
 	
 	private static final String[] tabCompletionsOp = new String[] { 
 			"invite", "accept", "disband", "expel", "leave", "time", "info", "top", "notoriety", "wealth", "legacy",
-			"promote", "demote", "msg",
+			"promote", "demote", "msg", "flag",
 			"safe", "war", "protection",
 	};
 	
@@ -199,12 +199,22 @@ public class CommandFactions extends CommandBase
 					{
 						WarForgeMod.FACTIONS.FactionDefeated(toDisband);
 					}
+					else
+					{
+						sender.sendMessage(new TextComponentString("Could not find that faction"));
+					}
 				}
-				if(sender instanceof EntityPlayer && faction != null)
+				else
 				{
-					WarForgeMod.FACTIONS.RequestDisbandFaction((EntityPlayer)sender, faction.mUUID);
+					if(sender instanceof EntityPlayer && faction != null)
+					{
+						WarForgeMod.FACTIONS.RequestDisbandFaction((EntityPlayer)sender, faction.mUUID);
+					}
+					else
+					{
+						sender.sendMessage(new TextComponentString("You aren't in a faction"));
+					}
 				}
-				// TODO: Op case
 				break;
 			}
 			case "expel":
@@ -224,6 +234,14 @@ public class CommandFactions extends CommandBase
 						
 						WarForgeMod.FACTIONS.RequestRemovePlayerFromFaction(sender, faction.mUUID, toRemoveID);
 					}
+					else
+					{
+						sender.sendMessage(new TextComponentString("Could not find player " + args[1]));
+					}
+				}
+				else
+				{
+					sender.sendMessage(new TextComponentString("Correct usage is /f " + args[0] + " <username>"));
 				}
 				break;
 			}
@@ -233,6 +251,10 @@ public class CommandFactions extends CommandBase
 				if(sender instanceof EntityPlayer)
 				{
 					WarForgeMod.FACTIONS.RequestRemovePlayerFromFaction(sender, faction.mUUID, ((EntityPlayer) sender).getUniqueID());
+				}
+				else
+				{
+					sender.sendMessage(new TextComponentString("This command is only for players"));
 				}
 				break;
 			}
@@ -574,6 +596,28 @@ public class CommandFactions extends CommandBase
 						faction.MessageAll(new TextComponentString(msg));
 					}
 				}
+				break;
+			}
+			case "placeflag":
+			case "flag":
+			{
+				if(sender instanceof EntityPlayer)
+				{
+					if(faction != null)
+					{
+						DimBlockPos pos = faction.GetSpecificPosForClaim(new DimChunkPos(((EntityPlayer) sender).dimension, sender.getPosition()));
+						if(pos != null)
+						{
+							faction.PlaceFlag((EntityPlayer)sender, pos);
+						}
+						else
+							sender.sendMessage(new TextComponentString("Could not find a claim of your faction in this chunk"));
+					}
+					else 
+						sender.sendMessage(new TextComponentString("You aren't in a faction"));
+				}
+				else 
+					sender.sendMessage(new TextComponentString("This command is only for players"));
 				break;
 			}
 			

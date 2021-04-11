@@ -37,6 +37,7 @@ public class Siege
 	 * 		- Additional siege camps
 	 * Sources of the defenders are:
 	 * 		- Adjacent claims with differing support strengths
+	 * 		- Defender's flags on the defended claim
 	 *  */
 	private int mBaseProgress = 0;
 	/**
@@ -162,7 +163,7 @@ public class Siege
 		WarForgeMod.FACTIONS.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
 	}
 	
-	private void CalculateBasePower()
+	public void CalculateBasePower()
 	{
 		Faction attackers = WarForgeMod.FACTIONS.GetFaction(mAttackingFaction);
 		Faction defenders = WarForgeMod.FACTIONS.GetFaction(mDefendingFaction);
@@ -174,6 +175,17 @@ public class Siege
 		}
 		
 		mBaseProgress = 0;
+		
+		// Add a point for each defender flag in place
+		for(HashMap.Entry<UUID, PlayerData> kvp : defenders.mMembers.entrySet())
+		{
+			// 
+			if(kvp.getValue().mFlagPosition.equals(mDefendingClaim))
+			{
+				mBaseProgress -= WarForgeConfig.SIEGE_SWING_PER_DEFENDER_FLAG;
+			}
+		}
+		
 		DimChunkPos defendingChunk = mDefendingClaim.ToChunkPos();
 		for(EnumFacing direction : EnumFacing.HORIZONTALS)
 		{
@@ -218,35 +230,64 @@ public class Siege
 		
 	}
 	
-	// These events will fire from all over. Do the in-range checks in here
-	public void OnAttackerDied(EntityPlayerMP attacker)
+	public void OnPVPKill(EntityPlayerMP killer, EntityPlayerMP killed)
 	{
-		ChunkPos chunkPos = new ChunkPos(attacker.getPosition());
-		int taxicabDistance = Math.abs(chunkPos.x - mDefendingClaim.ToChunkPos().x) 
-							+ Math.abs(chunkPos.z - mDefendingClaim.ToChunkPos().z);
+		Faction attackers = WarForgeMod.FACTIONS.GetFaction(mAttackingFaction);
+		Faction defenders = WarForgeMod.FACTIONS.GetFaction(mDefendingFaction);
 		
-		if(taxicabDistance <= 2)
+		if(attackers == null || defenders == null || WarForgeMod.MC_SERVER == null)
 		{
-			mAttackProgress -= WarForgeConfig.SIEGE_SWING_PER_ATTACKER_DEATH;
-			attacker.sendMessage(new TextComponentString("Your death has shifted the siege progress by " + WarForgeConfig.SIEGE_SWING_PER_ATTACKER_DEATH));
-			
-			WarForgeMod.FACTIONS.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
+			WarForgeMod.LOGGER.error("Invalid factions in siege.");
+			return;
 		}
-	}
-	// These events will fire from all over. Do the in-range checks in here
-	public void OnDefenderDied(EntityPlayerMP defender)
-	{
-		ChunkPos chunkPos = new ChunkPos(defender.getPosition());
-		int taxicabDistance = Math.abs(chunkPos.x - mDefendingClaim.ToChunkPos().x) 
-							+ Math.abs(chunkPos.z - mDefendingClaim.ToChunkPos().z);
 		
-		if(taxicabDistance <= 2)
+		// First case, an attacker killed a defender
+		if(attackers.IsPlayerInFaction(killer.getUniqueID()) && defenders.IsPlayerInFaction(killed.getUniqueID()))
 		{
-			mAttackProgress += WarForgeConfig.SIEGE_SWING_PER_DEFENDER_DEATH;
-			defender.sendMessage(new TextComponentString("Your death has shifted the siege progress by " + WarForgeConfig.SIEGE_SWING_PER_DEFENDER_DEATH));
+			DimBlockPos attackerFlagPos = attackers.GetFlagPosition(killer.getUniqueID());
+			DimBlockPos defenderFlagPos = defenders.GetFlagPosition(killed.getUniqueID());
 			
-			WarForgeMod.FACTIONS.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
+			// Only valid if the attacker has their flag on one of the siege camps
+			boolean attackerFlagged = false;
+			for(DimBlockPos siegeCamp : mAttackingSiegeCamps)
+			{
+				if(siegeCamp.equals(attackerFlagPos))
+					attackerFlagged = true;
+			}
+			
+			boolean defenderFlagged = defenderFlagPos.equals(mDefendingClaim);
+			
+			if(attackerFlagged && defenderFlagged)
+			{
+				mAttackProgress += WarForgeConfig.SIEGE_SWING_PER_DEFENDER_DEATH;
+				killed.sendMessage(new TextComponentString("Your death has shifted the siege progress by " + WarForgeConfig.SIEGE_SWING_PER_ATTACKER_DEATH));
+			}
 		}
+		
+		// Other case, a defender killed an attacker
+		if(defenders.IsPlayerInFaction(killer.getUniqueID()) && attackers.IsPlayerInFaction(killed.getUniqueID()))
+		{
+			DimBlockPos attackerFlagPos = attackers.GetFlagPosition(killed.getUniqueID());
+			DimBlockPos defenderFlagPos = defenders.GetFlagPosition(killer.getUniqueID());
+			
+			// Only valid if the attacker has their flag on one of the siege camps
+			boolean attackerFlagged = false;
+			for(DimBlockPos siegeCamp : mAttackingSiegeCamps)
+			{
+				if(siegeCamp.equals(attackerFlagPos))
+					attackerFlagged = true;
+			}
+			
+			boolean defenderFlagged = defenderFlagPos.equals(mDefendingClaim);
+			
+			if(attackerFlagged && defenderFlagged)
+			{
+				mAttackProgress -= WarForgeConfig.SIEGE_SWING_PER_ATTACKER_DEATH;
+				killed.sendMessage(new TextComponentString("Your death has shifted the siege progress by " + WarForgeConfig.SIEGE_SWING_PER_ATTACKER_DEATH));
+			}
+		}
+		
+		WarForgeMod.FACTIONS.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
 	}
 	
 	public void ReadFromNBT(NBTTagCompound tags)

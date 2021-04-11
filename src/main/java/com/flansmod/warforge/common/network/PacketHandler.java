@@ -193,6 +193,10 @@ public class PacketHandler extends MessageToMessageCodec<FMLProxyPacket, PacketB
 		registerPacket(PacketLeaderboardInfo.class);
 		registerPacket(PacketRequestLeaderboardInfo.class);
 		registerPacket(PacketDisbandFaction.class);
+		registerPacket(PacketRemoveClaim.class);
+		registerPacket(PacketPlaceFlag.class);
+		registerPacket(PacketTimeUpdates.class);
+		registerPacket(PacketSetFactionColour.class);
 	}
 	
 	/**

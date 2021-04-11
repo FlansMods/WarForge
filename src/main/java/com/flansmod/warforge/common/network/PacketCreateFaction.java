@@ -18,6 +18,7 @@ public class PacketCreateFaction extends PacketBase
 {
 	public DimBlockPos mCitadelPos;
 	public String mFactionName = "";
+	public int mColour = 0xffffff;
 	
 	@Override
 	public void encodeInto(ChannelHandlerContext ctx, ByteBuf data) 
@@ -26,6 +27,7 @@ public class PacketCreateFaction extends PacketBase
 		data.writeInt(mCitadelPos.getX());
 		data.writeInt(mCitadelPos.getY());
 		data.writeInt(mCitadelPos.getZ());
+		data.writeInt(mColour);
 		writeUTF(data, mFactionName);
 	}
 
@@ -37,6 +39,7 @@ public class PacketCreateFaction extends PacketBase
 		int y = data.readInt();
 		int z = data.readInt();
 		mCitadelPos = new DimBlockPos(dim, x, y, z);
+		mColour = data.readInt();
 		mFactionName = readUTF(data);
 	}
 
@@ -52,7 +55,7 @@ public class PacketCreateFaction extends PacketBase
 			TileEntity te = playerEntity.world.getTileEntity(mCitadelPos.ToRegularPos());
 			if(te != null && te instanceof TileEntityCitadel)
 			{
-				WarForgeMod.FACTIONS.RequestCreateFaction((TileEntityCitadel)te, playerEntity, mFactionName);
+				WarForgeMod.FACTIONS.RequestCreateFaction((TileEntityCitadel)te, playerEntity, mFactionName, mColour);
 			}
 		}
 	}

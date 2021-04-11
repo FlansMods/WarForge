@@ -45,6 +45,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType;
@@ -65,6 +66,8 @@ public class ClientTickHandler
 	private float mShowNewAreaTicksRemaining = 0;
 	private String mAreaMessage = "";
 	private int mAreaMessageColour = 0xffffff;
+	public static long msOfNextSiegeDay = 0L;
+	public static long msOfNextYieldDay = 0L;
 	
 	public ClientTickHandler()
 	{
@@ -178,7 +181,45 @@ public class ClientTickHandler
 			EntityPlayerSP player = Minecraft.getMinecraft().player;
 			if(player != null)
 			{
+				// Timer info
+				if(WarForgeConfig.SHOW_YIELD_TIMERS)
+				{
+					// Anchor point = top left of screen
+					int j = 0;
+					int k = 0;
+					
+					long msRemaining = msOfNextSiegeDay - System.currentTimeMillis();
+					long s = msRemaining / 1000;
+					long m = s / 60;
+					long h = m / 60;
+					long d = h / 24;
+					
+					mc.fontRenderer.drawStringWithShadow("Siege Progress: "
+					+ (d > 0 ? (d) + " days, " : "")
+					+ String.format("%02d", (h % 24))  + ":"
+					+ String.format("%02d", (m % 60)) + ":"
+					+ String.format("%02d", (s % 60)),
+					j + 4,
+					k + 4,
+					0xffffff);
+					
+					msRemaining = msOfNextYieldDay - System.currentTimeMillis();
+					s = msRemaining / 1000;
+					m = s / 60;
+					h = m / 60;
+					d = h / 24;
+					
+					mc.fontRenderer.drawStringWithShadow("Next yields: "
+					+ (d > 0 ? (d) + " days, " : "")
+					+ String.format("%02d", (h % 24))  + ":"
+					+ String.format("%02d", (m % 60)) + ":"
+					+ String.format("%02d", (s % 60)),
+					j + 4,
+					k + 14,
+					0xffffff);
+				}
 				
+				// Siege camp info
 				SiegeCampProgressInfo infoToRender = null;
 				double bestDistanceSq = Double.MAX_VALUE;
 				
@@ -195,6 +236,8 @@ public class ClientTickHandler
 						}
 					}
 				}
+				
+				
 				
 				// Render siege overlay
 				if(infoToRender != null)

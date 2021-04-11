@@ -1,6 +1,8 @@
 package com.flansmod.warforge.common.blocks;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 import com.flansmod.warforge.api.IItemYieldProvider;
@@ -19,7 +21,9 @@ import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemBanner;
 import net.minecraft.item.ItemShield;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.play.server.SPacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
@@ -29,40 +33,15 @@ import net.minecraft.world.World;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
 
-public abstract class TileEntityYieldCollector extends TileEntity implements IInventory, IClaim
+public abstract class TileEntityYieldCollector extends TileEntityClaim implements IInventory
 {
 	public static final int NUM_YIELD_STACKS = 9;
 	public static final int NUM_BASE_SLOTS = NUM_YIELD_STACKS;
-	
-	protected UUID mFactionUUID = Faction.NULL;
-	public int mColour = 0xffffff;
-	public String mFactionName = "";
-	
-	// IClaim
-	@Override
-	public UUID GetFaction() { return mFactionUUID; }
-	@Override
-	public int GetColour() { return mColour; }
-	@Override
-	public TileEntity GetAsTileEntity() { return this; }
-	@Override
-	public DimBlockPos GetPos() 
-	{ 
-		if(world == null)
-			return DimBlockPos.ZERO;
-		return new DimBlockPos(world.provider.getDimension(), getPos()); 
-	}
-	@Override 
-	public boolean CanBeSieged() { return true; }
-	@Override
-	public String GetDisplayName() { return mFactionName; }
-	//-----------
-	
+			
 	protected abstract float GetYieldMultiplier();
 
 	// The yield stacks are where items arrive when your faction is above a deposit
 	protected ItemStack[] mYieldStacks = new ItemStack[NUM_YIELD_STACKS];
-
 
 	public TileEntityYieldCollector()
 	{
@@ -71,28 +50,7 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 			mYieldStacks[i] = ItemStack.EMPTY;
 		}
 	}
-		
-	// Server only set
-	@Override
-	public void OnServerSetFaction(Faction faction)
-	{
-		if(faction == null)
-		{
-			mFactionUUID = Faction.NULL;
-		}
-		else
-		{
-			mFactionUUID = faction.mUUID;
-			mColour = faction.mColour;
-			mFactionName = faction.mName;
-		}
-		
-		world.markBlockRangeForRenderUpdate(pos, pos);
-		world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
-		world.scheduleBlockUpdate(pos, this.getBlockType(), 0, 0);
-		markDirty();
-	}
-	
+			
 	public void ProcessYield(int numYields) 
 	{
 		if(world.isRemote)
@@ -166,8 +124,6 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 	{
 		super.writeToNBT(nbt);
 		
-		nbt.setUniqueId("faction", mFactionUUID);
-		
 		// Write all our stacks out		
 		for(int i = 0; i < NUM_YIELD_STACKS; i++)
 		{
@@ -185,26 +141,6 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 	{
 		super.readFromNBT(nbt);
 	
-		mFactionUUID = nbt.getUniqueId("faction");
-		if(FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER)
-		{
-			Faction faction = WarForgeMod.FACTIONS.GetFaction(mFactionUUID);
-			if(!mFactionUUID.equals(Faction.NULL) && faction == null)
-			{
-				WarForgeMod.LOGGER.error("Faction " + mFactionUUID + " could not be found for citadel at " + pos);
-				//world.setBlockState(getPos(), Blocks.AIR.getDefaultState());
-			}
-			if(faction != null)
-			{
-				mColour = faction.mColour;
-				mFactionName = faction.mName;
-			}
-		}
-		else
-		{
-			WarForgeMod.LOGGER.error("Loaded TileEntity from NBT on client?");
-		}
-		
 		// Read inventory, or as much as we can find
 		for(int i = 0; i < NUM_YIELD_STACKS; i++)
 		{
@@ -213,44 +149,6 @@ public abstract class TileEntityYieldCollector extends TileEntity implements IIn
 			else 
 				mYieldStacks[i] = ItemStack.EMPTY;
 		}
-	}
-	
-	@Override
-	public SPacketUpdateTileEntity getUpdatePacket()
-	{
-		return new SPacketUpdateTileEntity(getPos(), getBlockMetadata(), getUpdateTag());
-	}
-	
-	@Override
-	public void onDataPacket(net.minecraft.network.NetworkManager net, SPacketUpdateTileEntity packet)
-	{
-		NBTTagCompound tags = packet.getNbtCompound();
-		
-		mFactionUUID = tags.getUniqueId("faction");
-		mColour = tags.getInteger("colour");
-		mFactionName = tags.getString("name");
-	}
-	
-	@Override
-	public NBTTagCompound getUpdateTag()
-	{
-		// You have to get parent tags so that x, y, z are added.
-		NBTTagCompound tags = super.getUpdateTag();
-
-		// Custom partial nbt write method
-		tags.setUniqueId("faction", mFactionUUID);
-		tags.setInteger("colour", mColour);
-		tags.setString("name", mFactionName);
-		
-		return tags;
-	}
-	
-	@Override
-	public void handleUpdateTag(NBTTagCompound tags)
-	{
-		mFactionUUID = tags.getUniqueId("faction");
-		mColour = tags.getInteger("colour");
-		mFactionName = tags.getString("name");
 	}
 	
 	// ----------------------------------------------------------

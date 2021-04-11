@@ -59,6 +59,7 @@ import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartedEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.Side;
@@ -88,6 +89,7 @@ import com.flansmod.warforge.common.blocks.TileEntityReinforcedClaim;
 import com.flansmod.warforge.common.blocks.TileEntitySiegeCamp;
 import com.flansmod.warforge.common.network.PacketHandler;
 import com.flansmod.warforge.common.network.PacketSiegeCampProgressUpdate;
+import com.flansmod.warforge.common.network.PacketTimeUpdates;
 import com.flansmod.warforge.common.network.SiegeCampProgressInfo;
 import com.flansmod.warforge.common.world.WorldGenAncientTree;
 import com.flansmod.warforge.common.world.WorldGenBedrockOre;
@@ -111,7 +113,7 @@ public class WarForgeMod
 {
     public static final String MODID = "warforge";
     public static final String NAME = "WarForge Factions";
-    public static final String VERSION = "1.1.1";
+    public static final String VERSION = "1.1.3";
     
 	@Instance(MODID)
 	public static WarForgeMod INSTANCE;
@@ -230,6 +232,7 @@ public class WarForgeMod
     
     public void UpdateServer()
     {
+    	boolean shouldUpdate = false;
     	long msTime = System.currentTimeMillis();
     	long dayLength = GetSiegeDayLengthMS();
     	
@@ -243,6 +246,7 @@ public class WarForgeMod
     		MessageAll(new TextComponentString("Battle takes its toll, all sieges have advanced."), true);
     		
     		FACTIONS.AdvanceSiegeDay();
+    		shouldUpdate = true;
     	}
     	
     	dayLength = GetYieldDayLengthMS();
@@ -256,8 +260,19 @@ public class WarForgeMod
     		MessageAll(new TextComponentString("All passive yields have been awarded."), true);
     		
     		FACTIONS.AdvanceYieldDay();
+    		shouldUpdate = true;
     	}
     	
+    	if(shouldUpdate)
+    	{
+	    	PacketTimeUpdates packet = new PacketTimeUpdates();
+	    	
+	    	packet.msTimeOfNextSiegeDay = System.currentTimeMillis() + GetMSToNextSiegeAdvance();
+	    	packet.msTimeOfNextYieldDay = System.currentTimeMillis() + GetMSToNextYield();
+	    	
+	    	NETWORK.sendToAll(packet);
+    	
+    	}
     	
     }
     
@@ -426,6 +441,13 @@ public class WarForgeMod
     			event.setCanceled(true);
     			return;
     		}
+    		
+    		if(!playerFaction.CanPlayerMoveFlag(player.getUniqueID()))
+    		{
+    			player.sendMessage(new TextComponentString("You have already moved your flag today. Check /f time"));
+    			event.setCanceled(true);
+    			return;
+    		}
 
     		ArrayList<DimChunkPos> validTargets = new ArrayList<DimChunkPos>(4);
     		int numTargets = FACTIONS.GetAdjacentClaims(playerFaction.mUUID, pos, validTargets);
@@ -439,6 +461,22 @@ public class WarForgeMod
     		// TODO: Check for alliances with those claims
     	}
     	
+    }
+    
+    @SubscribeEvent
+    public void PlayerJoinedGame(PlayerLoggedInEvent event)
+    {
+    	if(!event.player.world.isRemote)
+    	{
+	    	PacketTimeUpdates packet = new PacketTimeUpdates();
+	    	
+	    	packet.msTimeOfNextSiegeDay = System.currentTimeMillis() + GetMSToNextSiegeAdvance();
+	    	packet.msTimeOfNextYieldDay = System.currentTimeMillis() + GetMSToNextYield();
+	    	
+	    	NETWORK.sendTo(packet, (EntityPlayerMP)event.player);
+	    	
+	    	FACTIONS.SendAllSiegeInfoToNearby();
+    	}
     }
     
     // Discord integration

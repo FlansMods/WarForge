@@ -3,6 +3,7 @@ package com.flansmod.warforge.common.network;
 import com.flansmod.warforge.common.CommonProxy;
 import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.WarForgeMod;
+import com.flansmod.warforge.server.Faction.Role;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -47,6 +48,7 @@ public class PacketFactionInfo extends PacketBase
 			{
 				writeUUID(data, mInfo.mMembers.get(i).mPlayerUUID);
 				writeUTF(data, mInfo.mMembers.get(i).mPlayerName);
+				data.writeInt(mInfo.mMembers.get(i).mRole.ordinal());
 			}
 			writeUUID(data, mInfo.mLeaderID);
 		}
@@ -93,6 +95,7 @@ public class PacketFactionInfo extends PacketBase
 				PlayerDisplayInfo playerInfo = new PlayerDisplayInfo();
 				playerInfo.mPlayerUUID = readUUID(data);
 				playerInfo.mPlayerName = readUTF(data);
+				playerInfo.mRole = Role.values()[data.readInt()];
 				mInfo.mMembers.add(playerInfo);
 			}
 			mInfo.mLeaderID = readUUID(data);

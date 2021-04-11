@@ -28,7 +28,7 @@ import net.minecraft.util.ResourceLocation;
 public class GuiFactionInfo extends GuiScreen
 {
 	private static final ResourceLocation texture = new ResourceLocation(WarForgeMod.MODID, "gui/factioninfo.png");
-	private static HashMap<String, ResourceLocation> sSkinCache = new HashMap<String, ResourceLocation>();
+	public static HashMap<String, ResourceLocation> sSkinCache = new HashMap<String, ResourceLocation>();
 
 	private enum EnumTab
 	{
@@ -124,7 +124,10 @@ public class GuiFactionInfo extends GuiScreen
 							
 							// Then render the next one
 							if(index + 1 < info.mMembers.size())
+							{
 								playerInfo = info.mMembers.get(index + 1);
+								index++;
+							}
 							else continue;
 						}
 					}
@@ -382,6 +385,13 @@ public class GuiFactionInfo extends GuiScreen
 	}
 	
 	private void RenderPlayerFace(int x, int y, String username)
+	{		
+		ResourceLocation skinLocation = GetSkin(username);
+        mc.renderEngine.bindTexture(skinLocation);
+        drawModalRectWithCustomSizedTexture(x, y, 16, 16, 16, 16, 128, 128);
+	}	
+		
+	public static ResourceLocation GetSkin(String username)
 	{
 		if(!sSkinCache.containsKey(username))
 		{
@@ -404,14 +414,11 @@ public class GuiFactionInfo extends GuiScreen
 	            }
 	        }
 	        sSkinCache.put(username, skin);
+	        return skin;
 		}
-        
-		if(sSkinCache.containsKey(username))
-		{
-	        mc.renderEngine.bindTexture(sSkinCache.get(username));
-	        drawModalRectWithCustomSizedTexture(x, y, 16, 16, 16, 16, 128, 128);
-		}
-	}	
+		
+		return sSkinCache.get(username);
+	}
 	
 	@Override
 	public boolean doesGuiPauseGame()

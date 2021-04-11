@@ -43,16 +43,29 @@ public class Faction
 	public class PlayerData
 	{
 		public Faction.Role mRole = Faction.Role.MEMBER;
+		public DimBlockPos mFlagPosition = DimBlockPos.ZERO;
+		public boolean mHasMovedFlagToday = false;
 		
 		public void ReadFromNBT(NBTTagCompound tags)
 		{
 			// Read and write role by string so enum order can change
 			mRole = Faction.Role.valueOf(tags.getString("role"));
+			mHasMovedFlagToday = tags.getBoolean("movedFlag");
+			mFlagPosition = new DimBlockPos(
+					tags.getInteger("dim"),
+					tags.getInteger("x"),
+					tags.getInteger("y"),
+					tags.getInteger("z"));
 		}
 		
 		public void WriteToNBT(NBTTagCompound tags)
 		{
 			tags.setString("role", mRole.name());
+			tags.setBoolean("movedFlag", mHasMovedFlagToday);
+			tags.setInteger("dim", mFlagPosition.mDim);
+			tags.setInteger("x", mFlagPosition.getX());
+			tags.setInteger("y", mFlagPosition.getY());
+			tags.setInteger("z", mFlagPosition.getZ());
 		}
 	}
 	
@@ -109,6 +122,15 @@ public class Faction
 		}
 	}
 	
+	public DimBlockPos GetFlagPosition(UUID playerID)
+	{
+		if(mMembers.containsKey(playerID))
+		{
+			return mMembers.get(playerID).mFlagPosition;
+		}
+		return DimBlockPos.ZERO;
+	}
+	
 	public void AdvanceDay()
 	{
 		if(mHasHadAnyLoginsToday)
@@ -116,6 +138,11 @@ public class Faction
 			mLegacy += WarForgeConfig.LEGACY_PER_DAY;
 		}
 		
+		for(HashMap.Entry<UUID, PlayerData> kvp : mMembers.entrySet())
+		{
+			kvp.getValue().mHasMovedFlagToday = false;
+		}
+
 		mHasHadAnyLoginsToday = false;
 	}
 	
@@ -243,7 +270,10 @@ public class Faction
 	public boolean IsPlayerRoleInFaction(UUID playerID, Role role)
 	{
 		if(mMembers.containsKey(playerID))
-			return mMembers.get(playerID).mRole.ordinal() >= role.ordinal();
+		{
+			Role thierRole = mMembers.get(playerID).mRole;
+			return thierRole.ordinal() >= role.ordinal();
+		}
 		return false;
 	}
 	
@@ -263,17 +293,7 @@ public class Faction
 	{
 		mClaims.put(claim.GetPos(), 0);
 	}
-	
-	public void OnSiegeCreated(TileEntitySiegeCamp campTE, DimChunkPos attackedChunk) 
-	{
-		// TODO
-	}
-	
-	public void OnSiegeReceived(TileEntitySiegeCamp campTE, DimChunkPos attackedChunk) 
-	{
-		// TODO
-	}
-	
+		
 	public void OnClaimLost(DimBlockPos claimBlockPos) 
 	{
 		// Destroy our claim block
@@ -297,6 +317,60 @@ public class Faction
 	public void ClaimNoTileEntity(DimChunkPos pos) 
 	{
 		mClaims.put(new DimBlockPos(pos.mDim, pos.getXStart(), 0, pos.getZStart()), 0);
+	}
+	
+	public boolean PlaceFlag(EntityPlayer player, DimBlockPos claimPos)
+	{
+		if(!mClaims.containsKey(claimPos))
+		{
+			player.sendMessage(new TextComponentString("Your faction does not own this claim"));
+			return false;
+		}
+		
+		TileEntity te = WarForgeMod.MC_SERVER.getWorld(claimPos.mDim).getTileEntity(claimPos.ToRegularPos());
+		if(te == null || !(te instanceof IClaim))
+		{
+			player.sendMessage(new TextComponentString("Internal error"));
+			WarForgeMod.LOGGER.error("Faction claim could not get tile entity");
+			return false;
+		}
+		
+		PlayerData data = mMembers.get(player.getUniqueID());
+		if(data == null)
+		{
+			player.sendMessage(new TextComponentString("Your faction member data is corrupt"));
+			return false;
+		}
+		
+		if(data.mHasMovedFlagToday)
+		{
+			player.sendMessage(new TextComponentString("You have already moved your flag today. Check /f time"));
+			return false;
+		}
+		
+		if(data.mFlagPosition.equals(claimPos))
+		{
+			player.sendMessage(new TextComponentString("Your flag is already here"));
+			return false;
+		}
+		
+		// Clean up old pos
+		if(!data.mFlagPosition.equals(DimBlockPos.ZERO))
+		{
+			TileEntity oldTE = WarForgeMod.MC_SERVER.getWorld(data.mFlagPosition.mDim).getTileEntity(data.mFlagPosition.ToRegularPos());
+			if(oldTE != null && oldTE instanceof IClaim)
+			{
+				((IClaim)oldTE).OnServerRemovePlayerFlag(player.getName());
+			}
+		}
+		
+		data.mFlagPosition = claimPos;		
+		data.mHasMovedFlagToday = true;
+		((IClaim)te).OnServerSetPlayerFlag(player.getName());
+		MessageAll(new TextComponentString(player.getName() + " placed their flag at " + claimPos.ToFancyString()));
+		player.sendMessage(new TextComponentString("Your flag can move again on the next siege day"));
+		
+		return true;
 	}
 	
 	// Messaging
@@ -391,6 +465,21 @@ public class Faction
 		}
 	}
 	
+	public boolean CanPlayerMoveFlag(UUID uniqueID) 
+	{
+		PlayerData data = mMembers.get(uniqueID);
+		if(data != null)
+		{
+			return !data.mHasMovedFlagToday;
+		}
+		return false;
+	}
+	
+	public void SetColour(int colour) 
+	{
+		mColour = colour;
+	}
+	
 	public void ReadFromNBT(NBTTagCompound tags)
 	{
 		mClaims.clear();
@@ -452,6 +541,12 @@ public class Faction
 				PlayerData data = new PlayerData();
 				data.ReadFromNBT(memberTags);
 				mMembers.put(uuid, data);
+				
+				// Fixup for old data
+				if(data.mFlagPosition.equals(DimBlockPos.ZERO))
+				{
+					data.mFlagPosition = mCitadelPos;
+				}
 			}
 		}
 	}
@@ -514,6 +609,4 @@ public class Faction
 	{
 		return WarForgeMod.MC_SERVER.getPlayerList().getPlayerByUUID(playerID);
 	}
-
-
 }

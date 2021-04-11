@@ -215,59 +215,49 @@ public class FactionStorage
 		}
     }
     
-    public void PlayerDied(EntityPlayerMP player, DamageSource source)
-    {
-		Faction faction = GetFactionOfPlayer(player.getUniqueID());
-    	
-		if(faction != null)
-		{			
-	    	for(HashMap.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
-			{
-				// If the player is on the attackers side, send the event
-				if(kvp.getValue().mAttackingFaction.equals(faction.mUUID))
-				{
-					kvp.getValue().OnAttackerDied(player);
-				}
-				// If the player is on the defenders side, send the event
-				if(kvp.getValue().mDefendingFaction.equals(faction.mUUID))
-				{
-					kvp.getValue().OnDefenderDied(player);
-				}
-			}
-	    	
-	    	CheckForCompleteSieges();
-		}
-		
-		if(source.getTrueSource() instanceof EntityPlayer)
+    public void PlayerDied(EntityPlayerMP playerWhoDied, DamageSource source)
+    {		
+		if(source.getTrueSource() instanceof EntityPlayerMP)
 		{
-			Faction killedFac = GetFactionOfPlayer(player.getUniqueID());
-			Faction killerFac = GetFactionOfPlayer(source.getTrueSource().getUniqueID());
+			EntityPlayerMP killer = (EntityPlayerMP)source.getTrueSource();
+			Faction killedFac = GetFactionOfPlayer(playerWhoDied.getUniqueID());
+			Faction killerFac = GetFactionOfPlayer(killer.getUniqueID());
 
+			if(killedFac != null && killerFac != null)
+			{			
+		    	for(HashMap.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
+				{
+		    		kvp.getValue().OnPVPKill(killer, playerWhoDied);
+				}
+		    	
+		    	CheckForCompleteSieges();
+			}
+			
 			if(killerFac != null)
 			{
 				int numTimesKilled = 0;
-				if(killerFac.mKillCounter.containsKey(player.getUniqueID()))
+				if(killerFac.mKillCounter.containsKey(playerWhoDied.getUniqueID()))
 				{
-					numTimesKilled = killerFac.mKillCounter.get(player.getUniqueID()) + 1;
-					killerFac.mKillCounter.replace(player.getUniqueID(), numTimesKilled);
+					numTimesKilled = killerFac.mKillCounter.get(playerWhoDied.getUniqueID()) + 1;
+					killerFac.mKillCounter.replace(playerWhoDied.getUniqueID(), numTimesKilled);
 				}
 				else
 				{
 					numTimesKilled = 1;
-					killerFac.mKillCounter.put(player.getUniqueID(), numTimesKilled);
+					killerFac.mKillCounter.put(playerWhoDied.getUniqueID(), numTimesKilled);
 				}
 				
 				if(numTimesKilled <= WarForgeConfig.NOTORIETY_KILL_CAP_PER_PLAYER) 
 				{
 					if(killerFac != killedFac)
 					{
-						((EntityPlayer)source.getTrueSource()).sendMessage(new TextComponentString("Killing " + player.getName() + " earned your faction " + WarForgeConfig.NOTORIETY_PER_PLAYER_KILL + " notoriety"));
+						((EntityPlayer)source.getTrueSource()).sendMessage(new TextComponentString("Killing " + playerWhoDied.getName() + " earned your faction " + WarForgeConfig.NOTORIETY_PER_PLAYER_KILL + " notoriety"));
 						killerFac.mNotoriety += WarForgeConfig.NOTORIETY_PER_PLAYER_KILL;
 					}
 				}
 				else
 				{
-					((EntityPlayer)source.getTrueSource()).sendMessage(new TextComponentString("Your faction has already killed " + player.getName() + " " + numTimesKilled + " times. You will not become more notorious."));
+					((EntityPlayer)source.getTrueSource()).sendMessage(new TextComponentString("Your faction has already killed " + playerWhoDied.getName() + " " + numTimesKilled + " times. You will not become more notorious."));
 				}
 			}
 		}
@@ -336,7 +326,7 @@ public class FactionStorage
 		}
     }
     
-    public boolean RequestCreateFaction(TileEntityCitadel citadel, EntityPlayer player, String factionName)
+    public boolean RequestCreateFaction(TileEntityCitadel citadel, EntityPlayer player, String factionName, int colour)
     {
     	if(citadel == null)
     	{
@@ -384,13 +374,19 @@ public class FactionStorage
     		return false;
     	}
     	
+    	if(colour == 0xffffff)
+    	{
+    		 colour = Color.HSBtoRGB(WarForgeMod.rand.nextFloat(), WarForgeMod.rand.nextFloat() * 0.5f + 0.5f, 1.0f);  	
+    	}
+    	
     	// All checks passed, create a faction
     	Faction faction = new Faction();
     	faction.mUUID = proposedID;
     	faction.mName = factionName;
     	faction.mCitadelPos = new DimBlockPos(citadel);
-		faction.mColour = Color.HSBtoRGB(WarForgeMod.rand.nextFloat(), WarForgeMod.rand.nextFloat() * 0.5f + 0.5f, 1.0f);
-    	faction.mNotoriety = 0;
+    	faction.mClaims.put(faction.mCitadelPos, 0);
+		faction.mColour = colour;
+		faction.mNotoriety = 0;
     	faction.mLegacy = 0;
     	faction.mWealth = 0;
     	
@@ -427,7 +423,7 @@ public class FactionStorage
     	if(remover instanceof EntityPlayer)
     	{
     		UUID removerID = ((EntityPlayer)remover).getUniqueID();
-    		if(removerID == toRemove) // remove self
+    		if(removerID.equals(toRemove)) // remove self
     		{
     			canRemove = true;
     			removingSelf = true;
@@ -451,9 +447,12 @@ public class FactionStorage
     		else
        			faction.MessageAll(new TextComponentString(userProfile.getName() + " was kicked from " + faction.mName));
     	}
+    	else
+    	{
+    		remover.sendMessage(new TextComponentString("Error: Could not get user profile"));
+    	}
     	
-    	faction.RemovePlayer(toRemove);
-    	
+    	faction.RemovePlayer(toRemove);		
     	return true;
     }
         
@@ -735,6 +734,15 @@ public class FactionStorage
     	}
     }
     
+	public void SendAllSiegeInfoToNearby() 
+	{			
+		for(HashMap.Entry<DimChunkPos, Siege> kvp : WarForgeMod.FACTIONS.mSieges.entrySet())
+		{
+			SendSiegeInfoToNearby(kvp.getKey());
+		}
+		
+	}
+    
 	public int GetAdjacentClaims(UUID excludingFaction, DimChunkPos pos, ArrayList<DimChunkPos> positions)
 	{
 		positions.clear();
@@ -759,6 +767,99 @@ public class FactionStorage
 		return factionID != null && !factionID.equals(excludingFaction) && !factionID.equals(Faction.NULL);
 	}
 	
+	public boolean RequestRemoveClaim(EntityPlayerMP player, DimBlockPos pos) 
+	{
+		UUID factionID = GetClaim(pos);
+		Faction faction = GetFaction(factionID);
+		if(factionID.equals(Faction.NULL) || faction == null)
+		{
+			player.sendMessage(new TextComponentString("Could not find a claim in that location"));
+			return false;
+		}
+		
+		if(pos.equals(faction.mCitadelPos))
+		{
+			player.sendMessage(new TextComponentString("Can't remove the citadel without disbanding the faction"));
+			return false;
+		}
+		
+		if(!WarForgeMod.IsOp(player) && faction.IsPlayerRoleInFaction(player.getUniqueID(), Role.OFFICER))
+		{
+			player.sendMessage(new TextComponentString("You are not an officer of the faction"));
+			return false;
+		}
+		
+		for(HashMap.Entry<DimChunkPos, Siege> siege : mSieges.entrySet())
+		{
+			if(siege.getKey().equals(pos.ToChunkPos()))
+			{
+				player.sendMessage(new TextComponentString("This claim is currently under siege"));
+				return false;
+			}
+			
+			if(siege.getValue().mAttackingSiegeCamps.contains(pos))
+			{
+				player.sendMessage(new TextComponentString("This siege camp is currently in a siege"));
+				return false;
+			}
+		}
+		
+		faction.OnClaimLost(pos);
+		faction.MessageAll(new TextComponentString(player.getName() + " unclaimed " + pos.ToFancyString()));
+		
+		return true;
+	}
+	
+	public boolean RequestPlaceFlag(EntityPlayerMP player, DimBlockPos pos) 
+	{
+		Faction faction = GetFactionOfPlayer(player.getUniqueID());
+		if(faction == null)
+		{
+			player.sendMessage(new TextComponentString("You are not in a faction"));
+			return false;
+		}
+		
+		for(HashMap.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
+		{
+			kvp.getValue().CalculateBasePower();
+		}
+		
+		return faction.PlaceFlag(player, pos);
+	}
+	
+	public boolean RequestSetFactionColour(EntityPlayerMP player, int colour) 
+	{
+		Faction faction = GetFactionOfPlayer(player.getUniqueID());
+		if(faction == null)
+		{
+			player.sendMessage(new TextComponentString("You are not in a faction"));
+			return false;
+		}
+		
+		if(!faction.IsPlayerRoleInFaction(player.getUniqueID(), Role.LEADER))
+		{
+			player.sendMessage(new TextComponentString("You are not the faction leader"));
+			return false;
+		}
+		
+		faction.SetColour(colour);
+		for(World world : WarForgeMod.MC_SERVER.worlds)
+		{
+			for(TileEntity te : world.loadedTileEntityList)
+			{
+				if(te instanceof IClaim)
+				{
+					if(((IClaim) te).GetFaction().equals(faction.mUUID))
+					{
+						((IClaim) te).UpdateColour(colour);
+					}
+				}
+			}
+		}
+		
+		return true;
+		
+	}
     
     public void ReadFromNBT(NBTTagCompound tags)
 	{
