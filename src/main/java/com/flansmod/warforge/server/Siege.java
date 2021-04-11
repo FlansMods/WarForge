@@ -39,7 +39,7 @@ public class Siege
 	 * 		- Adjacent claims with differing support strengths
 	 * 		- Defender's flags on the defended claim
 	 *  */
-	private int mBaseProgress = 0;
+	private int mExtraDifficulty = 0;
 	/**
 	 * The attack progress is accumulated over time based on active actions in the area of the siege
 	 * Sources for the attackers are:
@@ -55,20 +55,21 @@ public class Siege
 	
 	
 	// This is defined by the chunk we are attacking and what type it is
-	public int mAttackSuccessThreshold = 5;
+	public int mBaseDifficulty = 5;
 	
 	// Attack progress starts at 0 and can be moved to -5 or mAttackSuccessThreshold
-	public int GetAttackProgress() { return mBaseProgress + mAttackProgress; }
-	public int GetDefenceProgress() { return -mBaseProgress -mAttackProgress; }
+	public int GetAttackProgress() { return mAttackProgress; }
+	public int GetDefenceProgress() { return -mAttackProgress; }
+	public int GetAttackSuccessThreshold() { return mBaseDifficulty + mExtraDifficulty; }
 	
 	public boolean IsCompleted()
 	{
-		return GetAttackProgress() >= mAttackSuccessThreshold || GetDefenceProgress() >= 5;
+		return GetAttackProgress() >= GetAttackSuccessThreshold() || GetDefenceProgress() >= 5;
 	}
 	
 	public boolean WasSuccessful()
 	{
-		return GetAttackProgress() >= mAttackSuccessThreshold;
+		return GetAttackProgress() >= GetAttackSuccessThreshold();
 	}
 	
 	public Siege()
@@ -78,9 +79,16 @@ public class Siege
 	
 	public Siege(UUID attacker, UUID defender, DimBlockPos defending)
 	{
+		mAttackingSiegeCamps = new ArrayList<DimBlockPos>(4);
 		mAttackingFaction = attacker;
 		mDefendingFaction = defender;
 		mDefendingClaim = defending;
+		
+		TileEntity te = WarForgeMod.MC_SERVER.getWorld(defending.mDim).getTileEntity(defending.ToRegularPos());
+		if(te instanceof IClaim)
+		{
+			mBaseDifficulty = ((IClaim)te).GetDefenceStrength();
+		}
 	}
 	
 	public SiegeCampProgressInfo GetSiegeInfo()
@@ -102,7 +110,7 @@ public class Siege
 		info.mDefendingName = defenders.mName;
 		info.mDefendingColour = defenders.mColour;
 		info.mProgress = GetAttackProgress();
-		info.mCompletionPoint = mAttackSuccessThreshold;
+		info.mCompletionPoint = GetAttackSuccessThreshold();
 		
 		return info;
 	}
@@ -146,18 +154,18 @@ public class Siege
 		
 		if(totalSwing > 0)
 		{
-			attackers.MessageAll(new TextComponentString("Your siege on " + defenders.mName + " at " + mDefendingClaim.ToFancyString() + " shifted " + totalSwing + " points in your favour. The progress is now at " + GetAttackProgress() + "/" + mAttackSuccessThreshold));
-			defenders.MessageAll(new TextComponentString("The siege on " + mDefendingClaim.ToFancyString() + " by " + attackers.mName + " shifted " + totalSwing + " points in their favour. The progress is now at " + GetAttackProgress() + "/" + mAttackSuccessThreshold));
+			attackers.MessageAll(new TextComponentString("Your siege on " + defenders.mName + " at " + mDefendingClaim.ToFancyString() + " shifted " + totalSwing + " points in your favour. The progress is now at " + GetAttackProgress() + "/" + mBaseDifficulty));
+			defenders.MessageAll(new TextComponentString("The siege on " + mDefendingClaim.ToFancyString() + " by " + attackers.mName + " shifted " + totalSwing + " points in their favour. The progress is now at " + GetAttackProgress() + "/" + mBaseDifficulty));
 		}
 		else if(totalSwing < 0)
 		{
-			defenders.MessageAll(new TextComponentString("The siege on " + mDefendingClaim.ToFancyString() + " by " + attackers.mName + " shifted " + -totalSwing + " points in your favour. The progress is now at " + GetAttackProgress() + "/" + mAttackSuccessThreshold));
-			attackers.MessageAll(new TextComponentString("Your siege on " + defenders.mName + " at " + mDefendingClaim.ToFancyString() + " shifted " + -totalSwing + " points in their favour. The progress is now at " + GetAttackProgress() + "/" + mAttackSuccessThreshold));
+			defenders.MessageAll(new TextComponentString("The siege on " + mDefendingClaim.ToFancyString() + " by " + attackers.mName + " shifted " + -totalSwing + " points in your favour. The progress is now at " + GetAttackProgress() + "/" + mBaseDifficulty));
+			attackers.MessageAll(new TextComponentString("Your siege on " + defenders.mName + " at " + mDefendingClaim.ToFancyString() + " shifted " + -totalSwing + " points in their favour. The progress is now at " + GetAttackProgress() + "/" + mBaseDifficulty));
 		}
 		else
 		{
-			defenders.MessageAll(new TextComponentString("The siege on " + mDefendingClaim.ToFancyString() + " by " + attackers.mName + " did not shift today. The progress is at " + GetAttackProgress() + "/" + mAttackSuccessThreshold));
-			attackers.MessageAll(new TextComponentString("Your siege on " + defenders.mName + " at " + mDefendingClaim.ToFancyString() + " did not shift today. The progress is at " + GetAttackProgress() + "/" + mAttackSuccessThreshold));
+			defenders.MessageAll(new TextComponentString("The siege on " + mDefendingClaim.ToFancyString() + " by " + attackers.mName + " did not shift today. The progress is at " + GetAttackProgress() + "/" + mBaseDifficulty));
+			attackers.MessageAll(new TextComponentString("Your siege on " + defenders.mName + " at " + mDefendingClaim.ToFancyString() + " did not shift today. The progress is at " + GetAttackProgress() + "/" + mBaseDifficulty));
 		}
 		
 		WarForgeMod.FACTIONS.SendSiegeInfoToNearby(mDefendingClaim.ToChunkPos());
@@ -174,7 +182,7 @@ public class Siege
 			return;
 		}
 		
-		mBaseProgress = 0;
+		mExtraDifficulty = 0;
 		
 		// Add a point for each defender flag in place
 		for(HashMap.Entry<UUID, PlayerData> kvp : defenders.mMembers.entrySet())
@@ -182,7 +190,7 @@ public class Siege
 			// 
 			if(kvp.getValue().mFlagPosition.equals(mDefendingClaim))
 			{
-				mBaseProgress -= WarForgeConfig.SIEGE_SWING_PER_DEFENDER_FLAG;
+				mExtraDifficulty -= WarForgeConfig.SIEGE_SWING_PER_DEFENDER_FLAG;
 			}
 		}
 		
@@ -200,7 +208,7 @@ public class Siege
 					TileEntity te = WarForgeMod.MC_SERVER.getWorld(claimBlockPos.mDim).getTileEntity(claimBlockPos.ToRegularPos());
 					if(te instanceof IClaim)
 					{
-						mBaseProgress += ((IClaim) te).GetAttackStrength();
+						mExtraDifficulty += ((IClaim) te).GetAttackStrength();
 					}
 				}
 			}
@@ -213,7 +221,7 @@ public class Siege
 					TileEntity te = WarForgeMod.MC_SERVER.getWorld(claimBlockPos.mDim).getTileEntity(claimBlockPos.ToRegularPos());
 					if(te instanceof IClaim)
 					{
-						mBaseProgress -= ((IClaim) te).GetSupportStrength();
+						mExtraDifficulty -= ((IClaim) te).GetSupportStrength();
 					}
 				}
 			}
@@ -312,6 +320,8 @@ public class Siege
 				
 		mDefendingClaim = DimBlockPos.ReadFromNBT(tags, "defendLocation");
 		mAttackProgress = tags.getInteger("progress");
+		mBaseDifficulty = tags.getInteger("baseDifficulty");
+		mExtraDifficulty = tags.getInteger("extraDifficulty");
 	}
 	
 	public void WriteToNBT(NBTTagCompound tags)
@@ -330,5 +340,7 @@ public class Siege
 				
 		tags.setTag("defendLocation", mDefendingClaim.WriteToNBT());
 		tags.setInteger("progress", mAttackProgress);
+		tags.setInteger("baseDifficulty", mBaseDifficulty);
+		tags.setInteger("extraDifficulty", mExtraDifficulty);
 	}
 }

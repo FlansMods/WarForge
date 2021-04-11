@@ -453,7 +453,10 @@ public class FactionStorage
     		remover.sendMessage(new TextComponentString("Error: Could not get user profile"));
     	}
     	
-    	faction.RemovePlayer(toRemove);		
+    	faction.RemovePlayer(toRemove);
+    	
+    	SendAllSiegeInfoToNearby();
+    	
     	return true;
     }
         
@@ -668,22 +671,12 @@ public class FactionStorage
 			return false;
 		}
     	
-    	
-    	Siege siege = new Siege();
-    	siege.mAttackingFaction = attacking.mUUID;
-    	siege.mDefendingFaction = defendingFactionID;
+    	Siege siege = new Siege(attacking.mUUID, defendingFactionID, defendingPos);
     	siege.mAttackingSiegeCamps.add(siegeCampPos);
-    	siege.mDefendingClaim = defendingPos;
-    	//siege.mAttackSuccessThreshold
-    	//siege.mSupportingClaims
     	
     	RequestPlaceFlag((EntityPlayerMP)factionOfficer, siegeCampPos);
-    	
-    	siege.Start();
-    	
     	mSieges.put(defendingChunk, siege);
-    	
-    	// TODO: 
+    	siege.Start();
     	
     	return true;
     }
@@ -741,6 +734,8 @@ public class FactionStorage
 	{			
 		for(HashMap.Entry<DimChunkPos, Siege> kvp : WarForgeMod.FACTIONS.mSieges.entrySet())
 		{
+			kvp.getValue().CalculateBasePower();
+			
 			SendSiegeInfoToNearby(kvp.getKey());
 		}
 		
@@ -821,12 +816,7 @@ public class FactionStorage
 			player.sendMessage(new TextComponentString("You are not in a faction"));
 			return false;
 		}
-		
-		for(HashMap.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
-		{
-			kvp.getValue().CalculateBasePower();
-		}
-		
+				
 		SendAllSiegeInfoToNearby();
 		
 		return faction.PlaceFlag(player, pos);
@@ -870,11 +860,11 @@ public class FactionStorage
 	{
     	mFactions.clear();
 		mClaims.clear();
+		mSieges.clear();
 		
 		InitNeutralZones();
 		
 		NBTTagList list = tags.getTagList("factions", 10); // Compound Tag
-		
 		for(NBTBase baseTag : list)
 		{
 			NBTTagCompound factionTags = ((NBTTagCompound)baseTag);
@@ -906,12 +896,25 @@ public class FactionStorage
 				mClaims.put(blockPos.ToChunkPos(), uuid);
 			}
 		}
+		
+		list = tags.getTagList("sieges", 10); // Compound Tag
+		for(NBTBase baseTag : list)
+		{
+			NBTTagCompound siegeTags = ((NBTTagCompound)baseTag);
+			int dim = siegeTags.getInteger("dim");
+			int x = siegeTags.getInteger("x");
+			int z = siegeTags.getInteger("z");
+
+			Siege siege = new Siege();
+			siege.ReadFromNBT(siegeTags);
+			
+			mSieges.put(new DimChunkPos(dim, x, z), siege);
+		}
 	}
     
 	public void WriteToNBT(NBTTagCompound tags)
 	{
 		NBTTagList factionList = new NBTTagList();
-		
 		for(HashMap.Entry<UUID, Faction> kvp : mFactions.entrySet())
 		{
 			NBTTagCompound factionTags = new NBTTagCompound();
@@ -919,8 +922,19 @@ public class FactionStorage
 			kvp.getValue().WriteToNBT(factionTags);
 			factionList.appendTag(factionTags);
 		}
-		
 		tags.setTag("factions", factionList);
+		
+		NBTTagList siegeList = new NBTTagList();
+		for(HashMap.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
+		{
+			NBTTagCompound siegeTags = new NBTTagCompound();
+			siegeTags.setInteger("dim", kvp.getKey().mDim);
+			siegeTags.setInteger("x", kvp.getKey().x);
+			siegeTags.setInteger("z", kvp.getKey().z);
+			kvp.getValue().WriteToNBT(siegeTags);
+			siegeList.appendTag(siegeTags);
+		}
+		tags.setTag("sieges", siegeList);
 	}
 
 	public void OpResetFlagCooldowns() 
