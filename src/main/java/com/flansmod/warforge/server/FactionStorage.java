@@ -312,6 +312,13 @@ public class FactionStorage
 				mClaims.remove(blockPos.ToChunkPos());
 				attackers.MessageAll(new TextComponentString("Our faction won the siege on " + defenders.mName + " at " + blockPos.ToFancyString()));
 				attackers.mNotoriety += WarForgeConfig.NOTORIETY_PER_SIEGE_ATTACK_SUCCESS;
+				
+				if(WarForgeConfig.SIEGE_CAPTURE)
+				{
+					WarForgeMod.MC_SERVER.getWorld(blockPos.mDim).setBlockState(blockPos.ToRegularPos(), WarForgeMod.CONTENT.basicClaimBlock.getDefaultState());
+					TileEntity te = WarForgeMod.MC_SERVER.getWorld(blockPos.mDim).getTileEntity(blockPos.ToRegularPos());
+					OnNonCitadelClaimPlaced((IClaim)te, attackers);
+				}
 			}
 			else
 			{

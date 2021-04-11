@@ -102,6 +102,9 @@ public class WarForgeConfig
 	public static float SIEGE_DAY_LENGTH = 24.0f; // In real-world hours
 	public static float SIEGE_INFO_RADIUS = 200f;
 	public static int SIEGE_SWING_PER_DEFENDER_FLAG = 1;
+	public static int SIEGE_SWING_PER_ATTACKER_FLAG = 1;
+	public static int SIEGE_DIFFICULTY_PER_DEFENDER_FLAG = 3;
+	public static boolean SIEGE_CAPTURE = true;
 	
 	// Notoriety
 	public static final String CATEGORY_NOTORIETY = "Notoriety";
@@ -344,7 +347,10 @@ public class WarForgeConfig
 		SIEGE_SWING_PER_DAY_ELAPSED_NO_DEFENDER_LOGINS = configFile.getInt("Siege Swing Per Day Without Defender Logins", CATEGORY_SIEGES, SIEGE_SWING_PER_DAY_ELAPSED_NO_DEFENDER_LOGINS, 0, 1024, "How much a siege progress swings when no defenders have logged on for a day (see below)");
 		SIEGE_DAY_LENGTH = configFile.getFloat("Siege Day Length", CATEGORY_SIEGES, SIEGE_DAY_LENGTH, 0.0001f, 100000f, "The length of a day for siege login purposes, in real-world hours.");
 		SIEGE_INFO_RADIUS = configFile.getFloat("Siege Info Radius", CATEGORY_SIEGES, SIEGE_INFO_RADIUS, 1f, 1000f, "The range at which you see siege information. (Capped by the server setting)");
-		SIEGE_SWING_PER_DEFENDER_FLAG = configFile.getInt("Siege Swing Per Defender Flag", CATEGORY_SIEGES, SIEGE_SWING_PER_DEFENDER_FLAG, 0, 1024, "How much the siege is pushed by a defender having their flag in the defended area");
+		SIEGE_SWING_PER_DEFENDER_FLAG = configFile.getInt("Siege Swing Per Defender Flag", CATEGORY_SIEGES, SIEGE_SWING_PER_DEFENDER_FLAG, 0, 1024, "How much the siege swings per defender flag per day");
+		SIEGE_SWING_PER_ATTACKER_FLAG = configFile.getInt("Siege Swing Per Attacker Flag", CATEGORY_SIEGES, SIEGE_SWING_PER_ATTACKER_FLAG, 0, 1024, "How much the siege swings per attacker flag per day");
+		SIEGE_DIFFICULTY_PER_DEFENDER_FLAG = configFile.getInt("Siege Difficulty Reinforcement Per Defender Flag", CATEGORY_SIEGES, SIEGE_DIFFICULTY_PER_DEFENDER_FLAG, 0, 1024, "How much having a defender flag at a base reinforces the difficulty of the siege for the attackers");
+		SIEGE_CAPTURE = configFile.getBoolean("Siege Captures", CATEGORY_SIEGES, SIEGE_CAPTURE, "Does a successful siege convert the claim");
 		
 		// Vault parameters
 		VAULT_BLOCK_IDS = configFile.getStringList("Valuable Blocks", Configuration.CATEGORY_GENERAL, VAULT_BLOCK_IDS, "The block IDs that count towards the value of your citadel's vault");

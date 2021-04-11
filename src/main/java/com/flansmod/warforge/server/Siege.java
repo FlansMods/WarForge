@@ -150,6 +150,24 @@ public class Siege
 			totalSwing += WarForgeConfig.SIEGE_SWING_PER_DAY_ELAPSED_NO_DEFENDER_LOGINS;
 		if(!attackers.mHasHadAnyLoginsToday)
 			totalSwing -= WarForgeConfig.SIEGE_SWING_PER_DAY_ELAPSED_NO_ATTACKER_LOGINS;
+		
+		
+		for(HashMap.Entry<UUID, PlayerData> kvp : defenders.mMembers.entrySet())
+		{
+			if(kvp.getValue().mFlagPosition.equals(mDefendingClaim))
+			{
+				totalSwing -= WarForgeConfig.SIEGE_SWING_PER_DEFENDER_FLAG;
+			}
+		}
+		
+		for(HashMap.Entry<UUID, PlayerData> kvp : attackers.mMembers.entrySet())
+		{
+			if(mAttackingSiegeCamps.contains(kvp.getValue().mFlagPosition))
+			{
+				totalSwing += WarForgeConfig.SIEGE_SWING_PER_ATTACKER_FLAG;
+			}
+		}
+		
 		mAttackProgress += totalSwing;
 		
 		if(totalSwing > 0)
@@ -190,7 +208,7 @@ public class Siege
 			// 
 			if(kvp.getValue().mFlagPosition.equals(mDefendingClaim))
 			{
-				mExtraDifficulty -= WarForgeConfig.SIEGE_SWING_PER_DEFENDER_FLAG;
+				mExtraDifficulty += WarForgeConfig.SIEGE_DIFFICULTY_PER_DEFENDER_FLAG;
 			}
 		}
 		
