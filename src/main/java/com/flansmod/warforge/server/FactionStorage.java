@@ -12,6 +12,7 @@ import com.flansmod.warforge.common.WarForgeConfig;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.common.blocks.IClaim;
 import com.flansmod.warforge.common.blocks.TileEntityCitadel;
+import com.flansmod.warforge.common.blocks.TileEntityClaim;
 import com.flansmod.warforge.common.network.PacketSiegeCampProgressUpdate;
 import com.flansmod.warforge.common.network.SiegeCampProgressInfo;
 import com.flansmod.warforge.server.Faction.PlayerData;
@@ -22,12 +23,14 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
@@ -862,6 +865,58 @@ public class FactionStorage
 		return true;
 		
 	}
+	
+
+	public boolean RequestMoveCitadel(EntityPlayerMP player, DimBlockPos pos) 
+	{
+		Faction faction = GetFactionOfPlayer(player.getUniqueID());
+		if(faction == null)
+		{
+			player.sendMessage(new TextComponentString("You are not in a faction"));
+			return false;
+		}
+		
+		if(!faction.IsPlayerRoleInFaction(player.getUniqueID(), Role.LEADER))
+		{
+			player.sendMessage(new TextComponentString("You are not the faction leader"));
+			return false;
+		}
+		
+		for(HashMap.Entry<DimChunkPos, Siege> kvp : mSieges.entrySet())
+		{
+			if(kvp.getValue().mDefendingFaction.equals(faction.mUUID))
+			{
+				player.sendMessage(new TextComponentString("There is an ongoing siege against your faction"));
+				return false;
+			}
+		}
+						
+		
+		if(faction.mDaysUntilCitadelMoveAvailable > 0)
+		{
+			player.sendMessage(new TextComponentString("You must wait an additional " + faction.mDaysUntilCitadelMoveAvailable + " days until you can move your citadel"));
+			return false;
+		}
+		
+		// Set new citadel
+		WarForgeMod.MC_SERVER.getWorld(pos.mDim).setBlockState(pos.ToRegularPos(), WarForgeMod.CONTENT.citadelBlock.getDefaultState());
+		TileEntityCitadel newCitadel = (TileEntityCitadel)WarForgeMod.MC_SERVER.getWorld(pos.mDim).getTileEntity(pos.ToRegularPos());
+		
+		// Convert old citadel to basic claim
+		WarForgeMod.MC_SERVER.getWorld(faction.mCitadelPos.mDim).setBlockState(faction.mCitadelPos.ToRegularPos(), WarForgeMod.CONTENT.basicClaimBlock.getDefaultState());
+		TileEntityClaim newClaim = (TileEntityClaim)WarForgeMod.MC_SERVER.getWorld(faction.mCitadelPos.mDim).getTileEntity(faction.mCitadelPos.ToRegularPos());
+		
+		// Update pos
+		faction.mCitadelPos = pos;
+		newCitadel.OnServerSetFaction(faction);
+		newClaim.OnServerSetFaction(faction);
+		
+		WarForgeMod.INSTANCE.MessageAll(new TextComponentString(faction.mName + " moved their citadel"), true);
+		
+		faction.mDaysUntilCitadelMoveAvailable = WarForgeConfig.CITADEL_MOVE_NUM_DAYS;
+		
+		return true;
+	}
     
     public void ReadFromNBT(NBTTagCompound tags)
 	{
@@ -954,4 +1009,5 @@ public class FactionStorage
 			}
 		}
 	}
+
 }

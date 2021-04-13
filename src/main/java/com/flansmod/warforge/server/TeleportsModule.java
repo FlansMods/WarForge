@@ -13,7 +13,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
 
-public class Teleports 
+public class TeleportsModule 
 {
 	private class PendingTeleport
 	{

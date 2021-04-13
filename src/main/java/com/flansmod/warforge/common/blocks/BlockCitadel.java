@@ -13,9 +13,11 @@ import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.inventory.InventoryHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
@@ -125,4 +127,24 @@ public class BlockCitadel extends Block implements ITileEntityProvider
 		}
 		return true;
 	}
+	
+	@Override
+    public boolean canEntityDestroy(IBlockState state, IBlockAccess world, BlockPos pos, Entity entity)
+    {
+        return false;
+    }
+	
+	@Override
+	public void breakBlock(World worldIn, BlockPos pos, IBlockState state)
+	{
+        TileEntity tileentity = worldIn.getTileEntity(pos);
+
+        if (tileentity instanceof TileEntityYieldCollector)
+        {
+            InventoryHelper.dropInventoryItems(worldIn, pos, (TileEntityYieldCollector)tileentity);
+            worldIn.updateComparatorOutputLevel(pos, this);
+        }
+
+        super.breakBlock(worldIn, pos, state);
+    }
 }

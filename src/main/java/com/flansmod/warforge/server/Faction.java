@@ -89,6 +89,7 @@ public class Faction
 	public int mNotoriety = 0;
 	public int mWealth = 0;
 	public int mLegacy = 0;
+	public int mDaysUntilCitadelMoveAvailable = 1;
 	
 	public Faction()
 	{
@@ -144,6 +145,7 @@ public class Faction
 		}
 
 		mHasHadAnyLoginsToday = false;
+		mDaysUntilCitadelMoveAvailable--;
 	}
 	
 	public FactionDisplayInfo CreateInfo()
@@ -531,6 +533,8 @@ public class Faction
 		mNotoriety = tags.getInteger("notoriety");
 		mWealth = tags.getInteger("wealth");
 		mLegacy = tags.getInteger("legacy");
+		
+		mDaysUntilCitadelMoveAvailable = tags.getInteger("citadelMoveCooldown");
 
 		// Get member data
 		NBTTagList memberList = tags.getTagList("members", 10); // NBTTagCompound (see NBTBase.class)
@@ -588,6 +592,8 @@ public class Faction
 		tags.setInteger("notoriety", mNotoriety);
 		tags.setInteger("wealth", mWealth);
 		tags.setInteger("legacy", mLegacy);
+		
+		tags.setInteger("citadelMoveCooldown", mDaysUntilCitadelMoveAvailable);
 		
 		// Add member data
 		NBTTagList memberList = new NBTTagList();

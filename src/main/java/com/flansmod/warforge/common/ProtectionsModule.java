@@ -37,11 +37,11 @@ import net.minecraftforge.event.world.WorldEvent.PotentialSpawns;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-public class Protections 
+public class ProtectionsModule 
 {
 	public static boolean OP_OVERRIDE = false;
 	
-	public Protections()
+	public ProtectionsModule()
 	{
 		MinecraftForge.EVENT_BUS.register(this);
 	}

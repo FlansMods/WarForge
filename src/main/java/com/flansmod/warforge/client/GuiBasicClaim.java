@@ -4,6 +4,7 @@ import com.flansmod.warforge.common.CommonProxy;
 import com.flansmod.warforge.common.ContainerBasicClaim;
 import com.flansmod.warforge.common.ContainerCitadel;
 import com.flansmod.warforge.common.WarForgeMod;
+import com.flansmod.warforge.common.network.PacketMoveCitadel;
 import com.flansmod.warforge.common.network.PacketPlaceFlag;
 import com.flansmod.warforge.common.network.PacketRemoveClaim;
 import com.flansmod.warforge.server.Faction;
@@ -22,6 +23,7 @@ public class GuiBasicClaim extends GuiContainer
 	private static final int BUTTON_INFO = 0;
 	private static final int BUTTON_REMOVE_CLAIM = 1;
 	private static final int BUTTON_PLACE_FLAG = 2;
+	private static final int BUTTON_MOVE_CITADEL = 3;
 	public ContainerBasicClaim claimContainer;
 	
 	public GuiBasicClaim(Container container) 
@@ -38,11 +40,14 @@ public class GuiBasicClaim extends GuiContainer
 		super.initGui();
 						
 		//Info Button
-		GuiButton infoButton = new GuiButton(BUTTON_INFO, width / 2 - 20, height / 2 - 48, 100, 20, "Info");
+		GuiButton infoButton = new GuiButton(BUTTON_INFO, width / 2 - 20, height / 2 - 48, 48, 20, "Info");
 		buttonList.add(infoButton);
 
-		GuiButton removeClaimButton = new GuiButton(BUTTON_REMOVE_CLAIM, width / 2 - 20, height / 2 - 26, 100, 20, "Unclaim");
+		GuiButton removeClaimButton = new GuiButton(BUTTON_REMOVE_CLAIM, width / 2 + 32, height / 2 - 48, 48, 20, "Unclaim");
 		buttonList.add(removeClaimButton);
+		
+		GuiButton moveCitadelButton = new GuiButton(BUTTON_MOVE_CITADEL, width / 2 - 20, height / 2 - 26, 100, 20, "Move Citadel");
+		buttonList.add(moveCitadelButton);
 		
 		GuiButton placeFlagButton = new GuiButton(BUTTON_PLACE_FLAG, width / 2 - 20, height / 2 - 70, 100, 20, "Place Flag");
 		buttonList.add(placeFlagButton);
@@ -74,6 +79,15 @@ public class GuiBasicClaim extends GuiContainer
 			case BUTTON_PLACE_FLAG:
 			{
 				PacketPlaceFlag packet = new PacketPlaceFlag();
+				packet.pos = claimContainer.claim.GetPos();
+				WarForgeMod.NETWORK.sendToServer(packet);
+				
+				Minecraft.getMinecraft().displayGuiScreen(null);
+				break;
+			}
+			case BUTTON_MOVE_CITADEL:
+			{
+				PacketMoveCitadel packet = new PacketMoveCitadel();
 				packet.pos = claimContainer.claim.GetPos();
 				WarForgeMod.NETWORK.sendToServer(packet);
 				

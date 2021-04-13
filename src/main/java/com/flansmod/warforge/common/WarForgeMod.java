@@ -91,6 +91,7 @@ import com.flansmod.warforge.common.network.PacketHandler;
 import com.flansmod.warforge.common.network.PacketSiegeCampProgressUpdate;
 import com.flansmod.warforge.common.network.PacketTimeUpdates;
 import com.flansmod.warforge.common.network.SiegeCampProgressInfo;
+import com.flansmod.warforge.common.potions.PotionsModule;
 import com.flansmod.warforge.common.world.WorldGenAncientTree;
 import com.flansmod.warforge.common.world.WorldGenBedrockOre;
 import com.flansmod.warforge.common.world.WorldGenClayPool;
@@ -100,7 +101,7 @@ import com.flansmod.warforge.server.CommandFactions;
 import com.flansmod.warforge.server.Faction;
 import com.flansmod.warforge.server.ServerTickHandler;
 import com.flansmod.warforge.server.Siege;
-import com.flansmod.warforge.server.Teleports;
+import com.flansmod.warforge.server.TeleportsModule;
 import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.mojang.authlib.GameProfile;
@@ -126,8 +127,9 @@ public class WarForgeMod
 	public static final Leaderboard LEADERBOARD = new Leaderboard();
 	public static final FactionStorage FACTIONS = new FactionStorage();
 	public static final Content CONTENT = new Content();
-	public static final Protections PROTECTIONS = new Protections();
-	public static final Teleports TELEPORTS = new Teleports();
+	public static final ProtectionsModule PROTECTIONS = new ProtectionsModule();
+	public static final TeleportsModule TELEPORTS = new TeleportsModule();
+	public static final PotionsModule POTIONS = new PotionsModule();
 	
 	public static MinecraftServer MC_SERVER = null;
 	public static Random rand = new Random();
@@ -148,7 +150,8 @@ public class WarForgeMod
 		numberOfSiegeDaysTicked = 0L;
 		numberOfYieldDaysTicked = 0L;
         
-		CONTENT.preInit();        
+		CONTENT.preInit();
+		POTIONS.preInit();
         
         MinecraftForge.EVENT_BUS.register(new ServerTickHandler());
         MinecraftForge.EVENT_BUS.register(this);
@@ -468,6 +471,19 @@ public class WarForgeMod
     {
     	if(!event.player.world.isRemote)
     	{
+           	if(Double.isNaN(event.player.posX) || Double.isInfinite(event.player.posX)
+           			|| Double.isNaN(event.player.posY) || Double.isInfinite(event.player.posY)
+           			|| Double.isNaN(event.player.posZ) || Double.isInfinite(event.player.posZ))
+           	{
+        		event.player.posX = 0d;
+        		event.player.posY = 256d;
+        		event.player.posZ = 0d;
+        		event.player.attemptTeleport(0d, 256d, 0d);
+        		event.player.setDead();
+        		event.player.world.getSaveHandler().getPlayerNBTManager().writePlayerData(event.player);
+        		LOGGER.info("Player moved from the void to 0,256,0");
+           	}
+    		
 	    	PacketTimeUpdates packet = new PacketTimeUpdates();
 	    	
 	    	packet.msTimeOfNextSiegeDay = System.currentTimeMillis() + GetMSToNextSiegeAdvance();

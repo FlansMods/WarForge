@@ -10,7 +10,7 @@ import javax.annotation.Nullable;
 
 import com.flansmod.warforge.common.DimBlockPos;
 import com.flansmod.warforge.common.DimChunkPos;
-import com.flansmod.warforge.common.Protections;
+import com.flansmod.warforge.common.ProtectionsModule;
 import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.common.network.FactionDisplayInfo;
 import com.flansmod.warforge.common.network.LeaderboardInfo;
@@ -66,7 +66,7 @@ public class CommandFactions extends CommandBase
 	private static final String[] tabCompletionsOp = new String[] { 
 			"invite", "accept", "disband", "expel", "leave", "time", "info", "top", "notoriety", "wealth", "legacy",
 			"promote", "demote", "msg", "flag",
-			"safe", "war", "protection",
+			"safe", "war", "protection", "resetflagcooldowns",
 	};
 	
 	@Override
@@ -487,8 +487,8 @@ public class CommandFactions extends CommandBase
 			{
 				if(WarForgeMod.IsOp(sender))
 				{
-					Protections.OP_OVERRIDE = !Protections.OP_OVERRIDE;
-					if(Protections.OP_OVERRIDE)
+					ProtectionsModule.OP_OVERRIDE = !ProtectionsModule.OP_OVERRIDE;
+					if(ProtectionsModule.OP_OVERRIDE)
 						sender.sendMessage(new TextComponentString("Admins can now build in protected areas."));
 					else
 						sender.sendMessage(new TextComponentString("Admins can no longer build in protected areas."));
@@ -626,6 +626,14 @@ public class CommandFactions extends CommandBase
 				{
 					WarForgeMod.FACTIONS.OpResetFlagCooldowns();
 				}
+				break;
+			}
+			case "tpa":
+			case "tpaccept":
+			case "tp":
+			case "tprequest":
+			{
+				sender.sendMessage(new TextComponentString("Try brewing a potion of Teleportation / Telereception"));
 				break;
 			}
 			

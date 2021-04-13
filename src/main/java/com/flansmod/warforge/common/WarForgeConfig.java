@@ -128,6 +128,7 @@ public class WarForgeConfig
     public static int FACTION_NAME_LENGTH_MAX = 32;
 	public static boolean BLOCK_ENDER_CHEST = false;
 	public static boolean SHOW_YIELD_TIMERS = true;
+	public static int CITADEL_MOVE_NUM_DAYS = 7;
 	
 	public static boolean SHOW_OPPONENT_BORDERS = true;
 	public static boolean SHOW_ALLY_BORDERS = true;
@@ -141,6 +142,7 @@ public class WarForgeConfig
 	public static boolean ENABLE_SPAWN_COMMAND = true;
 	public static boolean ENABLE_SPAWN_POTION_EFFECT = false; // TODO
 	public static boolean ALLOW_SPAWN_BETWEEN_DIMENSIONS = false;
+	public static boolean ENABLE_TPA_POTIONS = true;
 	
 
     public static long FACTIONS_BOT_CHANNEL_ID = 799595436154683422L;
@@ -334,6 +336,7 @@ public class WarForgeConfig
 		SUPPORT_STRENGTH_CITADEL = configFile.getInt("Citadel Support Strength", CATEGORY_CLAIMS, SUPPORT_STRENGTH_CITADEL, 1, 1024, "The support strength a citadel gives to adjacent claims");
 		SUPPORT_STRENGTH_REINFORCED = configFile.getInt("Reinforced Support Strength", CATEGORY_CLAIMS, SUPPORT_STRENGTH_REINFORCED, 1, 1024, "The support strength a reinforced claim gives to adjacent claims");
 		SUPPORT_STRENGTH_BASIC = configFile.getInt("Basic Support Strength", CATEGORY_CLAIMS, SUPPORT_STRENGTH_BASIC, 1, 1024, "The support strength a basic claim gives to adjacent claims");
+		CITADEL_MOVE_NUM_DAYS = configFile.getInt("Days Between Citadel Moves", CATEGORY_CLAIMS, CITADEL_MOVE_NUM_DAYS, 0, 1024, "How many days a faction has to wait to move their citadel again");
 		
 		// Siege Camp Settings
 		ATTACK_STRENGTH_SIEGE_CAMP = configFile.getInt("Siege Camp Attack Strength", CATEGORY_SIEGES, ATTACK_STRENGTH_SIEGE_CAMP, 1, 1024, "How much attack pressure a siege camp exerts on adjacent enemy claims");
@@ -390,6 +393,7 @@ public class WarForgeConfig
 		
 		// Other permissions
 		BLOCK_ENDER_CHEST = configFile.getBoolean("Disable Ender Chest", Configuration.CATEGORY_GENERAL, BLOCK_ENDER_CHEST, "Prevent players from opening ender chests");
+		ENABLE_TPA_POTIONS = configFile.getBoolean("Enable TPA Potions", Configuration.CATEGORY_GENERAL, ENABLE_TPA_POTIONS, "Allow players to craft and consume /tpa and /tpaccept style potions");
 		
 		//Warps
 		ENABLE_F_HOME_COMMAND = configFile.getBoolean("Enable /f home Command", CATEGORY_WARPS, ENABLE_F_HOME_COMMAND, "Allow players to use /f home to teleport to their citadel");
