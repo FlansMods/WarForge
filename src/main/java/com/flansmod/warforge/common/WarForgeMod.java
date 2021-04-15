@@ -114,7 +114,7 @@ public class WarForgeMod
 {
     public static final String MODID = "warforge";
     public static final String NAME = "WarForge Factions";
-    public static final String VERSION = "1.1.5";
+    public static final String VERSION = "1.1.7";
     
 	@Instance(MODID)
 	public static WarForgeMod INSTANCE;

@@ -198,7 +198,7 @@ public class FactionStorage
 		{
 	    	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
 	    	{
-	    		entry.getValue().AdvanceDay();
+	    		entry.getValue().IncreaseLegacy();
 	    	}
 		}
     }
@@ -214,7 +214,7 @@ public class FactionStorage
 		{
 	    	for(HashMap.Entry<UUID, Faction> entry : mFactions.entrySet())
 	    	{
-	    		entry.getValue().AdvanceDay();
+	    		entry.getValue().IncreaseLegacy();
 	    	}
 		}
     }

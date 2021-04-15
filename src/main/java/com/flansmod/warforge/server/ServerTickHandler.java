@@ -20,6 +20,7 @@ public class ServerTickHandler
 		WarForgeMod.PROTECTIONS.UpdateServer();
 		WarForgeMod.TELEPORTS.Update();
 		WarForgeMod.proxy.TickServer();
+		WarForgeMod.FACTIONS.Update();
 	}
 	
 	

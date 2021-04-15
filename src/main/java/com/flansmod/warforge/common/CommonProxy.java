@@ -25,6 +25,7 @@ public class CommonProxy implements IGuiHandler
 	public static final int GUI_TYPE_FACTION_INFO = 4;
 	public static final int GUI_TYPE_LEADERBOARD = 5;
 	public static final int GUI_TYPE_RECOLOUR_FACTION = 6;
+	public static final int GUI_TYPE_SHOP = 7;
 	
 	public void PreInit(FMLPreInitializationEvent event)
 	{

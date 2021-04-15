@@ -132,7 +132,7 @@ public class Faction
 		return DimBlockPos.ZERO;
 	}
 	
-	public void AdvanceDay()
+	public void IncreaseLegacy()
 	{
 		if(mHasHadAnyLoginsToday)
 		{
