@@ -33,6 +33,15 @@ public class WarForgeConfig
 	public static int DENSE_GOLD_OUTER_SHELL_RADIUS = 6;
 	public static float DENSE_GOLD_OUTER_SHELL_CHANCE = 0.05f;
 	
+	public static int DENSE_REDSTONE_CELL_SIZE = 1024;
+	public static int DENSE_REDSTONE_DEPOSIT_RADIUS = 12;
+	public static int DENSE_REDSTONE_MIN_INSTANCES_PER_CELL = 1;
+	public static int DENSE_REDSTONE_MAX_INSTANCES_PER_CELL = 1;
+	public static int DENSE_REDSTONE_MIN_HEIGHT = 6;
+	public static int DENSE_REDSTONE_MAX_HEIGHT = 14;
+	public static int DENSE_REDSTONE_OUTER_SHELL_RADIUS = 14;
+	public static float DENSE_REDSTONE_OUTER_SHELL_CHANCE = 0.05f;
+	
 	public static int DENSE_DIAMOND_CELL_SIZE = 128;
 	public static int DENSE_DIAMOND_DEPOSIT_RADIUS = 2;
 	public static int DENSE_DIAMOND_MIN_INSTANCES_PER_CELL = 1;
@@ -57,6 +66,24 @@ public class WarForgeConfig
 	public static float ANCIENT_OAK_MAX_TRUNK_RADIUS = 8f;
 	public static float ANCIENT_OAK_CORE_RADIUS = 2f;
 	public static float ANCIENT_OAK_MAX_HEIGHT = 128f;
+	
+	public static int SLIME_POOL_CELL_SIZE = 512;
+	public static int SLIME_POOL_LAKE_RADIUS = 16;
+	public static int SLIME_POOL_LAKE_CEILING_HEIGHT = 8;
+	public static int SLIME_POOL_MIN_INSTANCES_PER_CELL = 1;
+	public static int SLIME_POOL_MAX_INSTANCES_PER_CELL = 2;
+	public static int SLIME_POOL_MIN_HEIGHT = 15;
+	public static int SLIME_POOL_MAX_HEIGHT = 30;
+	
+	public static int SHULKER_FOSSIL_CELL_SIZE = 256;
+	public static float SHULKER_FOSSIL_MIN_ROTATIONS = 16f;
+	public static float SHULKER_FOSSIL_MAX_ROTATIONS = 8f;
+	public static float SHULKER_FOSSIL_RADIUS_PER_ROTATION = 3f;
+	public static int SHULKER_FOSSIL_MIN_INSTANCES_PER_CELL = 1;
+	public static int SHULKER_FOSSIL_MAX_INSTANCES_PER_CELL = 2;
+	public static float SHULKER_FOSSIL_DISC_THICKNESS = 8f;
+	public static int SHULKER_FOSSIL_MIN_HEIGHT = 12;
+	public static int SHULKER_FOSSIL_MAX_HEIGHT = 106;
 	
 	public static int CLAY_POOL_CHANCE = 32;
 	
@@ -91,6 +118,10 @@ public class WarForgeConfig
 	public static boolean QUARTZ_YIELD_AS_BLOCKS = false; // Otherwise, quartz pieces
 	public static float NUM_OAK_PER_DAY_PER_LOG = 0.05f;
 	public static boolean ANCIENT_OAK_YIELD_AS_LOGS = false; // Otherwise, planks 
+	public static float NUM_REDSTONE_PER_DAY_PER_ORE = 0.1f;
+	public static boolean REDSTONE_YIELD_AS_BLOCKS = false; // Otherwise, dust 
+	public static float NUM_SLIME_PER_DAY_PER_ORE = 0.1f;
+	public static float NUM_SHULKER_PER_DAY_PER_ORE = 0.01f;
 	
 	// Sieges
 	public static final String CATEGORY_SIEGES = "Sieges";
@@ -161,6 +192,8 @@ public class WarForgeConfig
 		public boolean PLAYER_DEAL_DAMAGE = true;
 		public boolean ALLOW_MOB_SPAWNS = true;
 		public boolean ALLOW_MOB_ENTRY = true;
+		public boolean ALLOW_MOUNT_ENTITY = true;
+		public boolean ALLOW_DISMOUNT_ENTITY = true;
 		
 		private String[] BLOCK_PLACE_EXCEPTION_IDS = new String[] { "minecraft:torch" };
 		private String[] BLOCK_BREAK_EXCEPTION_IDS = new String[] { "minecraft:torch" };
@@ -225,7 +258,10 @@ public class WarForgeConfig
 				
 			ALLOW_MOB_SPAWNS = configFile.getBoolean(name + " - Allow Mob Spawns", category, ALLOW_MOB_SPAWNS, "Can mobs spawn in " + desc);
 			ALLOW_MOB_ENTRY = configFile.getBoolean(name + " - Allow Mob Entry", category, ALLOW_MOB_ENTRY, "Can mobs enter " + desc);
-			
+
+			ALLOW_DISMOUNT_ENTITY = configFile.getBoolean(name + " - Allow Dismount Entity", category, ALLOW_DISMOUNT_ENTITY, "Can players dismount entities " + desc);
+			ALLOW_MOUNT_ENTITY = configFile.getBoolean(name + " - Allow Mount Entity", category, ALLOW_MOUNT_ENTITY, "Can players mount entities " + desc);
+
 		}
 	}
 	
@@ -250,6 +286,7 @@ public class WarForgeConfig
 		SAFE_ZONE.BLOCK_PLACE_EXCEPTION_IDS = new String[] {};	
 		SAFE_ZONE.BLOCK_INTERACT_EXCEPTION_IDS = new String[] { "minecraft:ender_chest", "minecraft:lever", "minecraft:button", "warforge:leaderboard" };
 		SAFE_ZONE.ALLOW_MOB_SPAWNS = false;				SAFE_ZONE.ALLOW_MOB_ENTRY = false;
+		SAFE_ZONE.ALLOW_MOUNT_ENTITY = false;			SAFE_ZONE.ALLOW_DISMOUNT_ENTITY = false;
 		
 		WAR_ZONE.BREAK_BLOCKS = false;					WAR_ZONE.PLACE_BLOCKS = false;						WAR_ZONE.INTERACT = true;						WAR_ZONE.USE_ITEM = true;
 		WAR_ZONE.PLAYER_TAKE_DAMAGE_FROM_MOB = true;	WAR_ZONE.PLAYER_TAKE_DAMAGE_FROM_PLAYER = true;		WAR_ZONE.PLAYER_TAKE_DAMAGE_FROM_OTHER = true;	WAR_ZONE.PLAYER_DEAL_DAMAGE = true;
@@ -260,6 +297,8 @@ public class WarForgeConfig
 	
 		CITADEL_FOE.BREAK_BLOCKS = false;				CITADEL_FOE.PLACE_BLOCKS = false;					CITADEL_FOE.INTERACT = false;					CITADEL_FOE.USE_ITEM = false;
 		CLAIM_FOE.BREAK_BLOCKS = false;					CLAIM_FOE.PLACE_BLOCKS = false;						CLAIM_FOE.INTERACT = false;						CLAIM_FOE.USE_ITEM = false;
+		CITADEL_FOE.ALLOW_MOUNT_ENTITY = false;			CITADEL_FOE.ALLOW_DISMOUNT_ENTITY = false;
+		CLAIM_FOE.ALLOW_MOUNT_ENTITY = false;			CLAIM_FOE.ALLOW_DISMOUNT_ENTITY = false;
 		
 		UNCLAIMED.EXPLOSION_DAMAGE = true;
 	}
@@ -298,6 +337,16 @@ public class WarForgeConfig
 		DENSE_GOLD_OUTER_SHELL_RADIUS = configFile.getInt("Dense Gold - Outer Shell Radius", CATEGORY_WORLD_GEN, DENSE_GOLD_OUTER_SHELL_RADIUS, 0, 32, "Radius in which to place vanilla ores");
 		DENSE_GOLD_OUTER_SHELL_CHANCE = configFile.getFloat("Dense Gold - Outer Shell Chance", CATEGORY_WORLD_GEN, DENSE_GOLD_OUTER_SHELL_CHANCE, 0f, 1f, "Percent of blocks in outer radius that are vanilla ores");
 
+		DENSE_REDSTONE_CELL_SIZE = configFile.getInt("Dense Redstone - Cell Size", CATEGORY_WORLD_GEN, DENSE_REDSTONE_CELL_SIZE, 8, 4096, "Divide the world into cells of this size and generate 1 or more deposits per cell");
+		DENSE_REDSTONE_DEPOSIT_RADIUS = configFile.getInt("Dense Redstone - Deposit Radius", CATEGORY_WORLD_GEN, DENSE_REDSTONE_DEPOSIT_RADIUS, 1, 16, "Radius of a deposit");
+		DENSE_REDSTONE_MIN_INSTANCES_PER_CELL = configFile.getInt("Dense Redstone - Min Deposits Per Cell", CATEGORY_WORLD_GEN, DENSE_REDSTONE_MIN_INSTANCES_PER_CELL, 0, 256, "Minimum number of deposits per cell");
+		DENSE_REDSTONE_MAX_INSTANCES_PER_CELL = configFile.getInt("Dense Redstone - Max Deposits Per Cell", CATEGORY_WORLD_GEN, DENSE_REDSTONE_MAX_INSTANCES_PER_CELL, 0, 256, "Maximum number of deposits per cell");
+		DENSE_REDSTONE_MIN_HEIGHT = configFile.getInt("Dense Redstone - Min Height", CATEGORY_WORLD_GEN, DENSE_REDSTONE_MIN_HEIGHT, 0, 256, "Minimum height of deposits");
+		DENSE_REDSTONE_MAX_HEIGHT = configFile.getInt("Dense Redstone - Max Height", CATEGORY_WORLD_GEN, DENSE_REDSTONE_MAX_HEIGHT, 0, 256, "Maximum height of deposits");
+		DENSE_REDSTONE_OUTER_SHELL_RADIUS = configFile.getInt("Dense Redstone - Outer Shell Radius", CATEGORY_WORLD_GEN, DENSE_REDSTONE_OUTER_SHELL_RADIUS, 0, 32, "Radius in which to place vanilla ores");
+		DENSE_REDSTONE_OUTER_SHELL_CHANCE = configFile.getFloat("Dense Redstone - Outer Shell Chance", CATEGORY_WORLD_GEN, DENSE_REDSTONE_OUTER_SHELL_CHANCE, 0f, 1f, "Percent of blocks in outer radius that are vanilla ores");
+
+		
 		DENSE_DIAMOND_CELL_SIZE = configFile.getInt("Dense Diamond - Cell Size", CATEGORY_WORLD_GEN, DENSE_DIAMOND_CELL_SIZE, 8, 4096, "Divide the world into cells of this size and generate 1 or more deposits per cell");
 		DENSE_DIAMOND_DEPOSIT_RADIUS = configFile.getInt("Dense Diamond - Deposit Radius", CATEGORY_WORLD_GEN, DENSE_DIAMOND_DEPOSIT_RADIUS, 1, 16, "Radius of a deposit");
 		DENSE_DIAMOND_MIN_INSTANCES_PER_CELL = configFile.getInt("Dense Diamond - Min Deposits Per Cell", CATEGORY_WORLD_GEN, DENSE_DIAMOND_MIN_INSTANCES_PER_CELL, 0, 256, "Minimum number of deposits per cell");
@@ -323,11 +372,29 @@ public class WarForgeConfig
 		ANCIENT_OAK_MAX_HEIGHT = configFile.getFloat("Ancient Oak - Max Height", CATEGORY_WORLD_GEN, ANCIENT_OAK_MAX_HEIGHT, 0f, 256f, "Max height of the tree");
 		ANCIENT_OAK_CHANCE = configFile.getFloat("Ancient Oak - Chance", CATEGORY_WORLD_GEN, ANCIENT_OAK_CHANCE, 0f, 1f, "Chance of the tree spawning in a cell");		
 		
+		SLIME_POOL_CELL_SIZE = configFile.getInt("Slime Pool - Cell Size", CATEGORY_WORLD_GEN, SLIME_POOL_CELL_SIZE, 8, 4096, "Divide the world into cells of this size and generate 1 or more deposits per cell");
+		SLIME_POOL_LAKE_RADIUS = configFile.getInt("Slime Pool - Lake Radius", CATEGORY_WORLD_GEN, SLIME_POOL_LAKE_RADIUS, 1, 64, "Radius of the lake");
+		SLIME_POOL_LAKE_CEILING_HEIGHT = configFile.getInt("Slime Pool - Lake Ceiling Height", CATEGORY_WORLD_GEN, SLIME_POOL_LAKE_CEILING_HEIGHT, 1, 64, "Height of the lake");
+		SLIME_POOL_MIN_INSTANCES_PER_CELL = configFile.getInt("Slime Pool - Min Deposits Per Cell", CATEGORY_WORLD_GEN, SLIME_POOL_MIN_INSTANCES_PER_CELL, 0, 256, "Minimum number of deposits per cell");
+		SLIME_POOL_MAX_INSTANCES_PER_CELL = configFile.getInt("Slime Pool - Max Deposits Per Cell", CATEGORY_WORLD_GEN, SLIME_POOL_MAX_INSTANCES_PER_CELL, 0, 256, "Maximum number of deposits per cell");
+		SLIME_POOL_MIN_HEIGHT = configFile.getInt("Slime Pool - Min Height", CATEGORY_WORLD_GEN, SLIME_POOL_MIN_HEIGHT, 0, 256, "Minimum height of deposits");
+		SLIME_POOL_MAX_HEIGHT = configFile.getInt("Slime Pool - Max Height", CATEGORY_WORLD_GEN, SLIME_POOL_MAX_HEIGHT, 0, 256, "Maximum height of deposits");
+		
+		SHULKER_FOSSIL_CELL_SIZE = configFile.getInt("Shulker Fossil - Cell Size", CATEGORY_WORLD_GEN, SHULKER_FOSSIL_CELL_SIZE, 8, 4096, "Divide the world into cells of this size and generate 1 or more deposits per cell");
+		SHULKER_FOSSIL_MIN_INSTANCES_PER_CELL = configFile.getInt("Shulker Fossil - Min Deposits Per Cell", CATEGORY_WORLD_GEN, SHULKER_FOSSIL_MIN_INSTANCES_PER_CELL, 0, 256, "Minimum number of deposits per cell");
+		SHULKER_FOSSIL_MAX_INSTANCES_PER_CELL = configFile.getInt("Shulker Fossil - Max Deposits Per Cell", CATEGORY_WORLD_GEN, SHULKER_FOSSIL_MAX_INSTANCES_PER_CELL, 0, 256, "Maximum number of deposits per cell");
+		SHULKER_FOSSIL_MIN_HEIGHT = configFile.getInt("Shulker Fossil - Min Height", CATEGORY_WORLD_GEN, SHULKER_FOSSIL_MIN_HEIGHT, 0, 256, "Minimum height of deposits");
+		SHULKER_FOSSIL_MAX_HEIGHT = configFile.getInt("Shulker Fossil - Max Height", CATEGORY_WORLD_GEN, SHULKER_FOSSIL_MAX_HEIGHT, 0, 256, "Maximum height of deposits");
+		SHULKER_FOSSIL_MIN_ROTATIONS = configFile.getFloat("Shulker Fossil - Min Rotations", CATEGORY_WORLD_GEN, SHULKER_FOSSIL_MIN_ROTATIONS, 1f, 16f, "Minimum number of spirals on the fossil");
+		SHULKER_FOSSIL_MAX_ROTATIONS = configFile.getFloat("Shulker Fossil - Max Rotations", CATEGORY_WORLD_GEN, SHULKER_FOSSIL_MAX_ROTATIONS, 1f, 16f, "Maximum number of spirals on the fossil");
+		SHULKER_FOSSIL_RADIUS_PER_ROTATION = configFile.getFloat("Shulker Fossil - Radius Per Rotation", CATEGORY_WORLD_GEN, SHULKER_FOSSIL_RADIUS_PER_ROTATION, 1f, 16f, "The radius added for each spiral");
+		SHULKER_FOSSIL_DISC_THICKNESS = configFile.getFloat("Shulker Fossil - Disc Thickness", CATEGORY_WORLD_GEN, SHULKER_FOSSIL_DISC_THICKNESS, 1f, 16f, "Thickness of the fossil at its widest point");
+		
+		
 		CLAY_POOL_CHANCE = configFile.getInt("Clay Pool Rarity", CATEGORY_WORLD_GEN, CLAY_POOL_CHANCE, 1, 1024, "Chance of a clay pool appearing per chunk");
 		
 		QUARTZ_PILLAR_CHANCE = configFile.getInt("Quartz Pillar Rarity", CATEGORY_WORLD_GEN, QUARTZ_PILLAR_CHANCE, 1, 1024, "Chance of a quartz pillar appearing per chunk");
-			
-		
+
 		
 		// Claim Settings
 		CLAIM_STRENGTH_CITADEL = configFile.getInt("Citadel Claim Strength", CATEGORY_CLAIMS, CLAIM_STRENGTH_CITADEL, 1, 1024, "The strength of citadel claims");
@@ -365,15 +432,16 @@ public class WarForgeConfig
 		NUM_QUARTZ_PER_DAY_PER_ORE = configFile.getFloat("#Quartz Per Day Per Ore", CATEGORY_YIELDS, NUM_QUARTZ_PER_DAY_PER_ORE, 0.001f, 1000f, "For each dense quartz ore block in a claim, how many resources do players get per yield timer");
 		NUM_CLAY_PER_DAY_PER_ORE = configFile.getFloat("#Clay Per Day Per Dense Clay", CATEGORY_YIELDS, NUM_CLAY_PER_DAY_PER_ORE, 0.001f, 1000f, "For each dense clay block in a claim, how many resources do players get per yield timer");
 		NUM_OAK_PER_DAY_PER_LOG = configFile.getFloat("#Log Per Day Per Ancient Oak", CATEGORY_YIELDS, NUM_OAK_PER_DAY_PER_LOG, 0.001f, 1000f, "For each ancient oak block in a claim, how many resources do players get per yield timer");
+		NUM_REDSTONE_PER_DAY_PER_ORE = configFile.getFloat("#Redstone Per Day Per Ore", CATEGORY_YIELDS, NUM_REDSTONE_PER_DAY_PER_ORE, 0.001f, 1000f, "For each dense redstone ore block in a claim, how many resources do players get per yield timer");
+		NUM_SLIME_PER_DAY_PER_ORE = configFile.getFloat("#Slime Per Day Per Block", CATEGORY_YIELDS, NUM_SLIME_PER_DAY_PER_ORE, 0.001f, 1000f, "For each dense slime block in a claim, how many resources do players get per yield timer");
 		IRON_YIELD_AS_ORE = configFile.getBoolean("Iron Yield As Ore", CATEGORY_YIELDS, IRON_YIELD_AS_ORE, "If true, dense iron ore gives ore blocks. If false, it gives ingots");
 		GOLD_YIELD_AS_ORE = configFile.getBoolean("Gold Yield As Ore", CATEGORY_YIELDS, GOLD_YIELD_AS_ORE, "If true, dense gold ore gives ore blocks. If false, it gives ingots");
 		DIAMOND_YIELD_AS_ORE = configFile.getBoolean("Diamond Yield As Ore", CATEGORY_YIELDS, DIAMOND_YIELD_AS_ORE, "If true, dense diamond ore gives ore blocks. If false, it gives diamonds");
 		CLAY_YIELD_AS_BLOCKS = configFile.getBoolean("Clay Yield As Blocks", CATEGORY_YIELDS, CLAY_YIELD_AS_BLOCKS, "If true, dense clay gives clay blocks. If false, it gives clay balls");
 		QUARTZ_YIELD_AS_BLOCKS = configFile.getBoolean("Quartz Yield As Blocks", CATEGORY_YIELDS, QUARTZ_YIELD_AS_BLOCKS, "If true, dense quartz ore gives quartz blocks. If false, it gives quartz items");
-		ANCIENT_OAK_YIELD_AS_LOGS = configFile.getBoolean("Ancient Oak Yield As Logs", CATEGORY_YIELDS, DIAMOND_YIELD_AS_ORE, "If true, ancient oak gives logs. If false, it gives planks");
-		YIELD_DAY_LENGTH = configFile.getFloat("Yield Day Length", CATEGORY_YIELDS, YIELD_DAY_LENGTH, 0.0001f, 100000f, "The length of time between yields, in real-world hours.");
-				
-	
+		ANCIENT_OAK_YIELD_AS_LOGS = configFile.getBoolean("Ancient Oak Yield As Logs", CATEGORY_YIELDS, ANCIENT_OAK_YIELD_AS_LOGS, "If true, ancient oak gives logs. If false, it gives planks");
+		REDSTONE_YIELD_AS_BLOCKS = configFile.getBoolean("Redstone Yield As Blocks", CATEGORY_YIELDS, REDSTONE_YIELD_AS_BLOCKS, "If true, redstone ore gives redstone blocks. If false, it gives redstone dust");
+		YIELD_DAY_LENGTH = configFile.getFloat("Yield Day Length", CATEGORY_YIELDS, YIELD_DAY_LENGTH, 0.0001f, 100000f, "The length of time between yields, in real-world hours.");	
 		
 		// Notoriety
 		NOTORIETY_PER_PLAYER_KILL = configFile.getInt("Notoriety gain per PVP kill", CATEGORY_NOTORIETY, NOTORIETY_PER_PLAYER_KILL, 0, 1024, "How much notoriety a player earns for their faction when killing another player");

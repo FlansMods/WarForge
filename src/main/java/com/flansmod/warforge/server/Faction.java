@@ -19,7 +19,10 @@ import com.flansmod.warforge.server.Leaderboard.FactionStat;
 import com.mojang.authlib.GameProfile;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagIntArray;
@@ -224,7 +227,7 @@ public class Faction
 		for(HashMap.Entry<UUID, PlayerData> entry : mMembers.entrySet())
 		{
 			// Set the target player as leader
-			if(entry.getKey() == playerID)
+			if(entry.getKey().equals(playerID))
 				entry.getValue().mRole = Role.LEADER;
 			// And set any existing leaders to officers
 			else if(entry.getValue().mRole == Role.LEADER)
@@ -301,7 +304,11 @@ public class Faction
 	public void OnClaimLost(DimBlockPos claimBlockPos) 
 	{
 		// Destroy our claim block
-		WarForgeMod.MC_SERVER.getWorld(claimBlockPos.mDim).setBlockToAir(claimBlockPos);
+		World world = WarForgeMod.MC_SERVER.getWorld(claimBlockPos.mDim);
+		IBlockState claimBlock = world.getBlockState(claimBlockPos.ToRegularPos());
+		ItemStack drop = new ItemStack(Item.getItemFromBlock(claimBlock.getBlock()));
+		world.setBlockToAir(claimBlockPos);
+		world.spawnEntity(new EntityItem(world, claimBlockPos.getX() + 0.5d, claimBlockPos.getY() + 0.5d, claimBlockPos.getZ() + 0.5d, drop));
 		
 		// Uh oh
 		if(claimBlockPos.equals(mCitadelPos))
@@ -455,7 +462,12 @@ public class Faction
 		if(data != null)
 		{
 			if(data.mRole == Role.MEMBER)
+			{
 				data.mRole = Role.OFFICER;
+				GameProfile profile = WarForgeMod.MC_SERVER.getPlayerProfileCache().getProfileByUUID(playerID);
+				if(profile != null)
+					MessageAll(new TextComponentString(profile.getName() + " was promoted to officer"));
+			}
 		}
 	}
 	
@@ -465,7 +477,12 @@ public class Faction
 		if(data != null)
 		{
 			if(data.mRole == Role.OFFICER)
+			{
 				data.mRole = Role.MEMBER;
+				GameProfile profile = WarForgeMod.MC_SERVER.getPlayerProfileCache().getProfileByUUID(playerID);
+				if(profile != null)
+					MessageAll(new TextComponentString(profile.getName() + " was demoted to member"));
+			}
 		}
 	}
 	

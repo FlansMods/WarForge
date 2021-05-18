@@ -97,6 +97,8 @@ import com.flansmod.warforge.common.world.WorldGenBedrockOre;
 import com.flansmod.warforge.common.world.WorldGenClayPool;
 import com.flansmod.warforge.common.world.WorldGenDenseOre;
 import com.flansmod.warforge.common.world.WorldGenNetherPillar;
+import com.flansmod.warforge.common.world.WorldGenShulkerFossil;
+import com.flansmod.warforge.common.world.WorldGenSlimeFountain;
 import com.flansmod.warforge.server.CommandFactions;
 import com.flansmod.warforge.server.Faction;
 import com.flansmod.warforge.server.ServerTickHandler;
@@ -114,7 +116,7 @@ public class WarForgeMod
 {
     public static final String MODID = "warforge";
     public static final String NAME = "WarForge Factions";
-    public static final String VERSION = "1.1.7";
+    public static final String VERSION = "1.2.0";
     
 	@Instance(MODID)
 	public static WarForgeMod INSTANCE;
@@ -534,11 +536,13 @@ public class WarForgeMod
     }
         
     // World Generation
-	private WorldGenDenseOre ironGenerator, goldGenerator;
+	private WorldGenDenseOre ironGenerator, goldGenerator, redstoneGenerator;
 	private WorldGenBedrockOre diamondGenerator, magmaGenerator;
 	private WorldGenAncientTree ancientTreeGenerator;
 	private WorldGenClayPool clayLakeGenerator;
 	private WorldGenNetherPillar quartzPillarGenerator;
+	private WorldGenSlimeFountain slimeGenerator;
+	private WorldGenShulkerFossil shulkerGenerator;
 	
 	@SubscribeEvent
 	public void populateOverworldChunk(PopulateChunkEvent event)
@@ -562,7 +566,12 @@ public class WarForgeMod
 				magmaGenerator = new WorldGenBedrockOre(CONTENT.magmaVentBlock.getDefaultState(), Blocks.LAVA.getDefaultState(), 
 						WarForgeConfig.MAGMA_VENT_CELL_SIZE, WarForgeConfig.MAGMA_VENT_DEPOSIT_RADIUS, WarForgeConfig.MAGMA_VENT_OUTER_SHELL_RADIUS, WarForgeConfig.MAGMA_VENT_OUTER_SHELL_CHANCE,
 						WarForgeConfig.MAGMA_VENT_MIN_INSTANCES_PER_CELL, WarForgeConfig.MAGMA_VENT_MAX_INSTANCES_PER_CELL, WarForgeConfig.MAGMA_VENT_MIN_HEIGHT, WarForgeConfig.MAGMA_VENT_MAX_HEIGHT);
-		
+			if(redstoneGenerator == null)
+				redstoneGenerator = new WorldGenDenseOre(CONTENT.denseRedstoneOreBlock.getDefaultState(), Blocks.REDSTONE_ORE.getDefaultState(), 
+						WarForgeConfig.DENSE_REDSTONE_CELL_SIZE, WarForgeConfig.DENSE_REDSTONE_DEPOSIT_RADIUS, WarForgeConfig.DENSE_REDSTONE_OUTER_SHELL_RADIUS, WarForgeConfig.DENSE_REDSTONE_OUTER_SHELL_CHANCE,
+						WarForgeConfig.DENSE_REDSTONE_MIN_INSTANCES_PER_CELL, WarForgeConfig.DENSE_REDSTONE_MAX_INSTANCES_PER_CELL, WarForgeConfig.DENSE_REDSTONE_MIN_HEIGHT, WarForgeConfig.DENSE_REDSTONE_MAX_HEIGHT);
+
+			
 			if(ancientTreeGenerator == null)
 				ancientTreeGenerator = new WorldGenAncientTree(CONTENT.ancientOakBlock.getDefaultState(), Blocks.LOG2.getDefaultState().withProperty(BlockNewLog.VARIANT, EnumType.DARK_OAK), Blocks.LEAVES2.getDefaultState().withProperty(BlockNewLeaf.VARIANT, EnumType.DARK_OAK), 
 						WarForgeConfig.ANCIENT_OAK_CELL_SIZE, WarForgeConfig.ANCIENT_OAK_CHANCE, WarForgeConfig.ANCIENT_OAK_HOLE_RADIUS, 
@@ -571,11 +580,19 @@ public class WarForgeMod
 			if(clayLakeGenerator == null)
 				clayLakeGenerator = new WorldGenClayPool(CONTENT.denseClayBlock, Blocks.CLAY, Blocks.WATER);
 			
+			if(slimeGenerator == null)
+				slimeGenerator = new WorldGenSlimeFountain(CONTENT.denseSlimeBlock.getDefaultState(), Blocks.WATER.getDefaultState(), Blocks.SLIME_BLOCK.getDefaultState(), 
+						WarForgeConfig.SLIME_POOL_CELL_SIZE, WarForgeConfig.SLIME_POOL_LAKE_RADIUS, WarForgeConfig.SLIME_POOL_LAKE_CEILING_HEIGHT, 
+						WarForgeConfig.SLIME_POOL_MIN_INSTANCES_PER_CELL, WarForgeConfig.SLIME_POOL_MAX_INSTANCES_PER_CELL, 
+						WarForgeConfig.SLIME_POOL_MIN_HEIGHT, WarForgeConfig.SLIME_POOL_MAX_HEIGHT);			
+			
 			ironGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
 			goldGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
+			redstoneGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
 			diamondGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
 			magmaGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
 			ancientTreeGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
+			slimeGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
 			
 			if(rand.nextInt(WarForgeConfig.CLAY_POOL_CHANCE) == 0)
 				clayLakeGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
@@ -590,6 +607,17 @@ public class WarForgeMod
 			{
 				quartzPillarGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
 			}
+		}
+		else if(event.getWorld().provider.getDimension() == 1)
+		{
+			if(shulkerGenerator == null)
+				shulkerGenerator = new WorldGenShulkerFossil(Blocks.END_STONE.getDefaultState(), CONTENT.shulkerFossilBlock.getDefaultState(),
+						WarForgeConfig.SHULKER_FOSSIL_CELL_SIZE, WarForgeConfig.SHULKER_FOSSIL_MIN_INSTANCES_PER_CELL, WarForgeConfig.SHULKER_FOSSIL_MAX_INSTANCES_PER_CELL,
+						WarForgeConfig.SHULKER_FOSSIL_MIN_ROTATIONS, WarForgeConfig.SHULKER_FOSSIL_MAX_ROTATIONS, WarForgeConfig.SHULKER_FOSSIL_RADIUS_PER_ROTATION,
+						WarForgeConfig.SHULKER_FOSSIL_DISC_THICKNESS, WarForgeConfig.SHULKER_FOSSIL_MIN_HEIGHT, WarForgeConfig.SHULKER_FOSSIL_MAX_HEIGHT
+						);
+			
+			shulkerGenerator.generate(event.getWorld(), event.getRand(), new BlockPos(event.getChunkX() * 16, 128, event.getChunkZ() * 16));
 		}
 	}
 

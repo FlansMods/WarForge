@@ -92,7 +92,8 @@ public class WorldGenDenseOre extends WorldGenerator
 						BlockPos delta = depositPosA.subtract(p);
 						
 						if(world.getBlockState(p).getBlock() == Blocks.WATER
-						|| world.getBlockState(p).getBlock() == Blocks.FLOWING_WATER)
+						|| world.getBlockState(p).getBlock() == Blocks.FLOWING_WATER
+						|| world.getBlockState(p).getBlock() == Blocks.BEDROCK)
 						{
 							continue;
 						}

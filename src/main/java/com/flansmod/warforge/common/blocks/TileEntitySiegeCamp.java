@@ -52,6 +52,7 @@ public class TileEntitySiegeCamp extends TileEntityClaim
 			{
 				faction.MessageAll(new TextComponentString("The siege at " + GetPos().ToFancyString() + " ended when all player flags were removed"));
 				
+				WarForgeMod.FACTIONS.EndSiege(GetPos());
 				faction.OnClaimLost(GetPos());
 			}
 		}

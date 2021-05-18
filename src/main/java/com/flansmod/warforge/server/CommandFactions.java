@@ -60,12 +60,12 @@ public class CommandFactions extends CommandBase
 	
 	private static final String[] tabCompletions = new String[] { 
 			"invite", "accept", "disband", "expel", "leave", "time", "info", "top", "notoriety", "wealth", "legacy",
-			"promote", "demote", "msg", "flag",
+			"promote", "demote", "msg", "flag", "setleader",
 	};
 	
 	private static final String[] tabCompletionsOp = new String[] { 
 			"invite", "accept", "disband", "expel", "leave", "time", "info", "top", "notoriety", "wealth", "legacy",
-			"promote", "demote", "msg", "flag",
+			"promote", "demote", "msg", "flag", "setleader",
 			"safe", "war", "protection", "resetflagcooldowns",
 	};
 	
@@ -87,6 +87,7 @@ public class CommandFactions extends CommandBase
         		case "expel":
         		case "demote":
         		case "promote":
+        		case "setleader":
         			return getListOfStringsMatchingLastWord(args, server.getOnlinePlayerNames());
         		default: 
         			return getListOfStringsMatchingLastWord(args, new String[0]);
@@ -251,6 +252,41 @@ public class CommandFactions extends CommandBase
 				if(sender instanceof EntityPlayer)
 				{
 					WarForgeMod.FACTIONS.RequestRemovePlayerFromFaction(sender, faction.mUUID, ((EntityPlayer) sender).getUniqueID());
+				}
+				else
+				{
+					sender.sendMessage(new TextComponentString("This command is only for players"));
+				}
+				break;
+			}
+			case "setleader":
+			{
+				if(sender instanceof EntityPlayer)
+				{
+					if(args.length < 2)
+					{
+						sender.sendMessage(new TextComponentString("Please specify the new leader /f setleader <name>"));
+					}
+					else
+					{
+						GameProfile profile = WarForgeMod.MC_SERVER.getPlayerProfileCache().getGameProfileForUsername(args[1]);
+						if(profile == null)
+						{
+							sender.sendMessage(new TextComponentString("Could not find player " + args[1]));
+						}
+						else
+						{
+							Faction targetFaction = WarForgeMod.FACTIONS.GetFactionOfPlayer(profile.getId());
+							if(targetFaction == null)
+							{
+								sender.sendMessage(new TextComponentString("That player is not in a faction"));
+							}
+							else
+							{
+								WarForgeMod.FACTIONS.RequestTransferLeadership((EntityPlayer)sender, targetFaction.mUUID, profile.getId());
+							}
+						}
+					}
 				}
 				else
 				{

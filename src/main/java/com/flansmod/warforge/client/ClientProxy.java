@@ -116,6 +116,9 @@ public class ClientProxy extends CommonProxy
 		RegisterModel(WarForgeMod.CONTENT.denseQuartzOreItem);
 		RegisterModel(WarForgeMod.CONTENT.denseClayItem);
 		RegisterModel(WarForgeMod.CONTENT.ancientOakItem);
+		RegisterModel(WarForgeMod.CONTENT.denseRedstoneOreItem);
+		RegisterModel(WarForgeMod.CONTENT.denseSlimeItem);
+		RegisterModel(WarForgeMod.CONTENT.shulkerFossilItem);
 		
 		RegisterModel(WarForgeMod.CONTENT.topLeaderboardItem);
 		RegisterModel(WarForgeMod.CONTENT.legacyLeaderboardItem);

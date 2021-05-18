@@ -148,6 +148,8 @@ public class FactionStorage
 			TileEntity tileEntity = claim.GetAsTileEntity();
 			mClaims.put(claim.GetPos().ToChunkPos(), faction.mUUID);
 			
+			faction.MessageAll(new TextComponentString("Claimed the chunk [" + claim.GetPos().ToChunkPos().x + ", " + claim.GetPos().ToChunkPos().z + "] around " + claim.GetPos().ToFancyString()));
+			
 			claim.OnServerSetFaction(faction);
 			faction.OnClaimPlaced(claim);
 		}
@@ -540,7 +542,14 @@ public class FactionStorage
     		return false;
     	}
     	
-    	faction.SetLeader(newLeaderID);
+    	// Do the set
+    	if(!faction.SetLeader(newLeaderID))
+    	{
+    		factionLeader.sendMessage(new TextComponentString("Failed to set leader"));
+    		return false;
+    	}
+    	
+    	factionLeader.sendMessage(new TextComponentString("Successfully set leader"));
     	return true;
     }
     
@@ -691,6 +700,16 @@ public class FactionStorage
     	return true;
     }
     
+	public void EndSiege(DimBlockPos getPos) 
+	{
+		Siege siege = mSieges.get(getPos.ToChunkPos());
+		if(siege != null)
+		{
+			siege.OnCancelled();
+			mSieges.remove(getPos.ToChunkPos());
+		}
+	}
+    
 	public boolean RequestOpClaim(EntityPlayer op, DimChunkPos pos, UUID factionID) 
 	{
 		Faction zone = GetFaction(factionID);
@@ -791,7 +810,7 @@ public class FactionStorage
 			return false;
 		}
 		
-		if(!WarForgeMod.IsOp(player) && faction.IsPlayerRoleInFaction(player.getUniqueID(), Role.OFFICER))
+		if(!WarForgeMod.IsOp(player) && !faction.IsPlayerRoleInFaction(player.getUniqueID(), Role.OFFICER))
 		{
 			player.sendMessage(new TextComponentString("You are not an officer of the faction"));
 			return false;
@@ -813,7 +832,9 @@ public class FactionStorage
 		}
 		
 		faction.OnClaimLost(pos);
+		mClaims.remove(pos.ToChunkPos());
 		faction.MessageAll(new TextComponentString(player.getName() + " unclaimed " + pos.ToFancyString()));
+		
 		
 		return true;
 	}
@@ -1009,5 +1030,7 @@ public class FactionStorage
 			}
 		}
 	}
+
+
 
 }

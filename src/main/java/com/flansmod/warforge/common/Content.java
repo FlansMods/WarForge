@@ -33,9 +33,11 @@ public class Content
 	public Item citadelBlockItem, basicClaimBlockItem, reinforcedClaimBlockItem, siegeCampBlockItem;
 	
 	public Block denseIronOreBlock, denseGoldOreBlock, denseDiamondOreBlock, magmaVentBlock,
-		denseQuartzOreBlock, denseClayBlock, ancientOakBlock;
+		denseQuartzOreBlock, denseClayBlock, ancientOakBlock, denseRedstoneOreBlock, denseSlimeBlock,
+		shulkerFossilBlock;
 	public Item denseIronOreItem, denseGoldOreItem, denseDiamondOreItem, magmaVentItem,
-		denseQuartzOreItem, denseClayItem, ancientOakItem;
+		denseQuartzOreItem, denseClayItem, ancientOakItem, denseRedstoneOreItem, denseSlimeItem,
+		shulkerFossilItem;
 	
 	public Block adminClaimBlock;
 	public Item adminClaimBlockItem;
@@ -76,6 +78,10 @@ public class Content
         denseQuartzOreBlock = new BlockYieldProvider(Material.ROCK, WarForgeConfig.QUARTZ_YIELD_AS_BLOCKS ? new ItemStack(Blocks.QUARTZ_BLOCK) : new ItemStack(Items.QUARTZ), WarForgeConfig.NUM_QUARTZ_PER_DAY_PER_ORE).setRegistryName("densequartzore").setUnlocalizedName("densequartzore");
         denseClayBlock = new BlockYieldProvider(Material.CLAY, WarForgeConfig.CLAY_YIELD_AS_BLOCKS ? new ItemStack(Blocks.CLAY) : new ItemStack(Items.CLAY_BALL), WarForgeConfig.NUM_CLAY_PER_DAY_PER_ORE).setRegistryName("denseclay").setUnlocalizedName("denseclay");
         ancientOakBlock = new BlockYieldProvider(Material.WOOD, WarForgeConfig.ANCIENT_OAK_YIELD_AS_LOGS ? new ItemStack(Blocks.LOG2, 1, 1) : new ItemStack(Blocks.PLANKS, 1, 5), WarForgeConfig.NUM_OAK_PER_DAY_PER_LOG).setRegistryName("ancientoak").setUnlocalizedName("ancientoak");
+        denseRedstoneOreBlock = new BlockYieldProvider(Material.ROCK, WarForgeConfig.REDSTONE_YIELD_AS_BLOCKS ? new ItemStack(Blocks.REDSTONE_BLOCK) : new ItemStack(Items.REDSTONE), WarForgeConfig.NUM_REDSTONE_PER_DAY_PER_ORE).setRegistryName("denseredstoneore").setUnlocalizedName("denseredstoneore");
+        denseSlimeBlock = new BlockYieldProvider(Material.SPONGE, new ItemStack(Items.SLIME_BALL), WarForgeConfig.NUM_SLIME_PER_DAY_PER_ORE).setRegistryName("denseslime").setUnlocalizedName("denseslime");
+        shulkerFossilBlock = new BlockYieldProvider(Material.ROCK, new ItemStack(Items.SHULKER_SHELL), WarForgeConfig.NUM_SHULKER_PER_DAY_PER_ORE).setRegistryName("shulkerfossil").setUnlocalizedName("shulkerfossil");
+
         
         denseIronOreItem = new ItemBlock(denseIronOreBlock).setRegistryName("denseironore").setUnlocalizedName("denseironore");
         denseGoldOreItem = new ItemBlock(denseGoldOreBlock).setRegistryName("densegoldore").setUnlocalizedName("densegoldore");
@@ -84,7 +90,10 @@ public class Content
         denseClayItem = new ItemBlock(denseClayBlock).setRegistryName("denseclay").setUnlocalizedName("denseclay");
         denseQuartzOreItem = new ItemBlock(denseQuartzOreBlock).setRegistryName("densequartzore").setUnlocalizedName("densequartzore");
         ancientOakItem = new ItemBlock(ancientOakBlock).setRegistryName("ancientoak").setUnlocalizedName("ancientoak");
-    
+        denseRedstoneOreItem = new ItemBlock(denseRedstoneOreBlock).setRegistryName("denseredstoneore").setUnlocalizedName("denseredstoneore");
+        denseSlimeItem = new ItemBlock(denseSlimeBlock).setRegistryName("denseslime").setUnlocalizedName("denseslime");
+        shulkerFossilItem = new ItemBlock(shulkerFossilBlock).setRegistryName("shulkerfossil").setUnlocalizedName("shulkerfossil");
+                        
         topLeaderboardBlock = new BlockLeaderboard(Material.ROCK, FactionStat.TOTAL).setRegistryName("topleaderboard").setUnlocalizedName("topleaderboard");
         wealthLeaderboardBlock = new BlockLeaderboard(Material.ROCK, FactionStat.WEALTH).setRegistryName("wealthleaderboard").setUnlocalizedName("wealthleaderboard");
         notorietyLeaderboardBlock = new BlockLeaderboard(Material.ROCK, FactionStat.NOTORIETY).setRegistryName("notorietyleaderboard").setUnlocalizedName("notorietyleaderboard");
@@ -109,8 +118,11 @@ public class Content
 		event.getRegistry().register(adminClaimBlockItem);
 		event.getRegistry().register(denseIronOreItem);
 		event.getRegistry().register(denseGoldOreItem);
+		event.getRegistry().register(denseSlimeItem);
+		event.getRegistry().register(shulkerFossilItem);
 		event.getRegistry().register(denseDiamondOreItem);
 		event.getRegistry().register(denseQuartzOreItem);
+		event.getRegistry().register(denseRedstoneOreItem);
 		event.getRegistry().register(denseClayItem);
 		event.getRegistry().register(ancientOakItem);
 		event.getRegistry().register(magmaVentItem);
@@ -131,8 +143,11 @@ public class Content
 		event.getRegistry().register(adminClaimBlock);
 		event.getRegistry().register(denseIronOreBlock);
 		event.getRegistry().register(denseGoldOreBlock);
+		event.getRegistry().register(denseSlimeBlock);
+		event.getRegistry().register(shulkerFossilBlock);
 		event.getRegistry().register(denseDiamondOreBlock);
 		event.getRegistry().register(denseQuartzOreBlock);
+		event.getRegistry().register(denseRedstoneOreBlock);
 		event.getRegistry().register(denseClayBlock);
 		event.getRegistry().register(ancientOakBlock);
 		event.getRegistry().register(magmaVentBlock);

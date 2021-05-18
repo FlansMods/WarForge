@@ -27,6 +27,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityEvent.EnteringChunk;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraftforge.event.entity.EntityMountEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -104,6 +105,25 @@ public class ProtectionsModule
 		}
 		
 		return WarForgeConfig.UNCLAIMED;
+	}
+	
+	@SubscribeEvent
+	public void OnDismount(EntityMountEvent event)
+	{
+		if(event.getEntity().world.isRemote)
+    		return;
+		
+		if(event.getEntityMounting() instanceof EntityPlayer)
+		{
+			DimBlockPos vehiclePos = new DimBlockPos(event.getEntityBeingMounted().dimension, event.getEntityBeingMounted().getPosition());
+	    	ProtectionConfig mountConfig = GetProtections(event.getEntityMounting().getUniqueID(), vehiclePos);
+	    	
+	    	if(event.isMounting() && !mountConfig.ALLOW_MOUNT_ENTITY)
+	    		event.setCanceled(true);
+	    	
+	    	if(event.isDismounting() && !mountConfig.ALLOW_DISMOUNT_ENTITY)
+	    		event.setCanceled(true);    	
+		}
 	}
 	
 	@SubscribeEvent
@@ -317,7 +337,10 @@ public class ProtectionsModule
 		    	if(!config.ALLOW_MOB_ENTRY)
 		    	{
 		    		inLoop = true;
-		    		event.getEntity().move(MoverType.SELF, event.getOldChunkX() - event.getNewChunkX(), 0d, event.getOldChunkZ() - event.getNewChunkZ());
+		    		boolean wasNoClip = event.getEntity().noClip;
+		    		event.getEntity().noClip = true;
+		    		event.getEntity().move(MoverType.SELF, (event.getOldChunkX() - event.getNewChunkX()), 0d, (event.getOldChunkZ() - event.getNewChunkZ()));
+		    		event.getEntity().noClip = wasNoClip;
 		    		inLoop = false;
 		    	}
     		}
